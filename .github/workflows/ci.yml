@@ -1,105 +1,104 @@
-#name: CI
-#
-#on:
-#  push:
-#    branches: [main]
-#  pull_request:
-#    branches: [main]
-#    types: [opened, synchronize, reopened]
-#
-#concurrency:
-#  group: ${{ github.workflow }}-${{ github.ref }}
-#  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
-#
-#env:
-#  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-#  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-#
-#jobs:
-#  lint:
-#    name: Lint
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#
-#      - uses: pnpm/action-setup@v4
-#        with:
-#          version: 11
-#
-#      - uses: actions/setup-node@v4
-#        with:
-#          node-version: 20
-#          cache: pnpm
-#
-#      - name: Install dependencies
-#        run: pnpm install --frozen-lockfile
-#
-#      - name: Lint
-#        run: pnpm lint
-#
-#  typecheck:
-#    name: Type Check
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#
-#      - uses: pnpm/action-setup@v4
-#        with:
-#          version: 11
-#
-#      - uses: actions/setup-node@v4
-#        with:
-#          node-version: 20
-#          cache: pnpm
-#
-#      - name: Install dependencies
-#        run: pnpm install --frozen-lockfile
-#
-#      - name: Type check
-#        run: pnpm check-types
-#
-#  format:
-#    name: Format
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v4
-#
-#      - uses: pnpm/action-setup@v4
-#        with:
-#          version: 11
-#
-#      - uses: actions/setup-node@v4
-#        with:
-#          node-version: 20
-#          cache: pnpm
-#
-#      - name: Install dependencies
-#        run: pnpm install --frozen-lockfile
-#
-#      - name: Check formatting
-#        run: pnpm format:check
-#
-#  commitlint:
-#    name: Commit Messages
-#    runs-on: ubuntu-latest
-#    if: github.event_name == 'pull_request'
-#    steps:
-#      - uses: actions/checkout@v4
-#        with:
-#          fetch-depth: 0
-#
-#      - uses: pnpm/action-setup@v4
-#        with:
-#          version: 11
-#
-#      - uses: actions/setup-node@v4
-#        with:
-#          node-version: 20
-#          cache: pnpm
-#
-#      - name: Install dependencies
-#        run: pnpm install --frozen-lockfile
-#
-#      - name: Validate commit messages
-#        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
-#
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+        types: [opened, synchronize, reopened]
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+    TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+    TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+jobs:
+    lint:
+        name: Lint
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 11
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: pnpm
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Lint
+              run: pnpm lint
+
+    typecheck:
+        name: Type Check
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 11
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: pnpm
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Type check
+              run: pnpm check-types
+
+    format:
+        name: Format
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 11
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: pnpm
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Check formatting
+              run: pnpm format:check
+
+    commitlint:
+        name: Commit Messages
+        runs-on: ubuntu-latest
+        if: github.event_name == 'pull_request'
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 11
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+                  cache: pnpm
+
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Validate commit messages
+              run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
