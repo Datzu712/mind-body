@@ -57,6 +57,7 @@ module.exports = defineConfig([
             '**/__tests__/**',
             '**/?(*.)+(spec|test).[jt]s?(x)',
             'old/**',
+            '**/apps/dashboard/**',
         ],
     },
 ]);

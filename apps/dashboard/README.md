@@ -36,6 +36,13 @@ Start the desktop app (Tauri):
 pnpm tauri dev
 ```
 
+## TODO
+
+- [ ] Move all tauri-related code to a separate app (e.g., `dashboard-desktop`) to keep the main app focused on the web frontend.
+- [ ] Implement actual backend logic in Rust for data persistence and business logic.
+- [ ] Reenable eslint and fix linting issues in the codebase (I removed them at the moment to avoid problems with CI, but they should be reenabled and fixed asap).
+- [ ] Move from Next.js to vite + tanstack router
+
 ## Notes
 
 ### Tiling window managers (Hyprland, i3, etc.)
