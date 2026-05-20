@@ -56,7 +56,7 @@ jobs:
               run: pnpm install --frozen-lockfile
 
             - name: Type check
-              run: pnpm check-types
+              run: pnpm typecheck
 
     format:
         name: Format

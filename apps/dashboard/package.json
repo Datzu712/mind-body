@@ -9,7 +9,7 @@
         "build": "next build",
         "tauri": "tauri",
         "lint": "eslint src/",
-        "check-types": "tsc --noEmit"
+        "typecheck": "tsc --noEmit"
     },
     "dependencies": {
         "@hookform/resolvers": "^5.2.2",

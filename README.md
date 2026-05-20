@@ -50,7 +50,7 @@ pnpm --filter=@mab/dashboard exec tauri dev
 
 ```sh
 pnpm lint          # ESLint across all apps
-pnpm check-types   # TypeScript check across all apps
+pnpm typecheck   # TypeScript check across all apps
 pnpm format        # Prettier format
 pnpm format:check  # Prettier check
 pnpm build         # Build all apps
