@@ -13,6 +13,10 @@
         "check-types": {
             "dependsOn": ["^check-types"]
         },
+        "test": {
+            "inputs": ["src/**", "tests/**", "vitest.config.ts"],
+            "outputs": []
+        },
         "dev": {
             "cache": false,
             "persistent": true
