@@ -10,8 +10,12 @@
         "lint": {
             "dependsOn": ["^lint"]
         },
-        "check-types": {
-            "dependsOn": ["^check-types"]
+        "typecheck": {
+            "dependsOn": ["^typecheck"]
+        },
+        "test": {
+            "inputs": ["src/**", "tests/**", "vitest.config.ts"],
+            "outputs": []
         },
         "dev": {
             "cache": false,

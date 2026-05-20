@@ -53,7 +53,7 @@ export function RevenueChart() {
                                     borderRadius: '8px',
                                     color: 'oklch(0.97 0 0)',
                                 }}
-                                formatter={(value: number) => [`$${value.toLocaleString()}`, 'Ingresos']}
+                                formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Ingresos']}
                             />
                             <Area
                                 type="monotone"
@@ -107,7 +107,7 @@ export function ClassPopularityChart() {
                                     borderRadius: '8px',
                                     color: 'oklch(0.97 0 0)',
                                 }}
-                                formatter={(value: number) => [value, 'Reservas']}
+                                formatter={(value) => [value, 'Reservas']}
                             />
                             <Bar dataKey="bookings" fill="oklch(0.85 0.18 85)" radius={[0, 4, 4, 0]} />
                         </BarChart>
@@ -157,7 +157,7 @@ export function MembershipDistributionChart() {
                                     borderRadius: '8px',
                                     color: 'oklch(0.97 0 0)',
                                 }}
-                                formatter={(value: number, name: string) => [value, name]}
+                                formatter={(value, name) => [value, name]}
                             />
                         </PieChart>
                     </ResponsiveContainer>

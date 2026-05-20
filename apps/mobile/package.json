@@ -9,7 +9,7 @@
         "ios": "expo start --ios",
         "web": "expo start --web",
         "lint": "expo lint",
-        "check-types": "tsc --noEmit --skipLibCheck"
+        "typecheck": "tsc --noEmit --skipLibCheck"
     },
     "dependencies": {
         "@expo/vector-icons": "^15.1.1",

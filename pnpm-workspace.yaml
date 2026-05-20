@@ -1,9 +1,13 @@
+minimumReleaseAge: 1440
 packages:
     - 'apps/*'
     - 'packages/*'
 overrides:
     '@typescript-eslint/utils': '^8.59.4'
 allowBuilds:
+    '@nestjs/core': true
+    '@swc/core': true
+    esbuild: true
     sharp: true
     unrs-resolver: true
 minimumReleaseAgeExclude:

@@ -8,10 +8,11 @@ Monorepo for the Mind & Body gym management platform, built with [Turborepo](htt
 
 _`mab` stands for Mind & Body btw_
 
-| App              | Description                 | Stack                                    |
-| ---------------- | --------------------------- | ---------------------------------------- |
-| `@mab/dashboard` | Admin dashboard desktop app | Next.js 16, Tauri 2, Tailwind, shadcn/ui |
-| `@mab/mobile`    | Mobile app for gym members  | Expo 55, React Native 0.85, Expo Router  |
+| App              | Description                 | Stack                                                    |
+| ---------------- | --------------------------- | -------------------------------------------------------- |
+| `@mab/dashboard` | Admin dashboard desktop app | Next.js 16, Tauri 2, Tailwind, shadcn/ui                 |
+| `@mab/mobile`    | Mobile app for gym members  | Expo 55, React Native 0.85, Expo Router                  |
+| `@mab/restapi`   | Backend REST API            | NestJS, Fastify, Drizzle ORM, PostgreSQL, Pino, Keycloak |
 
 ## Requirements
 
@@ -33,11 +34,12 @@ Run all apps in parallel (at the moment only the dashboard with nextjs dev serve
 pnpm dev
 ```
 
-Run a specific app:
+Run a specific app (you may want to use turbo for caching and parallelism):
 
 ```sh
 pnpm --filter=@mab/dashboard dev
 pnpm --filter=@mab/mobile start
+pnpm --filter=@mab/restapi dev
 ```
 
 Run the dashboard as a Tauri desktop app:
@@ -50,7 +52,7 @@ pnpm --filter=@mab/dashboard exec tauri dev
 
 ```sh
 pnpm lint          # ESLint across all apps
-pnpm check-types   # TypeScript check across all apps
+pnpm typecheck   # TypeScript check across all apps
 pnpm format        # Prettier format
 pnpm format:check  # Prettier check
 pnpm build         # Build all apps
