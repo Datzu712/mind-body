@@ -15,7 +15,8 @@ async function bootstrap(): Promise<void> {
 
     await app.register(fastifyCookie);
 
-    app.useLogger(app.get(Logger));
+    const logger = app.get(Logger);
+    app.useLogger(logger);
 
     const config = app.get(TypedConfigService);
 
@@ -27,6 +28,7 @@ async function bootstrap(): Promise<void> {
     app.setGlobalPrefix('api');
 
     await app.listen(config.get('PORT'), config.getOrThrow('HOST'));
+    logger.log(`Server running on http://${config.getOrThrow('HOST')}:${config.getOrThrow('PORT')}`);
 }
 
 void bootstrap();
