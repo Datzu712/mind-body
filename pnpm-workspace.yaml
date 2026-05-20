@@ -4,6 +4,7 @@ packages:
 overrides:
     '@typescript-eslint/utils': '^8.59.4'
 allowBuilds:
+    sharp: true
     unrs-resolver: true
 minimumReleaseAgeExclude:
     - '@expo/cli@55.0.31'
