@@ -15,7 +15,7 @@ This is the mobile application for Mind & Body, a platform for gym members to tr
 
 ## Requirements
 
-- [Node.js](https://nodejs.org/) >= 20.19.x
+- [Node.js](https://nodejs.org/) >= 22
 - [pnpm](https://pnpm.io/) or [yarn](https://yarnpkg.com/) (imagine using npm in big 2026)
 - [Expo Go](https://expo.dev/go) on your device, or an Android/iOS emulator
 - [Adb](https://developer.android.com/studio/command-line/adb) (optional)
