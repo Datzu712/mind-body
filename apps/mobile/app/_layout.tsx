@@ -6,8 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as WebBrowser from 'expo-web-browser';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { AuthProvider } from '@/context/auth-context';
-import { useAuth } from '@/context/auth-context';
+import { AuthProvider, useAuth } from '@/context/auth-context';
 import { useEffect } from 'react';
 
 export default function RootLayout() {
