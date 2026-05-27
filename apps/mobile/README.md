@@ -87,7 +87,7 @@ adb devices
 adb install <your-apk-file>.apk
 ```
 
-> If you have multiple devices connected, target a specific one with `adb -s <device-id> install ...
+> If you have multiple devices connected, target a specific one with `adb -s <device-id> install ...`
 
 ### Running on a physical device (Expo Go)
 
