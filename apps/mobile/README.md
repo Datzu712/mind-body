@@ -18,6 +18,7 @@ This is the mobile application for Mind & Body, a platform for gym members to tr
 - [Node.js](https://nodejs.org/) >= 20.19.x
 - [pnpm](https://pnpm.io/) or [yarn](https://yarnpkg.com/) (imagine using npm in big 2026)
 - [Expo Go](https://expo.dev/go) on your device, or an Android/iOS emulator
+- [Adb](https://developer.android.com/studio/command-line/adb) (optional)
 
 ## Installation
 
@@ -41,14 +42,40 @@ pnpm run ios
 pnpm run web
 ```
 
-Scan the QR code with Expo Go to open the app on your device.
+## Running locally
 
-### Installing the APK directly (Android)
+### Android Studio Emulator
 
-If you have an APK build and want to install it on a physical device or emulator via ADB:
+First you need to install `adb` and set up an Android Virtual Device (AVD) in Android Studio. Then, start keycloak and reverse the port to allow the emulator to access it via localhost:
 
-1. Enable **USB Debugging** on your Android device (`Settings > Developer Options`)
-2. Connect your device via USB and verify it is detected:
+```bash
+adb reverse tcp:8080 tcp:8080
+```
+
+Also you need to configure two `.env` files:
+
+- docker/local/.env
+
+```env
+KEYCLOAK_HOSTNAME=localhost
+```
+
+Then you can start keycloak with `docker compose -f docker/local/docker-compose.yml up`.
+
+- apps/mobile/.env
+
+```env
+EXPO_PUBLIC_KEYCLOAK_URL=http://localhost:8080
+EXPO_PUBLIC_KEYCLOAK_REALM=mab
+EXPO_PUBLIC_KEYCLOAK_CLIENT_ID=mobile-client
+EXPO_PUBLIC_AUTH_REDIRECT_URI=exp://localhost:8081/--/callback
+```
+
+Then you can run the app with `pnpm --filter=@mab/mobile start` and it should connect to keycloak.
+
+#### Installing the APK directly (Android)
+
+Install the apk in your emulator via adb (this also works for physical devices connected via USB with debugging enabled):
 
 ```bash
 adb devices
@@ -60,7 +87,30 @@ adb devices
 adb install <your-apk-file>.apk
 ```
 
-> If you have multiple devices connected, target a specific one with `adb -s <device-id> install ...`
+> If you have multiple devices connected, target a specific one with `adb -s <device-id> install ...
+
+### Running on a physical device (Expo Go)
+
+To run the app on your physical device, you can use Expo Go. Make sure your device is connected to the same network as your development machine or use a USB connection (idk how it works so you might need to look it up).
+
+First, config the `docker/local/.env` file to point to your machine's local IP address (you can find it with `ipconfig` or `ifconfig`):
+
+```env
+KEYCLOAK_HOSTNAME=192.168.x.x
+```
+
+Then, update the `apps/mobile/.env` file with the same IP address:
+
+```env
+EXPO_PUBLIC_KEYCLOAK_URL=http://192.168.x.x:8080
+EXPO_PUBLIC_KEYCLOAK_REALM=mab
+EXPO_PUBLIC_KEYCLOAK_CLIENT_ID=mobile
+EXPO_PUBLIC_AUTH_REDIRECT_URI=exp://192.168.x.x:8081/
+```
+
+## Troubleshooting
+
+ask claude bro
 
 ## Stack
 

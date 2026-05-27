@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
+import { ColorValue, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -9,7 +9,7 @@ import { FitColors as T } from '@/constants/theme';
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
 function tabIcon(name: IoniconsName, focusedName: IoniconsName) {
-    return ({ color, focused }: { color: string; focused: boolean }) => (
+    return ({ color, focused }: { color: ColorValue; size: number; focused: boolean }) => (
         <Ionicons name={focused ? focusedName : name} size={24} color={color} />
     );
 }
@@ -27,7 +27,8 @@ export default function TabLayout() {
                 headerShown: false,
                 tabBarActiveTintColor: T.yellow,
                 tabBarInactiveTintColor: T.muted,
-                tabBarButton: HapticTab,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                tabBarButton: HapticTab as any,
                 tabBarStyle: {
                     backgroundColor: '#0C0C0C',
                     borderTopColor: T.border,
