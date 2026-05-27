@@ -200,7 +200,8 @@
             "protocol": "openid-connect",
             "attributes": {
                 "realm_client": "false",
-                "client.use.lightweight.access.token.enabled": "true"
+                "client.use.lightweight.access.token.enabled": "true",
+                "post.logout.redirect.uris": "+"
             },
             "authenticationFlowBindingOverrides": {},
             "fullScopeAllowed": true,
@@ -236,8 +237,8 @@
             "attributes": {
                 "logout.confirmation.enabled": "false",
                 "client.secret.creation.time": "1779908596",
-                "standard.token.exchange.enabled": "false",
                 "oauth2.jwt.authorization.grant.enabled": "false",
+                "standard.token.exchange.enabled": "false",
                 "frontchannel.logout.session.required": "true",
                 "post.logout.redirect.uris": "http://localhost:3000/*",
                 "oauth2.device.authorization.grant.enabled": "false",
@@ -276,7 +277,8 @@
             "frontchannelLogout": false,
             "protocol": "openid-connect",
             "attributes": {
-                "realm_client": "true"
+                "realm_client": "true",
+                "post.logout.redirect.uris": "+"
             },
             "authenticationFlowBindingOverrides": {},
             "fullScopeAllowed": false,
@@ -296,7 +298,6 @@
             "enabled": true,
             "alwaysDisplayInConsole": false,
             "clientAuthenticatorType": "client-secret",
-            "secret": "**********",
             "redirectUris": ["exp://*"],
             "webOrigins": [""],
             "notBefore": 0,
@@ -306,20 +307,23 @@
             "implicitFlowEnabled": false,
             "directAccessGrantsEnabled": false,
             "serviceAccountsEnabled": false,
-            "publicClient": false,
+            "publicClient": true,
             "frontchannelLogout": true,
             "protocol": "openid-connect",
             "attributes": {
-                "realm_client": "false",
-                "oidc.ciba.grant.enabled": "false",
+                "logout.confirmation.enabled": "false",
                 "client.secret.creation.time": "1779908464",
-                "backchannel.logout.session.required": "true",
-                "standard.token.exchange.enabled": "false",
                 "oauth2.jwt.authorization.grant.enabled": "false",
+                "standard.token.exchange.enabled": "false",
+                "frontchannel.logout.session.required": "true",
                 "post.logout.redirect.uris": "exp://*",
                 "oauth2.device.authorization.grant.enabled": "false",
-                "pkce.code.challenge.method": "S256",
                 "backchannel.logout.revoke.offline.tokens": "false",
+                "realm_client": "false",
+                "oidc.ciba.grant.enabled": "false",
+                "backchannel.logout.session.required": "true",
+                "display.on.consent.screen": "false",
+                "pkce.code.challenge.method": "S256",
                 "dpop.bound.access.tokens": "false"
             },
             "authenticationFlowBindingOverrides": {},
@@ -349,7 +353,8 @@
             "frontchannelLogout": false,
             "protocol": "openid-connect",
             "attributes": {
-                "realm_client": "true"
+                "realm_client": "true",
+                "post.logout.redirect.uris": "+"
             },
             "authenticationFlowBindingOverrides": {},
             "fullScopeAllowed": false,
@@ -1119,8 +1124,8 @@
     },
     "smtpServer": {
         "allowutf8": "",
-        "replyToDisplayName": "",
         "debug": "false",
+        "replyToDisplayName": "",
         "starttls": "false",
         "auth": "",
         "writeTimeout": "10000",
@@ -1128,8 +1133,8 @@
         "ssl": "false",
         "timeout": "10000",
         "port": "1025",
-        "replyTo": "",
         "host": "mailpit",
+        "replyTo": "",
         "from": "noreply@mab.dev",
         "fromDisplayName": "Mind & Body",
         "connectionTimeout": "10000"
@@ -1194,14 +1199,14 @@
                 "subComponents": {},
                 "config": {
                     "allowed-protocol-mapper-types": [
-                        "saml-user-property-mapper",
                         "oidc-usermodel-attribute-mapper",
                         "oidc-usermodel-property-mapper",
+                        "oidc-address-mapper",
+                        "saml-role-list-mapper",
+                        "oidc-full-name-mapper",
                         "saml-user-attribute-mapper",
                         "oidc-sha256-pairwise-sub-mapper",
-                        "oidc-full-name-mapper",
-                        "oidc-address-mapper",
-                        "saml-role-list-mapper"
+                        "saml-user-property-mapper"
                     ]
                 }
             },
@@ -1247,13 +1252,13 @@
                 "subComponents": {},
                 "config": {
                     "allowed-protocol-mapper-types": [
-                        "oidc-full-name-mapper",
-                        "oidc-usermodel-attribute-mapper",
                         "oidc-address-mapper",
-                        "oidc-sha256-pairwise-sub-mapper",
-                        "saml-user-property-mapper",
+                        "oidc-usermodel-attribute-mapper",
                         "saml-role-list-mapper",
+                        "saml-user-property-mapper",
+                        "oidc-sha256-pairwise-sub-mapper",
                         "oidc-usermodel-property-mapper",
+                        "oidc-full-name-mapper",
                         "saml-user-attribute-mapper"
                     ]
                 }
