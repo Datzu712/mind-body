@@ -67,7 +67,7 @@ Then you can start keycloak with `docker compose -f docker/local/docker-compose.
 ```env
 EXPO_PUBLIC_KEYCLOAK_URL=http://localhost:8080
 EXPO_PUBLIC_KEYCLOAK_REALM=mab
-EXPO_PUBLIC_KEYCLOAK_CLIENT_ID=mobile-client
+EXPO_PUBLIC_KEYCLOAK_CLIENT_ID=mobile
 EXPO_PUBLIC_AUTH_REDIRECT_URI=exp://localhost:8081/--/callback
 ```
 
