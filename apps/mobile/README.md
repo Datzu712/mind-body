@@ -68,7 +68,6 @@ Then you can start keycloak with `docker compose -f docker/local/docker-compose.
 EXPO_PUBLIC_KEYCLOAK_URL=http://localhost:8080
 EXPO_PUBLIC_KEYCLOAK_REALM=mab
 EXPO_PUBLIC_KEYCLOAK_CLIENT_ID=mobile
-EXPO_PUBLIC_AUTH_REDIRECT_URI=exp://localhost:8081/--/callback
 ```
 
 Then you can run the app with `pnpm --filter=@mab/mobile start` and it should connect to keycloak.
@@ -105,7 +104,6 @@ Then, update the `apps/mobile/.env` file with the same IP address:
 EXPO_PUBLIC_KEYCLOAK_URL=http://192.168.x.x:8080
 EXPO_PUBLIC_KEYCLOAK_REALM=mab
 EXPO_PUBLIC_KEYCLOAK_CLIENT_ID=mobile
-EXPO_PUBLIC_AUTH_REDIRECT_URI=exp://192.168.x.x:8081/
 ```
 
 ## Troubleshooting
