@@ -1,4 +1,5 @@
 import { FitColors as T } from '@/constants/theme';
+import { useAuth } from '@/context/auth-context';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
@@ -33,6 +34,12 @@ const SETTINGS_INITIAL: SettingItem[] = [
 
 export default function ProfileScreen() {
     const [settings, setSettings] = useState<SettingItem[]>(SETTINGS_INITIAL);
+    const { signOut, user } = useAuth();
+
+    const displayName =
+        user?.name || [user?.givenName, user?.familyName].filter(Boolean).join(' ') || user?.username || 'Usuario';
+    const displayEmail = user?.email || user?.username || user?.sub || 'Sin correo';
+    const avatarLabel = (displayName.trim()[0] || 'U').toUpperCase();
 
     function toggleSetting(idx: number) {
         setSettings((prev) =>
@@ -58,15 +65,15 @@ export default function ProfileScreen() {
                             {/* Avatar */}
                             <View style={s.avatarWrap}>
                                 <View style={s.avatar}>
-                                    <Text style={s.avatarTxt}>C</Text>
+                                    <Text style={s.avatarTxt}>{avatarLabel}</Text>
                                 </View>
                                 <View style={s.onlineDot} />
                             </View>
 
                             {/* Name + membership */}
                             <View style={{ flex: 1, marginLeft: 14 }}>
-                                <Text style={s.userName}>Juan Esteban</Text>
-                                <Text style={s.userEmail}>juan@meddyg.com</Text>
+                                <Text style={s.userName}>{displayName}</Text>
+                                <Text style={s.userEmail}>{displayEmail}</Text>
                                 <View style={s.memberBadge}>
                                     <Text style={s.memberIcon}>⭐</Text>
                                     <Text style={s.memberText}>GOLD MEMBER</Text>
@@ -133,7 +140,7 @@ export default function ProfileScreen() {
 
                 {/* Logout */}
                 <View style={[s.px, { marginTop: 14 }]}>
-                    <TouchableOpacity style={s.logoutBtn} activeOpacity={0.8}>
+                    <TouchableOpacity style={s.logoutBtn} activeOpacity={0.8} onPress={signOut}>
                         <Ionicons name="power" size={16} color={T.red} />
                         <Text style={s.logoutText}>CERRAR SESIÓN</Text>
                     </TouchableOpacity>

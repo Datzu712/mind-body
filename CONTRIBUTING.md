@@ -51,6 +51,11 @@ pnpm --filter=@mab/dashboard exec tauri dev
 pnpm --filter=@mab/mobile start
 ```
 
+### Detalles para cada app
+
+- [Mobile](apps/mobile/README.md)
+  ... (falta el resto)
+
 ## Convenciones de ramas
 
 - `main` está **protegida**, esto significa que no se puede hacer push directo. Todo cambio debe ir por un pull request en otra rama.

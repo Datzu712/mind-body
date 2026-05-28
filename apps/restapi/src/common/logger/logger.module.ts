@@ -23,7 +23,7 @@ import { NodeEnv } from '@/config/env';
                         ],
                         censor: '[REDACTED]',
                     },
-                    name: 'kivu-gateway',
+                    name: 'mab-gateway',
                     level: config.getOrThrow('NODE_ENV') !== NodeEnv.Production ? 'debug' : 'info',
                     transport: {
                         targets:
