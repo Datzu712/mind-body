@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
+import { revokeKeycloakSession } from '@/lib/auth/keycloak-account';
 import { type AuthSession, clearSession, loadSession, saveSession } from '@/lib/auth/session';
 import { type AuthUser, extractUserFromToken } from '@/lib/auth/token-claims';
 import { isExpiringSoon, refreshSession } from '@/lib/auth/token-refresh';
@@ -31,13 +32,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             refreshTimerRef.current = null;
         }
 
+        const currentSession = session;
+        if (currentSession) {
+            try {
+                await revokeKeycloakSession(currentSession.refreshToken);
+            } catch (e) {
+                console.warn('[auth] keycloak logout failed:', e);
+            }
+        }
+
         await WebBrowser.coolDownAsync();
         await clearSession();
         setSession(null);
         setUser(null);
 
         router.replace('/(auth)/login');
-    }, []);
+    }, [session]);
 
     const startRefreshTimer = useCallback(
         (currentSession: AuthSession) => {

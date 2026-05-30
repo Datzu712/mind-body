@@ -1,16 +1,13 @@
 {
     "expo": {
         "name": "Mind&Body",
-        "slug": "test",
+        "slug": "mab",
         "version": "1.0.0",
         "orientation": "portrait",
         "icon": "./assets/images/icon.png",
         "scheme": "mindandbody",
         "userInterfaceStyle": "automatic",
-        "newArchEnabled": true,
-        "ios": {
-            "supportsTablet": true
-        },
+        "newArchEnabled": false,
         "android": {
             "adaptiveIcon": {
                 "backgroundColor": "#E6F4FE",
@@ -22,6 +19,7 @@
             "predictiveBackGestureEnabled": false,
             "package": "com.juanes.mindandbody"
         },
+        "jsEngine": "hermes",
         "web": {
             "output": "static",
             "favicon": "./assets/images/favicon.png"
@@ -43,7 +41,7 @@
         ],
         "experiments": {
             "typedRoutes": true,
-            "reactCompiler": true
+            "reactCompiler": false
         },
         "extra": {
             "router": {},

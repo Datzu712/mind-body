@@ -1,6 +1,7 @@
 import { FitColors as T } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -116,7 +117,10 @@ export default function ProfileScreen() {
                         <TouchableOpacity
                             key={i}
                             style={s.settingRow}
-                            onPress={() => (item.kind === 'toggle' ? toggleSetting(i) : undefined)}
+                            onPress={() => {
+                                if (item.kind === 'toggle') return toggleSetting(i);
+                                if (item.lbl === 'Configuración') return router.push('/(settings)');
+                            }}
                             activeOpacity={0.8}
                         >
                             <View style={[s.settingIcon, { backgroundColor: item.ac + '22' }]}>
