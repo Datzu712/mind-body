@@ -1,5 +1,4 @@
-'use client';
-
+import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { DashboardHeader } from '@/src/features/dashboard/components/dashboard-header';
 import { PageHeader } from '@/src/shared/components/page-header';
@@ -20,7 +19,12 @@ import {
 } from '@/src/shared/lib/mock-data';
 import { toast } from 'sonner';
 
-export default function ReportsPage() {
+
+export const Route = createFileRoute('/dashboard/reports')({
+    component: ReportsPage,
+});
+
+function ReportsPage() {
     const [selectedReport, setSelectedReport] = useState<string>('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');

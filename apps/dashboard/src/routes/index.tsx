@@ -1,8 +1,12 @@
-import Link from 'next/link';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { Dumbbell, ArrowRight, Shield, BarChart3, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export default function LandingPage() {
+export const Route = createFileRoute('/')({
+    component: LandingPage,
+});
+
+function LandingPage() {
     return (
         <div className="min-h-screen bg-background flex flex-col">
             {/* Header */}
@@ -18,7 +22,7 @@ export default function LandingPage() {
                     variant="outline"
                     className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
                 >
-                    <Link href="/dashboard">
+                    <Link to="/dashboard">
                         Iniciar Sesión
                         <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
@@ -47,7 +51,7 @@ export default function LandingPage() {
                             size="lg"
                             className="bg-primary text-primary-foreground hover:bg-primary/90 px-8"
                         >
-                            <Link href="/dashboard">
+                            <Link to="/dashboard">
                                 Acceder al Dashboard
                                 <ArrowRight className="ml-2 h-5 w-5" />
                             </Link>

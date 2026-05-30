@@ -1,5 +1,4 @@
-'use client';
-
+import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { DashboardHeader } from '@/src/features/dashboard/components/dashboard-header';
 import { PageHeader } from '@/src/shared/components/page-header';
@@ -15,7 +14,12 @@ import { Save, RotateCcw, CheckCircle, Loader2 } from 'lucide-react';
 import { mockSettings } from '@/src/shared/lib/mock-data';
 import { toast } from 'sonner';
 
-export default function SettingsPage() {
+
+export const Route = createFileRoute('/dashboard/settings')({
+    component: SettingsPage,
+});
+
+function SettingsPage() {
     const [settings, setSettings] = useState(mockSettings);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});

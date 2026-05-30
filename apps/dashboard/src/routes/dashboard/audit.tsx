@@ -1,5 +1,4 @@
-'use client';
-
+import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo, useEffect } from 'react';
 import { DashboardHeader } from '@/src/features/dashboard/components/dashboard-header';
 import { PageHeader } from '@/src/shared/components/page-header';
@@ -25,7 +24,12 @@ const actionColors: Record<string, string> = {
     BACKUP: 'bg-muted text-muted-foreground border-muted-foreground/30',
 };
 
-export default function AuditPage() {
+
+export const Route = createFileRoute('/dashboard/audit')({
+    component: AuditPage,
+});
+
+function AuditPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [search, setSearch] = useState('');
     const [userFilter, setUserFilter] = useState<string>('all');

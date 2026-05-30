@@ -1,5 +1,4 @@
-'use client';
-
+import { createFileRoute } from '@tanstack/react-router';
 import { useState, useRef } from 'react';
 import { DashboardHeader } from '@/src/features/dashboard/components/dashboard-header';
 import { PageHeader } from '@/src/shared/components/page-header';
@@ -26,7 +25,12 @@ import {
 import { mockBackups, type Backup } from '@/src/shared/lib/mock-data';
 import { toast } from 'sonner';
 
-export default function BackupsPage() {
+
+export const Route = createFileRoute('/dashboard/backups')({
+    component: BackupsPage,
+});
+
+function BackupsPage() {
     const [backups, setBackups] = useState<Backup[]>(mockBackups);
     const [generating, setGenerating] = useState(false);
     const [progress, setProgress] = useState(0);

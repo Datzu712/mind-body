@@ -1,5 +1,4 @@
-'use client';
-
+import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo, useEffect } from 'react';
 import { DashboardHeader } from '@/src/features/dashboard/components/dashboard-header';
 import { PageHeader } from '@/src/shared/components/page-header';
@@ -14,7 +13,12 @@ import { type User } from '@/src/shared/lib/mock-data';
 import { getUsers } from '@/src/shared/lib/tauri-api';
 import { toast } from 'sonner';
 
-export default function UsersPage() {
+
+export const Route = createFileRoute('/dashboard/users')({
+    component: UsersPage,
+});
+
+function UsersPage() {
     const [users, setUsers] = useState<User[]>([]);
 
     useEffect(() => {

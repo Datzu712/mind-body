@@ -1,5 +1,4 @@
-'use client';
-
+import { createFileRoute } from '@tanstack/react-router';
 import { useState, useMemo } from 'react';
 import { DashboardHeader } from '@/src/features/dashboard/components/dashboard-header';
 import { PageHeader } from '@/src/shared/components/page-header';
@@ -34,7 +33,12 @@ const typeColors: Record<CatalogItem['type'], string> = {
     service: 'bg-chart-3/20 text-chart-3 border-chart-3/30',
 };
 
-export default function CatalogPage() {
+
+export const Route = createFileRoute('/dashboard/catalog')({
+    component: CatalogPage,
+});
+
+function CatalogPage() {
     const [items, setItems] = useState<CatalogItem[]>(mockCatalogItems);
     const [search, setSearch] = useState('');
     const [activeTab, setActiveTab] = useState<string>('all');

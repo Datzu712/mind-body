@@ -1,3 +1,4 @@
+import { createFileRoute } from '@tanstack/react-router';
 import { DashboardHeader } from '@/src/features/dashboard/components/dashboard-header';
 import { PageHeader } from '@/src/shared/components/page-header';
 import { KPICard } from '@/src/shared/components/kpi-card';
@@ -10,7 +11,11 @@ import {
 } from '@/src/features/dashboard/components/dashboard-charts';
 import { mockKPIs } from '@/src/shared/lib/mock-data';
 
-export default function DashboardPage() {
+export const Route = createFileRoute('/dashboard/')({
+    component: DashboardPage,
+});
+
+function DashboardPage() {
     return (
         <>
             <DashboardHeader breadcrumbs={[{ label: 'Mind & Body', href: '/dashboard' }, { label: 'Dashboard' }]} />
