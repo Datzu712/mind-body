@@ -1,18 +1,15 @@
 import { FitColors as T } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
+import { useProfile } from '@/hooks/use-profile';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 type SettingItem =
     | { kind: 'link'; ic: string; lbl: string; ac: string }
     | { kind: 'toggle'; ic: string; lbl: string; ac: string; on: boolean };
-
-// ── Data ─────────────────────────────────────────────────────────────────────
 
 const USER_STATS = [
     { val: '47', lbl: 'ENTRENOS' },
@@ -31,15 +28,13 @@ const SETTINGS_INITIAL: SettingItem[] = [
     { kind: 'link', ic: '⚙️', lbl: 'Configuración', ac: T.muted },
 ];
 
-// ── Screen ────────────────────────────────────────────────────────────────────
-
 export default function ProfileScreen() {
     const [settings, setSettings] = useState<SettingItem[]>(SETTINGS_INITIAL);
-    const { signOut, user } = useAuth();
+    const { signOut } = useAuth();
+    const { data: profile } = useProfile();
 
-    const displayName =
-        user?.name || [user?.givenName, user?.familyName].filter(Boolean).join(' ') || user?.username || 'Usuario';
-    const displayEmail = user?.email || user?.username || user?.sub || 'Sin correo';
+    const displayName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Usuario';
+    const displayEmail = profile!.email;
     const avatarLabel = (displayName.trim()[0] || 'U').toUpperCase();
 
     function toggleSetting(idx: number) {

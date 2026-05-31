@@ -1,5 +1,7 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
-import { useState } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     KeyboardAvoidingView,
@@ -15,48 +17,53 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { FitColors as T } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
+import { useApiClient } from '@/lib/api/client';
+import { PROFILE_QUERY_KEY, useProfile } from '@/hooks/use-profile';
+import { keycloakAccountUrls } from '@/lib/auth/keycloak-account';
 
 export default function PersonalInfoScreen() {
-    const { user, session } = useAuth();
+    const { user } = useAuth();
+    const apiFetch = useApiClient();
+    const queryClient = useQueryClient();
+    const { data: profile, isPlaceholderData } = useProfile();
 
-    const [firstName, setFirstName] = useState(user?.givenName ?? '');
-    const [lastName, setLastName] = useState(user?.familyName ?? '');
-    const [saving, setSaving] = useState(false);
+    // Initialize from placeholder (JWT claims), then sync once real backend data arrives
+    const [firstName, setFirstName] = useState(profile?.firstName ?? '');
+    const [lastName, setLastName] = useState(profile?.lastName ?? '');
     const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-    async function handleSave() {
-        if (!session) return;
+    useEffect(() => {
+        if (profile && !isPlaceholderData) {
+            setFirstName(profile.firstName ?? '');
+            setLastName(profile.lastName ?? '');
+        }
+    }, [isPlaceholderData]);
 
-        setSaving(true);
-        setFeedback(null);
-
-        try {
-            // TODO: reemplazar con la URL real del backend cuando este disponible
-            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users/me`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${session.accessToken}`,
-                },
-                body: JSON.stringify({ firstName, lastName }),
-            });
-
+    const mutation = useMutation({
+        mutationFn: (data: { firstName: string; lastName: string }) =>
+            apiFetch('/users/me', { method: 'PUT', body: JSON.stringify(data) }),
+        onSuccess: async (response) => {
             if (!response.ok) {
                 const data = await response.json().catch(() => ({}));
                 setFeedback({ type: 'error', message: data?.message ?? 'No se pudo guardar los cambios.' });
                 return;
             }
 
-            // El token se actualizara en el proximo ciclo del refresh timer (60s)
+            await queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
             setFeedback({ type: 'success', message: 'Informacion actualizada correctamente.' });
-        } catch {
+        },
+        onError: () => {
             setFeedback({ type: 'error', message: 'Error de red. Intenta nuevamente.' });
-        } finally {
-            setSaving(false);
-        }
+        },
+    });
+
+    function handleSave() {
+        setFeedback(null);
+        mutation.mutate({ firstName, lastName });
     }
 
-    const hasChanges = firstName !== (user?.givenName ?? '') || lastName !== (user?.familyName ?? '');
+    const saving = mutation.isPending;
+    const hasChanges = firstName !== (profile?.firstName ?? '') || lastName !== (profile?.lastName ?? '');
 
     return (
         <SafeAreaView style={s.root} edges={['bottom']}>
@@ -71,7 +78,7 @@ export default function PersonalInfoScreen() {
                     <View style={s.avatarWrap}>
                         <View style={s.avatar}>
                             <Text style={s.avatarText}>
-                                {(firstName[0] ?? user?.givenName?.[0] ?? user?.username?.[0] ?? 'U').toUpperCase()}
+                                {(firstName[0] ?? profile?.firstName?.[0] ?? user?.username?.[0] ?? 'U').toUpperCase()}
                             </Text>
                         </View>
                     </View>
@@ -107,9 +114,13 @@ export default function PersonalInfoScreen() {
                         <View style={s.fieldGroup}>
                             <Text style={s.fieldLabel}>CORREO</Text>
                             <View style={[s.input, s.inputDisabled]}>
-                                <Text style={s.inputDisabledText}>{user?.email ?? '—'}</Text>
+                                <Text style={s.inputDisabledText}>{profile?.email ?? '—'}</Text>
                             </View>
-                            <Text style={s.fieldHint}>El correo se gestiona desde la cuenta del IdP.</Text>
+                            <TouchableOpacity
+                                onPress={() => WebBrowser.openBrowserAsync(keycloakAccountUrls.accountConsole)}
+                            >
+                                <Text style={s.fieldLink}>Cambiar correo desde tu cuenta →</Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -191,6 +202,11 @@ const s = StyleSheet.create({
         fontSize: 11,
         color: T.muted,
         marginTop: 2,
+    },
+    fieldLink: {
+        fontSize: 11,
+        color: T.yellow,
+        marginTop: 6,
     },
 
     feedback: {
