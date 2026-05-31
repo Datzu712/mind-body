@@ -1,7 +1,7 @@
-import type { IntrospectionResponse } from 'openid-client';
+import type { User } from '../src/infra/database/pg/schemas/drizzle.schema';
 
 declare module 'fastify' {
     interface FastifyRequest {
-        user?: IntrospectionResponse;
+        user?: User;
     }
 }

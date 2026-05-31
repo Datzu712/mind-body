@@ -1,18 +1,25 @@
-import { CanActivate, ExecutionContext, ForbiddenException, HttpException, Injectable, Logger } from '@nestjs/common';
+import {
+    CanActivate,
+    ExecutionContext,
+    ForbiddenException,
+    HttpException,
+    Injectable,
+    InternalServerErrorException,
+} from '@nestjs/common';
 import { FastifyRequest } from 'fastify';
 import { errors } from 'jose';
 import { Reflector } from '@nestjs/core';
 
 import { AuthService } from './auth.service';
 import { IS_PUBLIC_RESOURCE_KEY } from '@/common/constant/public.decorator';
+import { UsersService } from '@/modules/users/users.service';
 
 @Injectable()
 export class HybridAuthGuard implements CanActivate {
-    private readonly logger = new Logger('HybridAuthGuard');
-
     constructor(
         private authGuard: AuthService,
         private readonly reflector: Reflector,
+        private readonly usersService: UsersService,
     ) {}
 
     /**
@@ -61,9 +68,15 @@ export class HybridAuthGuard implements CanActivate {
 
         const tokenStrategy = sessionInCookie ? 'cookie' : 'header';
 
-        debugger;
         try {
-            await this.authGuard.verify(accessToken, tokenStrategy);
+            const payload = await this.authGuard.verify(accessToken, tokenStrategy);
+
+            request.user = await this.usersService.syncFromToken({
+                keycloakId: payload.sub!,
+                firstName: typeof payload['given_name'] === 'string' ? payload['given_name'] : undefined,
+                lastName: typeof payload['family_name'] === 'string' ? payload['family_name'] : undefined,
+                email: typeof payload['email'] === 'string' ? payload['email'] : undefined,
+            });
 
             return true;
         } catch (error) {
@@ -73,9 +86,9 @@ export class HybridAuthGuard implements CanActivate {
                 throw error;
             }
 
-            this.logger.error(new Error(`Unhandled error token ${tokenStrategy} strategy`, { cause: error }));
-
-            return false;
+            throw new InternalServerErrorException(
+                new Error(`Unhandled error token ${tokenStrategy} strategy`, { cause: error }),
+            );
         }
     }
 }
