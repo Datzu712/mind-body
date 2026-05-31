@@ -66,4 +66,4 @@ import { NodeEnv } from '@/config/env';
         }),
     ],
 })
-export class RestLoggerModule {}
+export class PinoLoggerModule {}

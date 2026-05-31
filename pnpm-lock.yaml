@@ -324,12 +324,6 @@ importers:
             '@keycloak/keycloak-admin-client':
                 specifier: ^26.6.2
                 version: 26.6.2
-            '@keyv/redis':
-                specifier: ^5.1.6
-                version: 5.1.6(@opentelemetry/api@1.9.1)(keyv@5.6.0)
-            '@nestjs/cache-manager':
-                specifier: ^3.1.2
-                version: 3.1.2(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.24(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(cache-manager@7.2.8)(keyv@5.6.0)(rxjs@7.8.2)
             '@nestjs/common':
                 specifier: ^11.1.24
                 version: 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -354,12 +348,15 @@ importers:
             fastify:
                 specifier: ^5.8.5
                 version: 5.8.5
+            ioredis:
+                specifier: ^5.11.0
+                version: 5.11.0
+            jose:
+                specifier: ^6.2.3
+                version: 6.2.3
             keycloak-connect:
                 specifier: ^26.1.1
                 version: 26.1.1
-            nest-keycloak-connect:
-                specifier: ^1.10.1
-                version: 1.10.1(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.24(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(keycloak-connect@26.1.1)
             nestjs-pino:
                 specifier: ^4.6.1
                 version: 4.6.1(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(pino-http@11.0.0)(pino@10.3.1)(rxjs@7.8.2)
@@ -1059,12 +1056,6 @@ packages:
         resolution:
             {
                 integrity: sha512-DDaRehssg1aNrH4+2hnj1B7vnUGEjU6OIlyRdkMd0aUdIUvKXrJfXsy8LVtXAy7DRvYVluWbMspsRhz2lcW0mQ==,
-            }
-
-    '@cacheable/utils@2.4.1':
-        resolution:
-            {
-                integrity: sha512-eiFgzCbIneyMlLOmNG4g9xzF7Hv3Mga4LjxjcSC/ues6VYq2+gUbQI8JqNuw/ZM8tJIeIaBGpswAsqV2V7ApgA==,
             }
 
     '@colors/colors@1.5.0':
@@ -2824,6 +2815,12 @@ packages:
             '@types/node':
                 optional: true
 
+    '@ioredis/commands@1.10.0':
+        resolution:
+            {
+                integrity: sha512-UmeW7z4LfctwoQ5wkhVzgq8tXkreED2xZGpX+Bg+zA+WJFZCT6c062AfCK/Dfk81xZnnwdhJCUMkitihRaoC2Q==,
+            }
+
     '@isaacs/ttlcache@1.4.1':
         resolution:
             {
@@ -2888,15 +2885,6 @@ packages:
                 integrity: sha512-CEqQ/fzJPkWOTM0LaUeH5KAKlCQGkqlydhpnxFM9Vx1rLyjr9AIqrENPNzt0owYDPIqrl6OYaFZJBAoH8woDpA==,
             }
         engines: { node: '>=18' }
-
-    '@keyv/redis@5.1.6':
-        resolution:
-            {
-                integrity: sha512-eKvW6pspvVaU5dxigaIDZr635/Uw6urTXL3gNbY9WTR8d3QigZQT+r8gxYSEOsw4+1cCBsC4s7T2ptR0WC9LfQ==,
-            }
-        engines: { node: '>= 18' }
-        peerDependencies:
-            keyv: ^5.6.0
 
     '@keyv/serialize@1.1.1':
         resolution:
@@ -3170,18 +3158,6 @@ packages:
         peerDependencies:
             '@emnapi/core': ^1.7.1
             '@emnapi/runtime': ^1.7.1
-
-    '@nestjs/cache-manager@3.1.2':
-        resolution:
-            {
-                integrity: sha512-Eglt8lUzC3Q3OZ2hFt4vLZ190M94YSJXUiKo67K/zlUgZQGtvxL0AYeKbG96x8+1gJTF7QhFpYw/RkQ28416Mw==,
-            }
-        peerDependencies:
-            '@nestjs/common': ^9.0.0 || ^10.0.0 || ^11.0.0
-            '@nestjs/core': ^9.0.0 || ^10.0.0 || ^11.0.0
-            cache-manager: '>=6'
-            keyv: '>=5'
-            rxjs: ^7.8.1
 
     '@nestjs/cli@11.0.21':
         resolution:
@@ -4394,21 +4370,6 @@ packages:
             react-native: 0.85.3
         peerDependenciesMeta:
             '@types/react':
-                optional: true
-
-    '@redis/client@5.12.1':
-        resolution:
-            {
-                integrity: sha512-7aPGWeqA3uFm43o19umzdl16CEjK/JQGtSXVPevplTaOU3VJA/rseBC1QvYUz9lLDIMBimc4SW/zrW4S89BaCA==,
-            }
-        engines: { node: '>= 18.19.0' }
-        peerDependencies:
-            '@node-rs/xxhash': ^1.1.0
-            '@opentelemetry/api': '>=1 <2'
-        peerDependenciesMeta:
-            '@node-rs/xxhash':
-                optional: true
-            '@opentelemetry/api':
                 optional: true
 
     '@reduxjs/toolkit@2.12.0':
@@ -6555,12 +6516,6 @@ packages:
             }
         engines: { node: '>= 0.8' }
 
-    cache-manager@7.2.8:
-        resolution:
-            {
-                integrity: sha512-0HDaDLBBY/maa/LmUVAr70XUOwsiQD+jyzCBjmUErYZUKdMS9dT59PqW59PpVqfGM7ve6H0J6307JTpkCYefHQ==,
-            }
-
     cacheable-lookup@7.0.0:
         resolution:
             {
@@ -6807,10 +6762,10 @@ packages:
             }
         engines: { node: '>=6' }
 
-    cluster-key-slot@1.1.2:
+    cluster-key-slot@1.1.1:
         resolution:
             {
-                integrity: sha512-RMr0FhtfXemyinomL4hrWcYJxmX6deFdCxpJzhDttxgO1+bcCnkk+9drydLVDmAMG7NE6aN/fl4F7ucU/90gAA==,
+                integrity: sha512-rwHwUfXL40Chm1r08yrhU3qpUvdVlgkKNeyeGPOxnW8/SyVDvgRaed/Uz54AqWNaTCAThlj6QAs3TZcKI0xDEw==,
             }
         engines: { node: '>=0.10.0' }
 
@@ -7327,6 +7282,13 @@ packages:
                 integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==,
             }
         engines: { node: '>=0.4.0' }
+
+    denque@2.1.0:
+        resolution:
+            {
+                integrity: sha512-HVQE3AAb/pxF8fQAoiqpvg9i3evqug3hoiwakOyZAwJm+6vZehbkYXZ0l4JxS+I3QxM97v5aaRNhj8v5oBhekw==,
+            }
+        engines: { node: '>=0.10' }
 
     depd@2.0.0:
         resolution:
@@ -8889,13 +8851,6 @@ packages:
                 integrity: sha512-taOaskGt4z4SOANNseOviYDvjEJinIkRgmp7LbKP2YTTmVxWBl87s/uzK9r+44BclBSp2X7K1hqeNfz9JbBeXA==,
             }
 
-    hashery@1.5.1:
-        resolution:
-            {
-                integrity: sha512-iZyKG96/JwPz1N55vj2Ie2vXbhu440zfUfJvSwEqEbeLluk7NnapfGqa7LH0mOsnDxTF85Mx8/dyR6HfqcbmbQ==,
-            }
-        engines: { node: '>=20' }
-
     hasown@2.0.4:
         resolution:
             {
@@ -8961,12 +8916,6 @@ packages:
         resolution:
             {
                 integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==,
-            }
-
-    hookified@1.15.1:
-        resolution:
-            {
-                integrity: sha512-MvG/clsADq1GPM2KGo2nyfaWVyn9naPiXrqIe4jYjXNZQt238kWyOGrsyc/DmRAQ+Re6yeo6yX/yoNCG5KAEVg==,
             }
 
     hosted-git-info@7.0.2:
@@ -9173,6 +9122,13 @@ packages:
             {
                 integrity: sha512-phJfQVBuaJM5raOpJjSfkiD6BpbCE4Ns//LaXl6wGYtUBY83nWS6Rf9tXm2e8VaK60JEjYldbPif/A2B1C2gNA==,
             }
+
+    ioredis@5.11.0:
+        resolution:
+            {
+                integrity: sha512-EZBErytyVovD8f6pDfG3Kb37N6Y3lmDA9NNj+4+IP13CzzHGeX+OyeRM2Um13khRzoBSzzL+5lVnCX8V2RLeMg==,
+            }
+        engines: { node: '>=12.22.0' }
 
     ip-address@10.2.0:
         resolution:
@@ -10430,20 +10386,6 @@ packages:
                 integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==,
             }
 
-    nest-keycloak-connect@1.10.1:
-        resolution:
-            {
-                integrity: sha512-tvAYOTPFnxDnQI06jrtcJa6UhyqVtah6V/XwRrNCCL2mklPYnfllGMgVJX0sc3Mca5yJiTVDZOoWruSxnM5qtg==,
-            }
-        peerDependencies:
-            '@nestjs/common': '>=6.0.0 <11.0.0'
-            '@nestjs/core': '>=6.0.0 <11.0.0'
-            '@nestjs/graphql': '>=6'
-            keycloak-connect: '>=10.0.0'
-        peerDependenciesMeta:
-            '@nestjs/graphql':
-                optional: true
-
     nestjs-pino@4.6.1:
         resolution:
             {
@@ -11651,6 +11593,20 @@ packages:
             }
         engines: { node: '>=8' }
 
+    redis-errors@1.2.0:
+        resolution:
+            {
+                integrity: sha512-1qny3OExCf0UvUV/5wpYKf2YwPcOqXzkwKKSmKHiE6ZMQs5heeE/c8eXK+PNllPvmjgAbfnsbpkGZWy8cBpn9w==,
+            }
+        engines: { node: '>=4' }
+
+    redis-parser@3.0.0:
+        resolution:
+            {
+                integrity: sha512-DJnGAeenTdpMEH6uAJRK/uiyEIH9WVsUmoLwzudwGJUwZPp80PDBWPHXSAGNPwNvIXAbe7MSUB1zQFugFml66A==,
+            }
+        engines: { node: '>=4' }
+
     redux-thunk@3.1.0:
         resolution:
             {
@@ -12311,6 +12267,12 @@ packages:
                 integrity: sha512-WjlahMgHmCJpqzU8bIBy4qtsZdU9lRlcZE3Lvyej6t4tuOuv1vk57OW3MBrj6hXBFx/nNoC9MPMTcr5YA7NQbg==,
             }
         engines: { node: '>=6' }
+
+    standard-as-callback@2.1.0:
+        resolution:
+            {
+                integrity: sha512-qoRRSyROncaz1z0mvYqIE4lCd9p2R90i6GxW3uZv5ucSu8tU7B5HXUP1gG8pVZsYNVaXjk8ClXHPttLyxAL48A==,
+            }
 
     statuses@1.5.0:
         resolution:
@@ -14101,11 +14063,6 @@ snapshots:
 
     '@borewit/text-codec@0.2.2': {}
 
-    '@cacheable/utils@2.4.1':
-        dependencies:
-            hashery: 1.5.1
-            keyv: 5.6.0
-
     '@colors/colors@1.5.0':
         optional: true
 
@@ -15210,6 +15167,8 @@ snapshots:
         optionalDependencies:
             '@types/node': 25.9.1
 
+    '@ioredis/commands@1.10.0': {}
+
     '@isaacs/ttlcache@1.4.1': {}
 
     '@jest/schemas@29.6.3':
@@ -15259,16 +15218,6 @@ snapshots:
             '@microsoft/kiota-serialization-text': 1.0.0-preview.102
             camelize-ts: 3.0.0
             url-template: 3.1.1
-
-    '@keyv/redis@5.1.6(@opentelemetry/api@1.9.1)(keyv@5.6.0)':
-        dependencies:
-            '@redis/client': 5.12.1(@opentelemetry/api@1.9.1)
-            cluster-key-slot: 1.1.2
-            hookified: 1.15.1
-            keyv: 5.6.0
-        transitivePeerDependencies:
-            - '@node-rs/xxhash'
-            - '@opentelemetry/api'
 
     '@keyv/serialize@1.1.1': {}
 
@@ -15403,14 +15352,6 @@ snapshots:
             '@emnapi/runtime': 1.10.0
             '@tybys/wasm-util': 0.10.2
         optional: true
-
-    '@nestjs/cache-manager@3.1.2(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.24(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(cache-manager@7.2.8)(keyv@5.6.0)(rxjs@7.8.2)':
-        dependencies:
-            '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-            '@nestjs/core': 11.1.24(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-            cache-manager: 7.2.8
-            keyv: 5.6.0
-            rxjs: 7.8.2
 
     '@nestjs/cli@11.0.21(@swc/cli@0.8.1(@swc/core@1.15.40)(chokidar@4.0.3))(@swc/core@1.15.40)(@types/node@25.9.1)(esbuild@0.28.0)(prettier@3.8.3)':
         dependencies:
@@ -16423,12 +16364,6 @@ snapshots:
             react-native: 0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3)
         optionalDependencies:
             '@types/react': 19.2.15
-
-    '@redis/client@5.12.1(@opentelemetry/api@1.9.1)':
-        dependencies:
-            cluster-key-slot: 1.1.2
-        optionalDependencies:
-            '@opentelemetry/api': 1.9.1
 
     '@reduxjs/toolkit@2.12.0(react-redux@9.3.0(@types/react@19.2.15)(react@19.2.3)(redux@5.0.1))(react@19.2.3)':
         dependencies:
@@ -17702,11 +17637,6 @@ snapshots:
 
     bytes@3.1.2: {}
 
-    cache-manager@7.2.8:
-        dependencies:
-            '@cacheable/utils': 2.4.1
-            keyv: 5.6.0
-
     cacheable-lookup@7.0.0: {}
 
     cacheable-request@13.0.19:
@@ -17871,7 +17801,7 @@ snapshots:
 
     clsx@2.1.1: {}
 
-    cluster-key-slot@1.1.2: {}
+    cluster-key-slot@1.1.1: {}
 
     cmdk@1.1.1(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
         dependencies:
@@ -18158,6 +18088,8 @@ snapshots:
 
     delayed-stream@1.0.0:
         optional: true
+
+    denque@2.1.0: {}
 
     depd@2.0.0: {}
 
@@ -19358,10 +19290,6 @@ snapshots:
             inherits: 2.0.4
             minimalistic-assert: 1.0.1
 
-    hashery@1.5.1:
-        dependencies:
-            hookified: 1.15.1
-
     hasown@2.0.4:
         dependencies:
             function-bind: 1.1.2
@@ -19397,8 +19325,6 @@ snapshots:
     hoist-non-react-statics@3.3.2:
         dependencies:
             react-is: 16.13.1
-
-    hookified@1.15.1: {}
 
     hosted-git-info@7.0.2:
         dependencies:
@@ -19513,6 +19439,18 @@ snapshots:
     invariant@2.2.4:
         dependencies:
             loose-envify: 1.4.0
+
+    ioredis@5.11.0:
+        dependencies:
+            '@ioredis/commands': 1.10.0
+            cluster-key-slot: 1.1.1
+            debug: 4.4.3
+            denque: 2.1.0
+            redis-errors: 1.2.0
+            redis-parser: 3.0.0
+            standard-as-callback: 2.1.0
+        transitivePeerDependencies:
+            - supports-color
 
     ip-address@10.2.0:
         optional: true
@@ -20264,12 +20202,6 @@ snapshots:
 
     neo-async@2.6.2: {}
 
-    nest-keycloak-connect@1.10.1(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.24(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(keycloak-connect@26.1.1):
-        dependencies:
-            '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-            '@nestjs/core': 11.1.24(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(reflect-metadata@0.2.2)(rxjs@7.8.2)
-            keycloak-connect: 26.1.1
-
     nestjs-pino@4.6.1(@nestjs/common@11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2))(pino-http@11.0.0)(pino@10.3.1)(rxjs@7.8.2):
         dependencies:
             '@nestjs/common': 11.1.24(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -21000,6 +20932,12 @@ snapshots:
             indent-string: 4.0.0
             strip-indent: 3.0.0
 
+    redis-errors@1.2.0: {}
+
+    redis-parser@3.0.0:
+        dependencies:
+            redis-errors: 1.2.0
+
     redux-thunk@3.1.0(redux@5.0.1):
         dependencies:
             redux: 5.0.1
@@ -21429,6 +21367,8 @@ snapshots:
     stacktrace-parser@0.1.11:
         dependencies:
             type-fest: 0.7.1
+
+    standard-as-callback@2.1.0: {}
 
     statuses@1.5.0: {}
 

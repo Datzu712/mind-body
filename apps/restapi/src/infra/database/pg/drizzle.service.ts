@@ -2,7 +2,7 @@ import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/com
 import { drizzle, PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
-import * as schema from './drizzle.schema';
+import * as schema from './schemas/drizzle.schema';
 
 @Injectable()
 export class DrizzleService implements OnModuleDestroy, OnModuleInit {

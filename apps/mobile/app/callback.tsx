@@ -75,6 +75,7 @@ export default function CallbackScreen() {
                     setErrorMessage('No se pudo completar el intercambio del token.');
                     return;
                 }
+                console.debug(data.access_token);
 
                 const newSession: AuthSession = {
                     accessToken: data.access_token,
