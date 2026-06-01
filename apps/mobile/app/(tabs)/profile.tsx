@@ -18,7 +18,6 @@ const USER_STATS = [
 ];
 
 const SETTINGS_INITIAL: SettingItem[] = [
-    { kind: 'link', ic: '👤', lbl: 'Información Personal', ac: T.yellow },
     { kind: 'link', ic: '🎯', lbl: 'Mis Objetivos', ac: T.green },
     { kind: 'link', ic: '🔔', lbl: 'Notificaciones', ac: '#FF9500' },
     { kind: 'link', ic: '🏆', lbl: 'Logros y Badges', ac: T.purple },

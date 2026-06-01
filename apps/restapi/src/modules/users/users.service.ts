@@ -29,24 +29,27 @@ export class UsersService {
      */
     async syncFromToken({ keycloakId, firstName, lastName, email }: UpsertUserOptions): Promise<User> {
         const cacheKey = `user:${keycloakId}`;
+        const incomingEmail = email ?? null;
 
-        // fast lookup
-        const userAlreadyExists = await this.redis.get(cacheKey);
-        if (userAlreadyExists) {
-            return JSON.parse(userAlreadyExists) as User;
+        // Fast path: return cached user unless the email in the token has changed
+        // (e.g. after an UPDATE_EMAIL AIA flow, the JWT carries the new email)
+        const cached = await this.redis.get(cacheKey);
+        if (cached) {
+            const cachedUser = JSON.parse(cached) as User;
+            if (cachedUser.email === incomingEmail) return cachedUser;
         }
 
-        // soft upsert:
-        // - if the user already exists, the insert will trigger "ON CONFLICT DO UPDATE" statement,
-        //   but the UPDATE sets keycloakId to its own value just to force RETURNING
-        //   to return the existing record.
-        // - if the user didn't exist, it simply gets inserted and returned.
+        // Upsert: insert on first login, or update email when Keycloak reports a new one.
+        // firstName/lastName are owned by the backend — never overwritten from the token.
         const [user] = await this.drizzle.db
             .insert(Users)
-            .values({ keycloakId, firstName: firstName ?? null, lastName: lastName ?? null, email: email ?? null })
+            .values({ keycloakId, firstName: firstName ?? null, lastName: lastName ?? null, email: incomingEmail })
             .onConflictDoUpdate({
                 target: Users.keycloakId,
-                set: { keycloakId: sql`excluded."keycloak_id"` },
+                set: {
+                    keycloakId: sql`excluded."keycloak_id"`,
+                    email: sql`excluded."email"`,
+                },
             })
             .returning();
 

@@ -48,6 +48,7 @@ export default function LoginScreen() {
             await savePendingAuthRequest({
                 codeVerifier: request.codeVerifier,
                 state: request.state ?? null,
+                action: 'login',
             });
 
             const result = await promptAsync(

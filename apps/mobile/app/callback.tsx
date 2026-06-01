@@ -2,12 +2,14 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { FitColors as T } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { keycloakConfig } from '@/lib/auth/config';
 import { clearPendingAuthRequest, loadPendingAuthRequest } from '@/lib/auth/pending-auth';
 import { type AuthSession, saveSession } from '@/lib/auth/session';
+import { PROFILE_QUERY_KEY } from '@/hooks/use-profile';
 
 function getParam(value: string | string[] | undefined): string | null {
     if (Array.isArray(value)) return value[0] ?? null;
@@ -16,7 +18,8 @@ function getParam(value: string | string[] | undefined): string | null {
 
 export default function CallbackScreen() {
     const { code, state, error, error_description: errorDescription } = useLocalSearchParams();
-    const { onSignedIn } = useAuth();
+    const { onSignedIn, updateSession } = useAuth();
+    const queryClient = useQueryClient();
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const hasStartedRef = useRef(false);
 
@@ -29,7 +32,7 @@ export default function CallbackScreen() {
         const authError = getParam(error);
         const authErrorDescription = getParam(errorDescription);
 
-        async function completeSignIn() {
+        async function completeAuth() {
             if (authError) {
                 await clearPendingAuthRequest();
                 setErrorMessage(authErrorDescription || `Error de autenticacion: ${authError}`);
@@ -45,7 +48,7 @@ export default function CallbackScreen() {
             const pendingRequest = await loadPendingAuthRequest();
 
             if (!pendingRequest?.codeVerifier) {
-                setErrorMessage('No se encontro el verificador PKCE para completar el login.');
+                setErrorMessage('No se encontro el verificador PKCE para completar el flujo.');
                 return;
             }
 
@@ -75,7 +78,6 @@ export default function CallbackScreen() {
                     setErrorMessage('No se pudo completar el intercambio del token.');
                     return;
                 }
-                console.debug(data.access_token);
 
                 const newSession: AuthSession = {
                     accessToken: data.access_token,
@@ -83,17 +85,27 @@ export default function CallbackScreen() {
                     expiresAt: Date.now() + data.expires_in * 1000,
                 };
 
-                await saveSession(newSession);
                 await clearPendingAuthRequest();
-                onSignedIn(newSession);
+
+                const { action } = pendingRequest;
+
+                if (action === 'login') {
+                    await saveSession(newSession);
+                    onSignedIn(newSession);
+                } else {
+                    // AIA completed — update session in place, no navigation to login
+                    await updateSession(newSession);
+                    await queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+                    router.back();
+                }
             } catch (exchangeError) {
                 console.error('[auth] token exchange error:', exchangeError);
-                setErrorMessage('Ocurrio un error al completar el login.');
+                setErrorMessage('Ocurrio un error al completar el flujo.');
             }
         }
 
-        completeSignIn();
-    }, [code, error, errorDescription, onSignedIn, state]);
+        completeAuth();
+    }, [code, error, errorDescription, onSignedIn, queryClient, state, updateSession]);
 
     // Redirigir al login si hay error
     useEffect(() => {

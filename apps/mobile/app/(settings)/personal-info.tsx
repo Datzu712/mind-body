@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
+import { useInitiateAction } from '@/lib/auth/aia';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -19,13 +19,13 @@ import { FitColors as T } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { useApiClient } from '@/lib/api/client';
 import { PROFILE_QUERY_KEY, useProfile } from '@/hooks/use-profile';
-import { keycloakAccountUrls } from '@/lib/auth/keycloak-account';
 
 export default function PersonalInfoScreen() {
     const { user } = useAuth();
     const apiFetch = useApiClient();
     const queryClient = useQueryClient();
     const { data: profile, isPlaceholderData } = useProfile();
+    const initiateAction = useInitiateAction();
 
     // Initialize from placeholder (JWT claims), then sync once real backend data arrives
     const [firstName, setFirstName] = useState(profile?.firstName ?? '');
@@ -116,10 +116,8 @@ export default function PersonalInfoScreen() {
                             <View style={[s.input, s.inputDisabled]}>
                                 <Text style={s.inputDisabledText}>{profile?.email ?? '—'}</Text>
                             </View>
-                            <TouchableOpacity
-                                onPress={() => WebBrowser.openBrowserAsync(keycloakAccountUrls.accountConsole)}
-                            >
-                                <Text style={s.fieldLink}>Cambiar correo desde tu cuenta →</Text>
+                            <TouchableOpacity onPress={() => initiateAction('UPDATE_EMAIL')}>
+                                <Text style={s.fieldLink}>Cambiar correo →</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

@@ -1,15 +1,15 @@
 import { router, Stack } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as WebBrowser from 'expo-web-browser';
 
 import { FitColors as T } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
-import { keycloakAccountUrls } from '@/lib/auth/keycloak-account';
+import { useInitiateAction } from '@/lib/auth/aia';
 import { SettingsRow } from '@/components/ui/settings-row';
 
 export default function SettingsScreen() {
     const { signOut } = useAuth();
+    const initiateAction = useInitiateAction();
 
     return (
         <SafeAreaView style={s.root} edges={['bottom']}>
@@ -28,13 +28,13 @@ export default function SettingsScreen() {
                         icon="lock-closed-outline"
                         label="Cambiar contrasena"
                         accentColor={T.blue}
-                        onPress={() => WebBrowser.openBrowserAsync(keycloakAccountUrls.accountSecurity)}
+                        onPress={() => initiateAction('UPDATE_PASSWORD')}
                     />
                     <SettingsRow
                         icon="shield-checkmark-outline"
                         label="Autenticacion en dos pasos"
                         accentColor={T.green}
-                        onPress={() => WebBrowser.openBrowserAsync(keycloakAccountUrls.accountSecurity)}
+                        onPress={() => initiateAction('CONFIGURE_TOTP')}
                     />
                 </View>
 
