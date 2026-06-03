@@ -2,15 +2,18 @@ import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
+import { revokeKeycloakSession } from '@/lib/auth/keycloak-account';
 import { type AuthSession, clearSession, loadSession, saveSession } from '@/lib/auth/session';
 import { type AuthUser, extractUserFromToken } from '@/lib/auth/token-claims';
 import { isExpiringSoon, refreshSession } from '@/lib/auth/token-refresh';
+import { logger } from '@/lib/utils/log';
 
 interface AuthContextValue {
     session: AuthSession | null;
     user: AuthUser | null;
     isLoading: boolean;
     onSignedIn: (session: AuthSession) => void;
+    updateSession: (session: AuthSession) => Promise<void>;
     signOut: () => Promise<void>;
 }
 
@@ -24,11 +27,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const refreshTimerRef = useRef<number | null>(null);
+    const sessionRef = useRef<AuthSession | null>(null);
+
+    useEffect(() => {
+        sessionRef.current = session;
+    }, [session]);
 
     const doSignOut = useCallback(async () => {
         if (refreshTimerRef.current) {
             clearInterval(refreshTimerRef.current);
             refreshTimerRef.current = null;
+        }
+
+        const currentSession = sessionRef.current;
+        if (currentSession) {
+            try {
+                await revokeKeycloakSession(currentSession.refreshToken);
+            } catch (e) {
+                console.warn('[auth] keycloak logout failed:', e);
+            }
         }
 
         await WebBrowser.coolDownAsync();
@@ -62,11 +79,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const applySession = useCallback(
         (nextSession: AuthSession) => {
+            logger.debug(nextSession.accessToken);
+
             setSession(nextSession);
             setUser(extractUserFromToken(nextSession.accessToken));
             startRefreshTimer(nextSession);
         },
         [startRefreshTimer],
+    );
+
+    const updateSession = useCallback(
+        async (nextSession: AuthSession) => {
+            await saveSession(nextSession);
+            applySession(nextSession);
+        },
+        [applySession],
     );
 
     const onSignedIn = useCallback(
@@ -104,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [applySession]);
 
     return (
-        <AuthContext.Provider value={{ session, user, isLoading, onSignedIn, signOut: doSignOut }}>
+        <AuthContext.Provider value={{ session, user, isLoading, onSignedIn, updateSession, signOut: doSignOut }}>
             {children}
         </AuthContext.Provider>
     );

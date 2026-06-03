@@ -7,6 +7,7 @@ import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
 import { TypedConfigService } from './config/typed-config.service';
+import { VersioningType } from '@nestjs/common/enums/version-type.enum';
 
 async function bootstrap(): Promise<void> {
     const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter({ logger: false }), {
@@ -26,6 +27,10 @@ async function bootstrap(): Promise<void> {
     });
 
     app.setGlobalPrefix('api');
+    app.enableVersioning({
+        type: VersioningType.URI,
+        defaultVersion: '1',
+    });
 
     await app.listen(config.get('PORT'), config.getOrThrow('HOST'));
     logger.log(`Server running on http://${config.getOrThrow('HOST')}:${config.getOrThrow('PORT')}`);

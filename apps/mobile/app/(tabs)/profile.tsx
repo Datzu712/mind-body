@@ -1,17 +1,15 @@
 import { FitColors as T } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
+import { useProfile } from '@/hooks/use-profile';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 type SettingItem =
     | { kind: 'link'; ic: string; lbl: string; ac: string }
     | { kind: 'toggle'; ic: string; lbl: string; ac: string; on: boolean };
-
-// ── Data ─────────────────────────────────────────────────────────────────────
 
 const USER_STATS = [
     { val: '47', lbl: 'ENTRENOS' },
@@ -20,7 +18,6 @@ const USER_STATS = [
 ];
 
 const SETTINGS_INITIAL: SettingItem[] = [
-    { kind: 'link', ic: '👤', lbl: 'Información Personal', ac: T.yellow },
     { kind: 'link', ic: '🎯', lbl: 'Mis Objetivos', ac: T.green },
     { kind: 'link', ic: '🔔', lbl: 'Notificaciones', ac: '#FF9500' },
     { kind: 'link', ic: '🏆', lbl: 'Logros y Badges', ac: T.purple },
@@ -30,15 +27,13 @@ const SETTINGS_INITIAL: SettingItem[] = [
     { kind: 'link', ic: '⚙️', lbl: 'Configuración', ac: T.muted },
 ];
 
-// ── Screen ────────────────────────────────────────────────────────────────────
-
 export default function ProfileScreen() {
     const [settings, setSettings] = useState<SettingItem[]>(SETTINGS_INITIAL);
-    const { signOut, user } = useAuth();
+    const { signOut } = useAuth();
+    const { data: profile } = useProfile();
 
-    const displayName =
-        user?.name || [user?.givenName, user?.familyName].filter(Boolean).join(' ') || user?.username || 'Usuario';
-    const displayEmail = user?.email || user?.username || user?.sub || 'Sin correo';
+    const displayName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Usuario';
+    const displayEmail = profile!.email;
     const avatarLabel = (displayName.trim()[0] || 'U').toUpperCase();
 
     function toggleSetting(idx: number) {
@@ -116,7 +111,10 @@ export default function ProfileScreen() {
                         <TouchableOpacity
                             key={i}
                             style={s.settingRow}
-                            onPress={() => (item.kind === 'toggle' ? toggleSetting(i) : undefined)}
+                            onPress={() => {
+                                if (item.kind === 'toggle') return toggleSetting(i);
+                                if (item.lbl === 'Configuración') return router.push('/(settings)');
+                            }}
                             activeOpacity={0.8}
                         >
                             <View style={[s.settingIcon, { backgroundColor: item.ac + '22' }]}>

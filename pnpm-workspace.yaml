@@ -7,6 +7,7 @@ overrides:
 allowBuilds:
     '@nestjs/core': true
     '@swc/core': true
+    chromedriver: true
     esbuild: true
     msgpackr-extract: true
     sharp: true
@@ -24,3 +25,16 @@ minimumReleaseAgeExclude:
     - expo-server@55.0.10
     - expo-symbols@55.0.9
     - expo@55.0.25
+    - '@expo/cli@56.1.13'
+    - '@expo/package-manager@1.12.1'
+    - '@expo/prebuild-config@56.0.14'
+    - babel-preset-expo@56.0.14
+    - expo-modules-core@56.0.14
+    - expo@56.0.8
+    - '@expo/ui@56.0.15'
+    - expo-auth-session@56.0.13
+    - expo-linking@56.0.13
+    - expo-router@56.2.8
+    - expo-dev-client@56.0.18
+    - expo-dev-launcher@56.0.18
+    - expo-dev-menu@56.0.16

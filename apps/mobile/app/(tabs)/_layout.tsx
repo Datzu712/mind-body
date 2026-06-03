@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { FitColors as T } from '@/constants/theme';
+import { useProfile } from '@/hooks/use-profile';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -20,6 +21,8 @@ const TAB_TOP_PADDING = 10;
 
 export default function TabLayout() {
     const { bottom } = useSafeAreaInsets();
+
+    useProfile(); // prefetch on dashboard entry
 
     return (
         <Tabs

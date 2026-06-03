@@ -15,6 +15,10 @@ class EnvironmentVariables {
 
     @IsString()
     @IsNotEmpty()
+    REDIS_URL!: string;
+
+    @IsString()
+    @IsNotEmpty()
     HOST: string = 'localhost';
 
     @IsEnum(NodeEnv)
@@ -24,7 +28,41 @@ class EnvironmentVariables {
     CORS_ORIGIN: string = 'localhost:3000';
 
     @IsString()
+    @IsNotEmpty()
     DATABASE_URL!: string;
+
+    @IsString()
+    KC_BASE_URL!: string;
+
+    @IsString()
+    KC_ADMIN_CLIENT_SECRET!: string;
+
+    // This client is expected to be used by the admin dashboard with authorization code flow AND also
+    // have "Service account roles" enabled so we can perform admin operations, its like killing two birds with one stone.
+    // If the token in the request is obtained through cookies, then the AZP should be this client, otherwise the rest will throw an error.
+    @IsString()
+    KC_ADMIN_CLIENT_ID!: string;
+
+    // This client is expected to be used by the mobile app with authorization code flow and make request using bearer tokens.
+    // If the token in the request is obtained through headers, then the AZP should be this client, otherwise the rest will throw an error.
+    @IsString()
+    KC_MOBILE_CLIENT_ID!: string;
+
+    @IsString()
+    KC_REALM!: string;
+
+    @IsString()
+    KC_HEALTH_URL!: string;
+
+    // Tokens generated from KEYCLOAK_CLIENT_ID and KC_MOBILE_CLIENT_ID should have this audience
+    // todo: we might need some aud from kc like `account` (?)
+    @IsString()
+    KC_REST_API_AUDIENCE!: string;
+
+    @IsNumber()
+    @Min(1000)
+    @Max(30000)
+    GENERAL_HEALTH_TTL_MS: number = 5_000;
 }
 
 export type IEnvironmentVariables = EnvironmentVariables;
