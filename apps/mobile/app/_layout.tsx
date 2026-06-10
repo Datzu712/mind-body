@@ -38,7 +38,6 @@ onlineManager.setEventListener((setOnline) => {
 export default function RootLayout() {
     useEffect(() => {
         WebBrowser.warmUpAsync();
-
         return () => {
             WebBrowser.coolDownAsync();
         };

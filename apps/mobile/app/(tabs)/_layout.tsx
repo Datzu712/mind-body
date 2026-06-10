@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { createContext, useContext } from 'react';
 import { ColorValue, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,6 +7,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { HapticTab } from '@/components/haptic-tab';
 import { FitColors as T } from '@/constants/theme';
 import { useProfile } from '@/hooks/use-profile';
+
+export const TabBarHeightContext = createContext(0);
+export const useTabBarHeight = () => useContext(TabBarHeightContext);
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -21,72 +25,82 @@ const TAB_TOP_PADDING = 10;
 
 export default function TabLayout() {
     const { bottom } = useSafeAreaInsets();
+    const tabBarHeight = TAB_CONTENT_HEIGHT + TAB_TOP_PADDING + bottom;
 
     useProfile(); // prefetch on dashboard entry
 
     return (
-        <Tabs
-            screenOptions={{
-                headerShown: false,
-                tabBarActiveTintColor: T.yellow,
-                tabBarInactiveTintColor: T.muted,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                tabBarButton: HapticTab as any,
-                tabBarStyle: {
-                    backgroundColor: '#0C0C0C',
-                    borderTopColor: T.border,
-                    borderTopWidth: 1,
-                    // Total height = visible content + system nav bar (bottom inset)
-                    height: TAB_CONTENT_HEIGHT + TAB_TOP_PADDING + bottom,
-                    paddingBottom: bottom + (Platform.OS === 'ios' ? 0 : 4),
-                    paddingTop: TAB_TOP_PADDING,
-                },
-                tabBarLabelStyle: {
-                    fontSize: 9,
-                    fontWeight: '700',
-                    letterSpacing: 0.4,
-                    textTransform: 'uppercase',
-                    marginTop: -2,
-                },
-            }}
-        >
-            <Tabs.Screen
-                name="index"
-                options={{
-                    title: 'Inicio',
-                    tabBarIcon: tabIcon('home-outline', 'home'),
+        <TabBarHeightContext.Provider value={tabBarHeight}>
+            <Tabs
+                screenOptions={{
+                    headerShown: false,
+                    tabBarActiveTintColor: T.yellow,
+                    tabBarInactiveTintColor: T.muted,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    tabBarButton: HapticTab as any,
+                    tabBarStyle: {
+                        backgroundColor: '#0C0C0C',
+                        borderTopColor: T.border,
+                        borderTopWidth: 1,
+                        // Total height = visible content + system nav bar (bottom inset)
+                        height: tabBarHeight,
+                        paddingBottom: bottom + (Platform.OS === 'ios' ? 0 : 4),
+                        paddingTop: TAB_TOP_PADDING,
+                    },
+                    tabBarLabelStyle: {
+                        fontSize: 9,
+                        fontWeight: '700',
+                        letterSpacing: 0.4,
+                        textTransform: 'uppercase',
+                        marginTop: -2,
+                    },
                 }}
-            />
-            <Tabs.Screen
-                name="routines"
-                options={{
-                    title: 'Rutinas',
-                    tabBarIcon: tabIcon('calendar-outline', 'calendar'),
-                }}
-            />
-            <Tabs.Screen
-                name="workouts"
-                options={{
-                    title: 'Ejercicios',
-                    tabBarIcon: tabIcon('barbell-outline', 'barbell'),
-                }}
-            />
-            <Tabs.Screen
-                name="progress"
-                options={{
-                    title: 'Progreso',
-                    tabBarIcon: tabIcon('bar-chart-outline', 'bar-chart'),
-                }}
-            />
-            <Tabs.Screen
-                name="profile"
-                options={{
-                    title: 'Perfil',
-                    tabBarIcon: tabIcon('person-outline', 'person'),
-                }}
-            />
-            {/* Keep explore hidden from tabs but accessible as route */}
-            <Tabs.Screen name="explore" options={{ href: null }} />
-        </Tabs>
+            >
+                <Tabs.Screen
+                    name="index"
+                    options={{
+                        title: 'Inicio',
+                        tabBarIcon: tabIcon('home-outline', 'home'),
+                    }}
+                />
+                <Tabs.Screen
+                    name="routines"
+                    options={{
+                        title: 'Rutinas',
+                        tabBarIcon: tabIcon('calendar-outline', 'calendar'),
+                    }}
+                />
+                <Tabs.Screen
+                    name="workouts"
+                    options={{
+                        title: 'Ejercicios',
+                        tabBarIcon: tabIcon('barbell-outline', 'barbell'),
+                    }}
+                />
+                <Tabs.Screen
+                    name="progress"
+                    options={{
+                        title: 'Progreso',
+                        tabBarIcon: tabIcon('bar-chart-outline', 'bar-chart'),
+                    }}
+                />
+                <Tabs.Screen
+                    name="coach"
+                    options={{
+                        title: 'Asistente',
+                        tabBarIcon: tabIcon('sparkles-outline', 'sparkles'),
+                    }}
+                />
+                <Tabs.Screen
+                    name="profile"
+                    options={{
+                        title: 'Perfil',
+                        tabBarIcon: tabIcon('person-outline', 'person'),
+                    }}
+                />
+                {/* Keep explore hidden from tabs but accessible as route */}
+                <Tabs.Screen name="explore" options={{ href: null }} />
+            </Tabs>
+        </TabBarHeightContext.Provider>
     );
 }

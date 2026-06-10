@@ -29,7 +29,7 @@ export function useInitiateAction() {
 
         // makeAuthUrlAsync generates the codeVerifier; must be called before
         // promptAsync so we can persist it for the callback.
-        await request.makeAuthUrlAsync(keycloakConfig.discovery);
+        console.log(await request.makeAuthUrlAsync(keycloakConfig.discovery));
 
         await savePendingAuthRequest({
             codeVerifier: request.codeVerifier!,

@@ -39,8 +39,6 @@ export class UsersService {
             if (cachedUser.email === incomingEmail) return cachedUser;
         }
 
-        // Upsert: insert on first login, or update email when Keycloak reports a new one.
-        // firstName/lastName are owned by the backend — never overwritten from the token.
         const [user] = await this.drizzle.db
             .insert(Users)
             .values({ keycloakId, firstName: firstName ?? null, lastName: lastName ?? null, email: incomingEmail })

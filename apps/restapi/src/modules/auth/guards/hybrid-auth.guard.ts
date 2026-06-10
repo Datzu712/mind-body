@@ -1,11 +1,4 @@
-import {
-    CanActivate,
-    ExecutionContext,
-    ForbiddenException,
-    HttpException,
-    Injectable,
-    InternalServerErrorException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, HttpException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { FastifyRequest } from 'fastify';
 import { errors } from 'jose';
 import { Reflector } from '@nestjs/core';
@@ -50,11 +43,7 @@ export class HybridAuthGuard implements CanActivate {
         const sessionInCookie = request.cookies?.access_token;
         const sessionInHeader = request.headers['authorization']?.startsWith('Bearer ');
 
-        if (!sessionInCookie && !sessionInHeader) return false;
-
-        if (sessionInCookie && sessionInHeader) {
-            throw new ForbiddenException('Multiple authentication methods provided. Please use only one.');
-        }
+        if ((!sessionInCookie && !sessionInHeader) || (sessionInCookie && sessionInHeader)) return false;
 
         let accessToken: string | undefined;
 
@@ -63,7 +52,6 @@ export class HybridAuthGuard implements CanActivate {
         } else {
             accessToken = request.headers['authorization']?.substring(7);
         }
-
         if (!accessToken?.trim()) return false;
 
         const tokenStrategy = sessionInCookie ? 'cookie' : 'header';

@@ -34,7 +34,6 @@ export default function LoginScreen() {
             redirectUri: keycloakConfig.redirectUri,
             usePKCE: true,
             scopes: ['openid', 'profile', 'email', 'offline_access'],
-            extraParams: { prompt: 'login' },
         },
         keycloakConfig.discovery,
     );
