@@ -5,6 +5,12 @@ import { usePathname } from 'next/navigation';
 import {
     LayoutDashboard,
     Users,
+    UserSearch,
+    UserRound,
+    UsersRound,
+    UserPlus,
+    IdCard,
+    ClipboardCheck,
     ClipboardList,
     Settings,
     FileBarChart,
@@ -12,6 +18,7 @@ import {
     HardDrive,
     LogOut,
     Dumbbell,
+    type LucideIcon,
 } from 'lucide-react';
 
 import {
@@ -37,11 +44,44 @@ const mainNavItems = [
     },
 ];
 
-const adminNavItems = [
+const adminNavItems: { title: string; href: string; icon: LucideIcon; exact?: boolean }[] = [
     {
         title: 'Usuarios',
         href: '/dashboard/users',
         icon: Users,
+    },
+    {
+        title: 'Miembros',
+        href: '/dashboard/members',
+        icon: UserSearch,
+        exact: true,
+    },
+    {
+        title: 'Registrar miembro',
+        href: '/dashboard/members/new',
+        icon: UserPlus,
+    },
+    {
+        title: 'Mi perfil',
+        href: '/dashboard/profile',
+        icon: UserRound,
+        exact: true,
+    },
+    {
+        title: 'Membresías',
+        href: '/dashboard/memberships',
+        icon: IdCard,
+        exact: true,
+    },
+    {
+        title: 'Aprobación de membresías',
+        href: '/dashboard/memberships/approval',
+        icon: ClipboardCheck,
+    },
+    {
+        title: 'Mis miembros',
+        href: '/dashboard/trainer/members',
+        icon: UsersRound,
     },
     {
         title: 'Auditoría',
@@ -120,7 +160,10 @@ export function AppSidebar() {
                                 <SidebarMenuItem key={item.href}>
                                     <SidebarMenuButton
                                         asChild
-                                        isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
+                                        isActive={
+                                            pathname === item.href ||
+                                            (!item.exact && pathname.startsWith(item.href + '/'))
+                                        }
                                         tooltip={item.title}
                                     >
                                         <Link href={item.href}>
