@@ -1,5 +1,4 @@
-'use client';
-
+import { Link } from '@tanstack/react-router';
 import { Bell, Search } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
@@ -50,11 +49,8 @@ export function DashboardHeader({ breadcrumbs }: DashboardHeaderProps) {
                                 {index > 0 && <BreadcrumbSeparator />}
                                 <BreadcrumbItem>
                                     {item.href ? (
-                                        <BreadcrumbLink
-                                            href={item.href}
-                                            className="text-muted-foreground hover:text-foreground"
-                                        >
-                                            {item.label}
+                                        <BreadcrumbLink asChild className="text-muted-foreground hover:text-foreground">
+                                            <Link to={item.href}>{item.label}</Link>
                                         </BreadcrumbLink>
                                     ) : (
                                         <BreadcrumbPage className="text-foreground font-medium">

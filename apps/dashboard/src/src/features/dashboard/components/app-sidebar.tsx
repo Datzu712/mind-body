@@ -1,7 +1,4 @@
-'use client';
-
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, useLocation } from '@tanstack/react-router';
 import {
     LayoutDashboard,
     Users,
@@ -111,12 +108,12 @@ const adminNavItems: { title: string; href: string; icon: LucideIcon; exact?: bo
 ];
 
 export function AppSidebar() {
-    const pathname = usePathname();
+    const pathname = useLocation().pathname;
 
     return (
         <Sidebar collapsible="icon" className="border-r border-sidebar-border">
             <SidebarHeader className="p-4">
-                <Link href="/dashboard" className="flex items-center gap-3">
+                <Link to="/dashboard" className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
                         <Dumbbell className="h-5 w-5 text-primary-foreground" />
                     </div>
@@ -139,7 +136,7 @@ export function AppSidebar() {
                             {mainNavItems.map((item) => (
                                 <SidebarMenuItem key={item.href}>
                                     <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.title}>
-                                        <Link href={item.href}>
+                                        <Link to={item.href}>
                                             <item.icon className="h-4 w-4" />
                                             <span>{item.title}</span>
                                         </Link>
@@ -166,7 +163,7 @@ export function AppSidebar() {
                                         }
                                         tooltip={item.title}
                                     >
-                                        <Link href={item.href}>
+                                        <Link to={item.href}>
                                             <item.icon className="h-4 w-4" />
                                             <span>{item.title}</span>
                                         </Link>
@@ -194,7 +191,7 @@ export function AppSidebar() {
                     </SidebarMenuItem>
                     <SidebarMenuItem>
                         <SidebarMenuButton asChild tooltip="Cerrar sesión">
-                            <Link href="/" className="text-muted-foreground hover:text-foreground">
+                            <Link to="/" className="text-muted-foreground hover:text-foreground">
                                 <LogOut className="h-4 w-4" />
                                 <span>Cerrar sesión</span>
                             </Link>
