@@ -47,6 +47,8 @@ node_modules/
 .expo/
 dist/
 web-build/
+ios
+datasets
 expo-env.d.ts
 
 # Native

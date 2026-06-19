@@ -399,6 +399,9 @@ importers:
             expo-haptics:
                 specifier: ~56.0.3
                 version: 56.0.3(expo@56.0.12)
+            expo-health-connect:
+                specifier: ^0.1.1
+                version: 0.1.1(expo@56.0.12)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
             expo-image:
                 specifier: ~56.0.11
                 version: 56.0.11(expo@56.0.12)(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
@@ -447,6 +450,9 @@ importers:
             react-native-gifted-charts:
                 specifier: ^1.4.77
                 version: 1.4.77(expo-linear-gradient@56.0.4(expo@56.0.12)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native-svg@15.15.5(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
+            react-native-health-connect:
+                specifier: ^3.5.3
+                version: 3.5.3(@expo/config-plugins@56.0.9(typescript@6.0.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
             react-native-reanimated:
                 specifier: ~4.3.1
                 version: 4.3.1(react-native-worklets@0.8.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
@@ -472,6 +478,9 @@ importers:
             eslint-config-expo:
                 specifier: ~56.0.4
                 version: 56.0.4(eslint@10.4.0(jiti@2.7.0))(typescript@6.0.3)
+            expo-build-properties:
+                specifier: ^56.0.19
+                version: 56.0.19(expo@56.0.12)
             typescript:
                 specifier: ~6.0.3
                 version: 6.0.3
@@ -8652,10 +8661,10 @@ packages:
             }
         engines: { node: '>=6.0' }
 
-    chromedriver@149.0.4:
+    chromedriver@150.0.0:
         resolution:
             {
-                integrity: sha512-njPxWyJBNbFdsOhCWXWpdbrJEibb3DVnVB02ZI+3ZSVHDmPdw8xKdjZGoOQ5LfGj8ljNwlDwKp/DEvG7orHlfg==,
+                integrity: sha512-MhHObBXNUOxJFzHuwRC+BXRFJNJgbgIr+y7B/MB++QioxbHz2R3Zj4WyJJVGqkjZyoVAF4zc46egxJ1GSFG7+w==,
             }
         engines: { node: '>=22' }
         hasBin: true
@@ -10314,6 +10323,14 @@ packages:
             react: '*'
             react-native: '*'
 
+    expo-build-properties@56.0.19:
+        resolution:
+            {
+                integrity: sha512-InoviXcxWosNp4cC7L3SWoiY99Xr2HdgN+LYHb6mUm/BBVxy1mIMrZR+3PJ2gwDZzW6EJNDz8ioASWGHBTmzpA==,
+            }
+        peerDependencies:
+            expo: '*'
+
     expo-constants@56.0.18:
         resolution:
             {
@@ -10367,6 +10384,19 @@ packages:
             }
         peerDependencies:
             expo: '*'
+
+    expo-health-connect@0.1.1:
+        resolution:
+            {
+                integrity: sha512-9URHckKOHYt7OvwwTis6TNo9XhV8KivkwARexgQ9KAyLWH8T+jCLI3kd7fhCm0WWp3IyyKit362oX7F1l6JLHA==,
+            }
+        peerDependencies:
+            expo: '*'
+            react: '*'
+            react-native: '*'
+        peerDependenciesMeta:
+            expo:
+                optional: true
 
     expo-image@56.0.11:
         resolution:
@@ -14183,6 +14213,17 @@ packages:
                 optional: true
             react-native-linear-gradient:
                 optional: true
+
+    react-native-health-connect@3.5.3:
+        resolution:
+            {
+                integrity: sha512-lco68RbMaWpvElED3/obXTJSzoWopo9k5loN/+1zSdr3iT4STp7BaoziyPx0DIyW1a6DF/lvMesXIubWKE1Srw==,
+            }
+        engines: { node: '>= 16.0.0' }
+        peerDependencies:
+            '@expo/config-plugins': '>= 6.0.2'
+            react: '*'
+            react-native: '*'
 
     react-native-is-edge-to-edge@1.3.1:
         resolution:
@@ -22079,7 +22120,7 @@ snapshots:
 
     chrome-trace-event@1.0.4: {}
 
-    chromedriver@149.0.4:
+    chromedriver@150.0.0:
         dependencies:
             '@testim/chrome-version': 1.1.4
             adm-zip: 0.5.17
@@ -23200,6 +23241,13 @@ snapshots:
             - expo
             - supports-color
 
+    expo-build-properties@56.0.19(expo@56.0.12):
+        dependencies:
+            '@expo/schema-utils': 56.0.1
+            expo: 56.0.12(@babel/core@7.29.7)(@expo/dom-webview@56.0.5)(@expo/metro-runtime@56.0.13)(expo-router@56.2.11)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native-worklets@0.8.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)(typescript@6.0.3)
+            resolve-from: 5.0.0
+            semver: 7.8.1
+
     expo-constants@56.0.18(expo@56.0.12)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3)):
         dependencies:
             '@expo/env': 2.3.0
@@ -23232,6 +23280,13 @@ snapshots:
 
     expo-haptics@56.0.3(expo@56.0.12):
         dependencies:
+            expo: 56.0.12(@babel/core@7.29.7)(@expo/dom-webview@56.0.5)(@expo/metro-runtime@56.0.13)(expo-router@56.2.11)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native-worklets@0.8.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)(typescript@6.0.3)
+
+    expo-health-connect@0.1.1(expo@56.0.12)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3):
+        dependencies:
+            react: 19.2.3
+            react-native: 0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3)
+        optionalDependencies:
             expo: 56.0.12(@babel/core@7.29.7)(@expo/dom-webview@56.0.5)(@expo/metro-runtime@56.0.13)(expo-router@56.2.11)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native-worklets@0.8.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)(typescript@6.0.3)
 
     expo-image@56.0.11(expo@56.0.12)(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3):
@@ -24379,7 +24434,7 @@ snapshots:
         dependencies:
             jwk-to-pem: 2.0.7
         optionalDependencies:
-            chromedriver: 149.0.4
+            chromedriver: 150.0.0
         transitivePeerDependencies:
             - debug
             - supports-color
@@ -25639,6 +25694,12 @@ snapshots:
             react-native-svg: 15.15.5(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
         optionalDependencies:
             expo-linear-gradient: 56.0.4(expo@56.0.12)(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3)
+
+    react-native-health-connect@3.5.3(@expo/config-plugins@56.0.9(typescript@6.0.3))(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3):
+        dependencies:
+            '@expo/config-plugins': 56.0.9(typescript@6.0.3)
+            react: 19.2.3
+            react-native: 0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3)
 
     react-native-is-edge-to-edge@1.3.1(react-native@0.85.3(@babel/core@7.29.7)(@react-native/metro-config@0.85.3(@babel/core@7.29.7))(@types/react@19.2.15)(react@19.2.3))(react@19.2.3):
         dependencies:

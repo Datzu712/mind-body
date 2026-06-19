@@ -6,10 +6,14 @@ import { FitColors as T } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { useInitiateAction } from '@/lib/auth/aia';
 import { SettingsRow } from '@/components/ui/settings-row';
+import { useHealthConnect } from '@/hooks/use-health-connect';
+import { useManualSync } from '@/hooks/use-activity-sync';
 
 export default function SettingsScreen() {
     const { signOut } = useAuth();
     const initiateAction = useInitiateAction();
+    const hc = useHealthConnect();
+    const { sync, isSyncing } = useManualSync();
 
     return (
         <SafeAreaView style={s.root} edges={['bottom']}>
@@ -36,6 +40,37 @@ export default function SettingsScreen() {
                         accentColor={T.green}
                         onPress={() => initiateAction('CONFIGURE_TOTP')}
                     />
+                </View>
+
+                {/* Integraciones */}
+                <Text style={s.sectionTitle}>INTEGRACIONES</Text>
+                <View style={s.section}>
+                    <SettingsRow
+                        icon="heart-outline"
+                        label="Health Connect"
+                        accentColor={hc.isConnected ? T.green : T.muted}
+                        onPress={hc.connect}
+                        rightElement={
+                            <Text
+                                style={{ fontSize: 12, fontWeight: '600', color: hc.isConnected ? T.green : T.muted }}
+                            >
+                                {hc.isLoading ? 'Conectando...' : hc.isConnected ? 'Conectado' : 'Conectar'}
+                            </Text>
+                        }
+                    />
+                    {hc.isConnected && (
+                        <SettingsRow
+                            icon="sync-outline"
+                            label="Sincronizar datos"
+                            accentColor={T.blue}
+                            onPress={sync}
+                            rightElement={
+                                <Text style={{ fontSize: 12, fontWeight: '600', color: T.blue }}>
+                                    {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
+                                </Text>
+                            }
+                        />
+                    )}
                 </View>
 
                 {/* Sesion */}

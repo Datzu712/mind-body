@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { HapticTab } from '@/components/haptic-tab';
 import { FitColors as T } from '@/constants/theme';
 import { useProfile } from '@/hooks/use-profile';
+import { useActivitySync } from '@/hooks/use-activity-sync';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -23,6 +24,7 @@ export default function TabLayout() {
     const { bottom } = useSafeAreaInsets();
 
     useProfile(); // prefetch on dashboard entry
+    useActivitySync(); // sync HC → backend (throttled, max once per 30 min)
 
     return (
         <Tabs
