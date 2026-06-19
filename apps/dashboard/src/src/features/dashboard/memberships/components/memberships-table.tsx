@@ -3,13 +3,15 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Power, Eye } from 'lucide-react';
+import { Power, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type Membership, type MembershipStatus, membershipStatusLabels } from '@/src/shared/lib/mock-data';
 
+// Un único tipo de plan fijo para todo el listado (visual mock)
+const FIXED_MEMBERSHIP_TYPE = 'Premium';
+
 interface MembershipsTableProps {
     memberships: Membership[];
-    onRenew?: (membership: Membership) => void;
     onDeactivate?: (membership: Membership) => void;
     onViewHistory?: (membership: Membership) => void;
 }
@@ -30,7 +32,7 @@ function MembershipStatusBadge({ status }: { status: MembershipStatus }) {
     );
 }
 
-export function MembershipsTable({ memberships, onRenew, onDeactivate, onViewHistory }: MembershipsTableProps) {
+export function MembershipsTable({ memberships, onDeactivate, onViewHistory }: MembershipsTableProps) {
     return (
         <div className="rounded-lg border border-border overflow-hidden">
             <Table>
@@ -53,7 +55,7 @@ export function MembershipsTable({ memberships, onRenew, onDeactivate, onViewHis
                                 {membership.memberId}
                             </TableCell>
                             <TableCell className="font-medium text-foreground">{membership.memberName}</TableCell>
-                            <TableCell className="text-foreground">{membership.membershipType}</TableCell>
+                            <TableCell className="text-foreground">{FIXED_MEMBERSHIP_TYPE}</TableCell>
                             <TableCell>
                                 <MembershipStatusBadge status={membership.status} />
                             </TableCell>
@@ -62,17 +64,6 @@ export function MembershipsTable({ memberships, onRenew, onDeactivate, onViewHis
                             <TableCell className="text-foreground">{membership.remainingDays}</TableCell>
                             <TableCell>
                                 <div className="flex items-center justify-end gap-1">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        title="Renovar"
-                                        onClick={() => onRenew?.(membership)}
-                                    >
-                                        <RefreshCw className="h-4 w-4" />
-                                        <span className="sr-only">Renovar</span>
-                                    </Button>
                                     <Button
                                         type="button"
                                         variant="ghost"

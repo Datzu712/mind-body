@@ -8,11 +8,8 @@ import {
     UserPlus,
     IdCard,
     ClipboardCheck,
-    ClipboardList,
     Settings,
-    FileBarChart,
     BookOpen,
-    HardDrive,
     LogOut,
     Dumbbell,
     type LucideIcon,
@@ -39,14 +36,14 @@ const mainNavItems = [
         href: '/dashboard',
         icon: LayoutDashboard,
     },
-];
-
-const adminNavItems: { title: string; href: string; icon: LucideIcon; exact?: boolean }[] = [
     {
         title: 'Usuarios',
         href: '/dashboard/users',
         icon: Users,
     },
+];
+
+const adminNavItems: { title: string; href: string; icon: LucideIcon; exact?: boolean }[] = [
     {
         title: 'Miembros',
         href: '/dashboard/members',
@@ -81,24 +78,9 @@ const adminNavItems: { title: string; href: string; icon: LucideIcon; exact?: bo
         icon: UsersRound,
     },
     {
-        title: 'Auditoría',
-        href: '/dashboard/audit',
-        icon: ClipboardList,
-    },
-    {
         title: 'Catálogo',
         href: '/dashboard/catalog',
         icon: BookOpen,
-    },
-    {
-        title: 'Reportes',
-        href: '/dashboard/reports',
-        icon: FileBarChart,
-    },
-    {
-        title: 'Respaldos',
-        href: '/dashboard/backups',
-        icon: HardDrive,
     },
     {
         title: 'Configuración',
@@ -112,7 +94,7 @@ export function AppSidebar() {
 
     return (
         <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-            <SidebarHeader className="p-4">
+            <SidebarHeader className="h-16 justify-center px-4 py-0">
                 <Link to="/dashboard" className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
                         <Dumbbell className="h-5 w-5 text-primary-foreground" />

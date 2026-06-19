@@ -1,10 +1,8 @@
 'use client';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type AssignedMember, type AssignedMemberStatus, assignedMemberStatusLabels } from '@/src/shared/lib/mock-data';
 
@@ -39,16 +37,14 @@ function MembershipStatusBadge({ status }: { status: AssignedMemberStatus }) {
 }
 
 export function AssignedMembersTable({ members, selectedMemberId, onSelectMember }: AssignedMembersTableProps) {
+    // Scroll horizontal: el contenedor de Table ya aplica overflow-x-auto (sin overflow-hidden que lo recorte).
     return (
-        <div className="rounded-lg border border-border overflow-hidden">
+        <div className="rounded-lg border border-border">
             <Table>
                 <TableHeader>
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
                         <TableHead className="text-muted-foreground font-semibold">Miembro</TableHead>
                         <TableHead className="text-muted-foreground font-semibold">Estado</TableHead>
-                        <TableHead className="text-muted-foreground font-semibold">Objetivo principal</TableHead>
-                        <TableHead className="text-muted-foreground font-semibold">Última sesión</TableHead>
-                        <TableHead className="text-muted-foreground font-semibold text-right">Acciones</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -57,7 +53,12 @@ export function AssignedMembersTable({ members, selectedMemberId, onSelectMember
                         return (
                             <TableRow
                                 key={member.id}
-                                className={cn('border-border', isSelected && 'bg-primary/5 hover:bg-primary/5')}
+                                onClick={() => onSelectMember?.(member)}
+                                aria-selected={isSelected}
+                                className={cn(
+                                    'cursor-pointer border-border',
+                                    isSelected && 'bg-primary/5 hover:bg-primary/5',
+                                )}
                             >
                                 <TableCell>
                                     <div className="flex items-center gap-3">
@@ -74,21 +75,6 @@ export function AssignedMembersTable({ members, selectedMemberId, onSelectMember
                                 </TableCell>
                                 <TableCell>
                                     <MembershipStatusBadge status={member.membershipStatus} />
-                                </TableCell>
-                                <TableCell className="text-foreground">{member.mainGoal}</TableCell>
-                                <TableCell className="text-muted-foreground">{member.lastSessionAt}</TableCell>
-                                <TableCell>
-                                    <div className="flex items-center justify-end">
-                                        <Button
-                                            type="button"
-                                            variant={isSelected ? 'secondary' : 'outline'}
-                                            size="sm"
-                                            onClick={() => onSelectMember?.(member)}
-                                        >
-                                            <Eye className="mr-2 h-4 w-4" />
-                                            Ver perfil
-                                        </Button>
-                                    </div>
                                 </TableCell>
                             </TableRow>
                         );

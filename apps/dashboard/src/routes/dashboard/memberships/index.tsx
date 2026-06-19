@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { DashboardHeader } from '@/src/features/dashboard/components/dashboard-header';
 import { PageHeader } from '@/src/shared/components/page-header';
 import { MembershipsTable } from '@/src/features/dashboard/memberships/components/memberships-table';
+import { ConfirmDialog } from '@/src/shared/components/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,14 +11,15 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+    Sheet,
+    SheetClose,
+    SheetContent,
+    SheetDescription,
+    SheetFooter,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from '@/components/ui/sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     IdCard,
@@ -28,7 +30,6 @@ import {
     Search,
     Filter,
     Download,
-    RefreshCw,
     TriangleAlert,
     X,
 } from 'lucide-react';
@@ -82,26 +83,18 @@ export const Route = createFileRoute('/dashboard/memberships/')({
 function MembershipsPage() {
     // Interactividad mock (sin backend)
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedMembership, setSelectedMembership] = useState<Membership | null>(null);
-    const [renewDialogOpen, setRenewDialogOpen] = useState(false);
     const [visualMessage, setVisualMessage] = useState<VisualMessage | null>(null);
+    const [deactivateTarget, setDeactivateTarget] = useState<Membership | null>(null);
+    const [confirmOpen, setConfirmOpen] = useState(false);
 
-    const openRenewDialog = (membership: Membership) => {
-        setSelectedMembership(membership);
-        setRenewDialogOpen(true);
+    // Desactivar pide confirmación antes de aplicar (mock)
+    const requestDeactivate = (membership: Membership) => {
+        setDeactivateTarget(membership);
+        setConfirmOpen(true);
     };
 
-    const confirmRenew = () => {
-        setRenewDialogOpen(false);
-        setVisualMessage({
-            tone: 'success',
-            title: 'Renovación de membresía',
-            text: 'Membresía renovada correctamente.',
-        });
-    };
-
-    const handleDeactivate = (membership: Membership) => {
-        setSelectedMembership(membership);
+    const confirmDeactivate = () => {
+        setConfirmOpen(false);
         setVisualMessage({
             tone: 'warning',
             title: 'Desactivación de membresía vencida',
@@ -138,7 +131,7 @@ function MembershipsPage() {
                 />
 
                 <div className="space-y-6">
-                    {/* Alert visual mock (renovación / desactivación) */}
+                    {/* Alert visual mock (desactivación) */}
                     {visualMessage && (
                         <Alert
                             className={
@@ -195,10 +188,96 @@ function MembershipsPage() {
                                         />
                                     </div>
                                     <div className="flex gap-2">
-                                        <Button type="button" variant="outline">
-                                            <Filter className="mr-2 h-4 w-4" />
-                                            Filtros
-                                        </Button>
+                                        {/* Filtros: panel lateral (Sheet) */}
+                                        <Sheet>
+                                            <SheetTrigger asChild>
+                                                <Button type="button" variant="outline">
+                                                    <Filter className="mr-2 h-4 w-4" />
+                                                    Filtros
+                                                </Button>
+                                            </SheetTrigger>
+                                            <SheetContent side="right" className="w-full sm:max-w-sm">
+                                                <SheetHeader>
+                                                    <SheetTitle>Filtros</SheetTitle>
+                                                    <SheetDescription>
+                                                        Refina el listado de membresías.
+                                                    </SheetDescription>
+                                                </SheetHeader>
+
+                                                <div className="flex flex-col gap-4 overflow-auto px-4">
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <Label htmlFor="filter-name">Nombre del miembro</Label>
+                                                        <Input
+                                                            id="filter-name"
+                                                            placeholder="Ingrese un nombre"
+                                                            className="bg-secondary/50 border-border"
+                                                        />
+                                                    </div>
+
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <Label htmlFor="filter-id">Número de miembro</Label>
+                                                        <Input
+                                                            id="filter-id"
+                                                            placeholder="Ej. MB-000123"
+                                                            className="bg-secondary/50 border-border"
+                                                        />
+                                                    </div>
+
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <Label>Estado</Label>
+                                                        <Select defaultValue="all">
+                                                            <SelectTrigger className="bg-secondary/50 border-border">
+                                                                <SelectValue placeholder="Todos" />
+                                                            </SelectTrigger>
+                                                            <SelectContent className="bg-popover border-border">
+                                                                <SelectItem value="all">Todos</SelectItem>
+                                                                <SelectItem value="active">Activa</SelectItem>
+                                                                <SelectItem value="expired">Vencida</SelectItem>
+                                                                <SelectItem value="expiring-soon">
+                                                                    Próxima a vencer
+                                                                </SelectItem>
+                                                                <SelectItem value="inactive">Inactiva</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div className="flex flex-col gap-1.5">
+                                                            <Label htmlFor="filter-start">Fecha de inicio</Label>
+                                                            <Input
+                                                                id="filter-start"
+                                                                placeholder="dd/mm/aaaa"
+                                                                className="bg-secondary/50 border-border"
+                                                            />
+                                                        </div>
+                                                        <div className="flex flex-col gap-1.5">
+                                                            <Label htmlFor="filter-end">Fecha de vencimiento</Label>
+                                                            <Input
+                                                                id="filter-end"
+                                                                placeholder="dd/mm/aaaa"
+                                                                className="bg-secondary/50 border-border"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <SheetFooter className="flex-row gap-2">
+                                                    <SheetClose asChild>
+                                                        <Button type="button" className="flex-1">
+                                                            <Search className="mr-2 h-4 w-4" />
+                                                            Aplicar filtros
+                                                        </Button>
+                                                    </SheetClose>
+                                                    <SheetClose asChild>
+                                                        <Button type="button" variant="outline" className="flex-1">
+                                                            <X className="mr-2 h-4 w-4" />
+                                                            Limpiar filtros
+                                                        </Button>
+                                                    </SheetClose>
+                                                </SheetFooter>
+                                            </SheetContent>
+                                        </Sheet>
+
                                         <Button type="button" variant="outline">
                                             <Download className="mr-2 h-4 w-4" />
                                             Exportar
@@ -210,8 +289,7 @@ function MembershipsPage() {
                         <CardContent>
                             <MembershipsTable
                                 memberships={mockMemberships}
-                                onRenew={openRenewDialog}
-                                onDeactivate={handleDeactivate}
+                                onDeactivate={requestDeactivate}
                                 onViewHistory={() => {
                                     /* no-op visual */
                                 }}
@@ -220,7 +298,7 @@ function MembershipsPage() {
                     </Card>
 
                     {/* Cards de criterios de aceptación */}
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <div className="grid gap-4 md:grid-cols-2">
                         <Card className="border-success/30 bg-success/10">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-base text-success">
@@ -248,109 +326,30 @@ function MembershipsPage() {
                                 </p>
                             </CardContent>
                         </Card>
-
-                        <Card className="border-success/30 bg-success/10">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-base text-success">
-                                    <RefreshCw className="h-5 w-5" />
-                                    Renovación de membresía
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-foreground">Membresía renovada correctamente.</p>
-                            </CardContent>
-                        </Card>
                     </div>
 
                     {/* Nota inferior */}
                     <p className="text-center text-xs text-muted-foreground">
-                        Este wireframe muestra 3 estados de criterios de aceptación para HU-CLI-005.
+                        Este wireframe documenta los estados de criterios de aceptación para HU-CLI-005.
                     </p>
                 </div>
             </div>
 
-            {/* Dialog visual de renovación (sin backend) */}
-            <Dialog open={renewDialogOpen} onOpenChange={setRenewDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <div className="flex flex-col items-center gap-2 text-center sm:items-start sm:text-left">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary">
-                                <RefreshCw className="h-6 w-6" />
-                            </div>
-                            <DialogTitle>Renovar membresía</DialogTitle>
-                            <DialogDescription>
-                                {selectedMembership
-                                    ? `${selectedMembership.memberName} (${selectedMembership.memberId})`
-                                    : 'Selecciona una membresía para renovar.'}
-                            </DialogDescription>
-                        </div>
-                    </DialogHeader>
-
-                    <div className="flex flex-col gap-4">
-                        <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="renew-plan">Plan actual</Label>
-                            <Input
-                                id="renew-plan"
-                                readOnly
-                                value={selectedMembership?.membershipType ?? 'Premium Mensual'}
-                                className="bg-secondary/50 border-border"
-                            />
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="renew-period">Nuevo periodo</Label>
-                            <Select defaultValue="1-month">
-                                <SelectTrigger id="renew-period" className="bg-secondary/50 border-border">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-popover border-border">
-                                    <SelectItem value="1-month">1 mes</SelectItem>
-                                    <SelectItem value="3-months">3 meses</SelectItem>
-                                    <SelectItem value="6-months">6 meses</SelectItem>
-                                    <SelectItem value="1-year">1 año</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="renew-expires">Nueva fecha de vencimiento</Label>
-                            <Input
-                                id="renew-expires"
-                                readOnly
-                                value="30/06/2025"
-                                className="bg-secondary/50 border-border"
-                            />
-                        </div>
-
-                        <div className="flex flex-col gap-1.5">
-                            <Label htmlFor="renew-payment">Método de pago</Label>
-                            <Input
-                                id="renew-payment"
-                                readOnly
-                                value="Tarjeta de crédito terminada en 4242"
-                                className="bg-secondary/50 border-border"
-                            />
-                        </div>
-                    </div>
-
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button type="button" variant="outline">
-                                <X className="mr-2 h-4 w-4" />
-                                Cancelar
-                            </Button>
-                        </DialogClose>
-                        <Button
-                            type="button"
-                            className="bg-success text-success-foreground hover:bg-success/90"
-                            onClick={confirmRenew}
-                        >
-                            <RefreshCw className="mr-2 h-4 w-4" />
-                            Renovar membresía
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Confirmación de desactivación (sin backend) */}
+            <ConfirmDialog
+                open={confirmOpen}
+                onOpenChange={setConfirmOpen}
+                title="Desactivar membresía"
+                description={
+                    deactivateTarget
+                        ? `Se desactivará la membresía de ${deactivateTarget.memberName} (${deactivateTarget.memberId}). El miembro perderá el acceso.`
+                        : 'Se desactivará la membresía seleccionada.'
+                }
+                confirmLabel="Desactivar"
+                cancelLabel="Cancelar"
+                variant="destructive"
+                onConfirm={confirmDeactivate}
+            />
         </>
     );
 }

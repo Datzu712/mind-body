@@ -18,11 +18,9 @@ import {
     UsersRound,
     Search,
     FileDown,
-    FileCheck,
     MessageSquarePlus,
     TrendingUp,
     CircleCheck,
-    Lock,
     Mail,
     Phone,
     Target,
@@ -391,56 +389,6 @@ function TrainerMembersPage() {
                         </CardContent>
                     </Card>
                 </div>
-
-                {/* Cards de criterios de aceptación */}
-                <div className="mt-6 grid gap-4 md:grid-cols-3">
-                    <Card className="border-success/30 bg-success/10">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-base text-success">
-                                <CircleCheck className="h-5 w-5" />
-                                Perfil completo visible
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-foreground">
-                                Se muestra el perfil completo del miembro seleccionado con toda la información
-                                disponible.
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-warning/30 bg-warning/10">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-base text-warning">
-                                <Lock className="h-5 w-5" />
-                                Acceso restringido
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-col gap-1">
-                            <p className="text-sm text-foreground">No tienes autorización para ver este miembro.</p>
-                            <p className="text-xs text-muted-foreground">
-                                No cuentas con permisos para acceder a la información de este miembro.
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-success/30 bg-success/10">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-base text-success">
-                                <FileCheck className="h-5 w-5" />
-                                Exportación exitosa
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-foreground">PDF generado correctamente.</p>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Nota inferior */}
-                <p className="mt-6 text-center text-xs text-muted-foreground">
-                    Este wireframe muestra 3 estados de criterios de aceptación para HU-CLI-006.
-                </p>
             </div>
         </>
     );
