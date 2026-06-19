@@ -3,14 +3,14 @@ import { eq, sql } from 'drizzle-orm';
 import type Redis from 'ioredis';
 
 import { DrizzleService } from '@/infra/database/pg/drizzle.service';
-import { type User, Users } from '@/infra/database/pg/schemas/drizzle.schema';
+import { usersInApp as Users } from '@/infra/database/pg/schemas/schema';
+import type { User } from '@/infra/database/pg/schemas/schema';
 import { REDIS_KEY } from '@/infra/database/redis/redis-provider';
 import { KeycloakAdminService } from '@/infra/keycloak/keycloak-admin.service';
 
 interface UpsertUserOptions {
     keycloakId: string;
-    firstName?: string | undefined;
-    lastName?: string | undefined;
+    fullName: string;
     email?: string | undefined;
 }
 
@@ -22,32 +22,22 @@ export class UsersService {
         private readonly keycloak: KeycloakAdminService,
     ) {}
 
-    /**
-     * The only 2 ways users are created/updated in our system are:
-     * 1. When the use create an account via Keycloak.
-     * In this case, we are not able to trigger any
-     */
-    async syncFromToken({ keycloakId, firstName, lastName, email }: UpsertUserOptions): Promise<User> {
+    async syncFromToken({ keycloakId, fullName, email }: UpsertUserOptions): Promise<User> {
         const cacheKey = `user:${keycloakId}`;
         const incomingEmail = email ?? null;
 
-        // Fast path: return cached user unless the email in the token has changed
-        // (e.g. after an UPDATE_EMAIL AIA flow, the JWT carries the new email)
         const cached = await this.redis.get(cacheKey);
         if (cached) {
             const cachedUser = JSON.parse(cached) as User;
             if (cachedUser.email === incomingEmail) return cachedUser;
         }
 
-        // Upsert: insert on first login, or update email when Keycloak reports a new one.
-        // firstName/lastName are owned by the backend — never overwritten from the token.
         const [user] = await this.drizzle.db
             .insert(Users)
-            .values({ keycloakId, firstName: firstName ?? null, lastName: lastName ?? null, email: incomingEmail })
+            .values({ keycloakSubject: keycloakId, fullName, email: incomingEmail ?? '' })
             .onConflictDoUpdate({
-                target: Users.keycloakId,
+                target: Users.keycloakSubject,
                 set: {
-                    keycloakId: sql`excluded."keycloak_id"`,
                     email: sql`excluded."email"`,
                 },
             })
@@ -58,15 +48,15 @@ export class UsersService {
         return user!;
     }
 
-    async updateProfile(keycloakId: string, data: { firstName: string; lastName: string }): Promise<User> {
+    async updateProfile(keycloakId: string, data: { fullName: string }): Promise<User> {
         const [user] = await this.drizzle.db
             .update(Users)
-            .set({ firstName: data.firstName, lastName: data.lastName, updatedAt: new Date() })
-            .where(eq(Users.keycloakId, keycloakId))
+            .set({ fullName: data.fullName, updatedAt: sql`now()` })
+            .where(eq(Users.keycloakSubject, keycloakId))
             .returning();
 
         await Promise.all([
-            this.keycloak.updateUserProfile(keycloakId, { firstName: data.firstName, lastName: data.lastName }),
+            this.keycloak.updateUserProfile(keycloakId, { firstName: data.fullName, lastName: '' }),
             this.redis.del(`user:${keycloakId}`),
         ]);
 
