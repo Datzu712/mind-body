@@ -11,15 +11,8 @@ import {
     check,
     integer,
     numeric,
-    customType,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-
-const citext = customType<{ data: string }>({
-    dataType() {
-        return 'citext';
-    },
-});
 
 export const app = pgSchema('app');
 export const membershipStatusInApp = app.enum('membership_status', ['ACTIVE', 'SUSPENDED', 'EXPIRED']);
@@ -34,7 +27,6 @@ export const usersInApp = app.table(
             .primaryKey()
             .notNull(),
         keycloakSubject: uuid('keycloak_subject').notNull(),
-        email: citext().notNull(),
         fullName: varchar('full_name', { length: 160 }).notNull(),
         phone: varchar({ length: 30 }),
         status: recordStatusInApp().default('ACTIVE').notNull(),
@@ -43,10 +35,8 @@ export const usersInApp = app.table(
         updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
     },
     (table) => [
-        index('idx_users_email').using('btree', table.email.asc().nullsLast().op('citext_ops')),
         index('idx_users_keycloak_subject').using('btree', table.keycloakSubject.asc().nullsLast().op('uuid_ops')),
         unique('users_keycloak_subject_key').on(table.keycloakSubject),
-        unique('users_email_key').on(table.email),
     ],
 );
 

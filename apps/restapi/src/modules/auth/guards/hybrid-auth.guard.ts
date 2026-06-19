@@ -77,7 +77,6 @@ export class HybridAuthGuard implements CanActivate {
             request.user = await this.usersService.syncFromToken({
                 keycloakId: payload.sub!,
                 fullName: `${givenName} ${familyName}`.trim(),
-                email: typeof payload['email'] === 'string' ? payload['email'] : undefined,
             });
 
             return true;

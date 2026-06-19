@@ -14,8 +14,6 @@
 -- tipo para un mismo usuario. Esto refleja al IdP, que también devuelve roles
 -- múltiples por token.
 
-CREATE EXTENSION IF NOT EXISTS citext;
-
 CREATE SCHEMA IF NOT EXISTS app;
 
 -- DO $$ BEGIN CREATE TYPE app.user_type AS ENUM ('ADMIN', 'TRAINER', 'MEMBER');
@@ -43,8 +41,6 @@ $$ LANGUAGE plpgsql;
 CREATE TABLE IF NOT EXISTS app.users (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     keycloak_subject UUID UNIQUE NOT NULL,
-    -- user_type app.user_type NOT NULL,
-    email CITEXT UNIQUE NOT NULL,
     full_name VARCHAR(160) NOT NULL,
     phone VARCHAR(30),
     status app.record_status NOT NULL DEFAULT 'ACTIVE',
@@ -227,7 +223,6 @@ CREATE TABLE IF NOT EXISTS app.member_measurements (
 
 -- Índices
 CREATE INDEX IF NOT EXISTS idx_users_keycloak_subject ON app.users(keycloak_subject);
-CREATE INDEX IF NOT EXISTS idx_users_email ON app.users(email);
 CREATE INDEX IF NOT EXISTS idx_members_status ON app.members(status);
 CREATE INDEX IF NOT EXISTS idx_trainers_status ON app.trainers(status);
 CREATE INDEX IF NOT EXISTS idx_memberships_member_status_dates ON app.memberships(member_id, status, start_date, end_date);

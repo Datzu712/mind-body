@@ -1,7 +1,10 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { FitColors as T } from '@/constants/theme';
+import { useMeasurementSummary } from '@/hooks/use-measurements';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -42,6 +45,57 @@ const GOALS = [
 
 // 1 = workout, 2 = active rest, 0 = rest
 const ACTIVITY = [1, 1, 0, 1, 1, 2, 0, 1, 1, 0, 1, 1, 2, 0, 1, 0, 1, 1, 2, 0, 1, 1, 1];
+
+// ── Measurements card ─────────────────────────────────────────────────────────
+
+function MeasurementsCard() {
+    const { data: summary } = useMeasurementSummary();
+    const latest = summary?.latest;
+
+    return (
+        <>
+            <SectionHead title="MEDICIONES CORPORALES" />
+            <Pressable style={[s.px]} onPress={() => router.push('/(measurements)')}>
+                <View style={s.measCard}>
+                    <View style={s.measTop}>
+                        <View style={s.measIconWrap}>
+                            <Ionicons name="body-outline" size={20} color={T.yellow} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                            <Text style={s.measTitle}>Medidas corporales</Text>
+                            <Text style={s.measSub}>
+                                {latest ? `Última: ${latest.measuredAt}` : 'Sin mediciones aún'}
+                            </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={18} color={T.muted} />
+                    </View>
+                    {latest && (
+                        <View style={s.measStats}>
+                            {latest.weightKg != null && (
+                                <View style={s.measStat}>
+                                    <Text style={s.measStatVal}>{latest.weightKg}</Text>
+                                    <Text style={s.measStatUnit}>kg</Text>
+                                </View>
+                            )}
+                            {latest.bodyFatPercentage != null && (
+                                <View style={s.measStat}>
+                                    <Text style={s.measStatVal}>{latest.bodyFatPercentage}</Text>
+                                    <Text style={s.measStatUnit}>% grasa</Text>
+                                </View>
+                            )}
+                            {latest.waistCm != null && (
+                                <View style={s.measStat}>
+                                    <Text style={s.measStatVal}>{latest.waistCm}</Text>
+                                    <Text style={s.measStatUnit}>cm cintura</Text>
+                                </View>
+                            )}
+                        </View>
+                    )}
+                </View>
+            </Pressable>
+        </>
+    );
+}
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -116,6 +170,9 @@ export default function ProgressScreen() {
                         </View>
                     ))}
                 </View>
+
+                {/* Body measurements */}
+                <MeasurementsCard />
 
                 {/* Activity calendar */}
                 <SectionHead title="ACTIVIDAD DEL MES" />
@@ -238,4 +295,29 @@ const s = StyleSheet.create({
     legendItem: { flexDirection: 'row', gap: 5, alignItems: 'center' },
     legendDot: { width: 10, height: 10, borderRadius: 3, borderWidth: 1 },
     legendLbl: { fontSize: 10, color: T.muted, fontWeight: '600' },
+
+    // Measurements card
+    measCard: { backgroundColor: T.card, borderRadius: 14, borderWidth: 1, borderColor: T.border, padding: 14 },
+    measTop: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    measIconWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: T.yellowDim,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    measTitle: { fontSize: 13, fontWeight: '800', color: T.white },
+    measSub: { fontSize: 11, color: T.muted, marginTop: 1 },
+    measStats: {
+        flexDirection: 'row',
+        gap: 16,
+        marginTop: 12,
+        paddingTop: 10,
+        borderTopWidth: 1,
+        borderTopColor: T.border,
+    },
+    measStat: { alignItems: 'center' },
+    measStatVal: { fontSize: 16, fontWeight: '900', color: T.white },
+    measStatUnit: { fontSize: 9, color: T.muted, fontWeight: '600', marginTop: 1 },
 });

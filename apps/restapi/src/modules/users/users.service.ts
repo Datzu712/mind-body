@@ -11,7 +11,6 @@ import { KeycloakAdminService } from '@/infra/keycloak/keycloak-admin.service';
 interface UpsertUserOptions {
     keycloakId: string;
     fullName: string;
-    email?: string | undefined;
 }
 
 @Injectable()
@@ -22,23 +21,20 @@ export class UsersService {
         private readonly keycloak: KeycloakAdminService,
     ) {}
 
-    async syncFromToken({ keycloakId, fullName, email }: UpsertUserOptions): Promise<User> {
+    async syncFromToken({ keycloakId, fullName }: UpsertUserOptions): Promise<User> {
         const cacheKey = `user:${keycloakId}`;
-        const incomingEmail = email ?? null;
 
         const cached = await this.redis.get(cacheKey);
-        if (cached) {
-            const cachedUser = JSON.parse(cached) as User;
-            if (cachedUser.email === incomingEmail) return cachedUser;
-        }
+        if (cached) return JSON.parse(cached) as User;
 
         const [user] = await this.drizzle.db
             .insert(Users)
-            .values({ keycloakSubject: keycloakId, fullName, email: incomingEmail ?? '' })
+            .values({ keycloakSubject: keycloakId, fullName })
             .onConflictDoUpdate({
                 target: Users.keycloakSubject,
                 set: {
-                    email: sql`excluded."email"`,
+                    fullName,
+                    updatedAt: sql`now()`,
                 },
             })
             .returning();
