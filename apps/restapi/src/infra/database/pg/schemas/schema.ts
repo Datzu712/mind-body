@@ -18,6 +18,7 @@ export const app = pgSchema('app');
 export const membershipStatusInApp = app.enum('membership_status', ['ACTIVE', 'SUSPENDED', 'EXPIRED']);
 export const recordStatusInApp = app.enum('record_status', ['ACTIVE', 'INACTIVE', 'ARCHIVED']);
 export const routineStatusInApp = app.enum('routine_status', ['DRAFT', 'ACTIVE', 'PAUSED', 'FINISHED', 'ARCHIVED']);
+export const activitySourceInApp = app.enum('activity_source', ['HEALTH_CONNECT', 'MANUAL']);
 
 export const usersInApp = app.table(
     'users',
@@ -343,5 +344,38 @@ export const memberMeasurementsInApp = app.table(
             foreignColumns: [usersInApp.id],
             name: 'member_measurements_created_by_user_id_fkey',
         }),
+    ],
+);
+
+export const dailyActivitySummariesInApp = app.table(
+    'daily_activity_summaries',
+    {
+        id: uuid()
+            .default(sql`uuidv7()`)
+            .primaryKey()
+            .notNull(),
+        memberId: uuid('member_id').notNull(),
+        date: date().notNull(),
+        steps: integer().default(0).notNull(),
+        caloriesTotal: numeric('calories_total', { precision: 8, scale: 2 }).default('0').notNull(),
+        activeMinutes: integer('active_minutes').default(0).notNull(),
+        exerciseCount: integer('exercise_count').default(0).notNull(),
+        distanceMeters: numeric('distance_meters', { precision: 10, scale: 2 }).default('0').notNull(),
+        source: activitySourceInApp().notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    },
+    (table) => [
+        index('idx_daily_activity_member_date').using(
+            'btree',
+            table.memberId.asc().nullsLast().op('uuid_ops'),
+            table.date.desc().nullsFirst().op('date_ops'),
+        ),
+        foreignKey({
+            columns: [table.memberId],
+            foreignColumns: [membersInApp.id],
+            name: 'daily_activity_summaries_member_id_fkey',
+        }),
+        unique('daily_activity_summaries_member_date_key').on(table.memberId, table.date),
     ],
 );

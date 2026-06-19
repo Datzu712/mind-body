@@ -11,6 +11,7 @@ import {
     exercisesInApp,
     memberRoutinesInApp,
     memberMeasurementsInApp,
+    dailyActivitySummariesInApp,
 } from './schema';
 
 export const membersInAppRelations = relations(membersInApp, ({ one, many }) => ({
@@ -21,6 +22,7 @@ export const membersInAppRelations = relations(membersInApp, ({ one, many }) => 
     membershipsInApps: many(membershipsInApp),
     memberRoutinesInApps: many(memberRoutinesInApp),
     memberMeasurementsInApps: many(memberMeasurementsInApp),
+    dailyActivitySummariesInApps: many(dailyActivitySummariesInApp),
 }));
 
 export const usersInAppRelations = relations(usersInApp, ({ many }) => ({
@@ -108,5 +110,12 @@ export const memberMeasurementsInAppRelations = relations(memberMeasurementsInAp
     usersInApp: one(usersInApp, {
         fields: [memberMeasurementsInApp.createdByUserId],
         references: [usersInApp.id],
+    }),
+}));
+
+export const dailyActivitySummariesInAppRelations = relations(dailyActivitySummariesInApp, ({ one }) => ({
+    membersInApp: one(membersInApp, {
+        fields: [dailyActivitySummariesInApp.memberId],
+        references: [membersInApp.id],
     }),
 }));
