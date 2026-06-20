@@ -68,7 +68,7 @@ function RootNavigator() {
     }
 
     return (
-        <Stack>
+        <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
             <Stack.Protected guard={!session}>
                 <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                 <Stack.Screen name="callback" options={{ headerShown: false }} />

@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable, Modal, TextInput, KeyboardAvoidingView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { FitColors as T } from '@/constants/theme';
 import { useMeasurementSummary } from '@/hooks/use-measurements';
@@ -84,63 +85,65 @@ export function NewMeasurementModal({
     const hasAnyValue = weight || height || bodyFat || waist;
 
     return (
-        <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-            <KeyboardAvoidingView style={s.root} behavior="padding">
-                <View style={s.header}>
-                    <Pressable onPress={onClose} hitSlop={12}>
-                        <Text style={s.cancel}>Cancelar</Text>
-                    </Pressable>
-                    <Text style={s.title}>Nueva medición</Text>
-                    <Pressable onPress={handleSave} hitSlop={12} disabled={!hasAnyValue}>
-                        <Text style={[s.save, !hasAnyValue && { opacity: 0.3 }]}>Guardar</Text>
-                    </Pressable>
-                </View>
-
-                <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-                    {METRICS.map((m) => (
-                        <View key={m.key} style={s.inputRow}>
-                            <View style={s.inputLabel}>
-                                <Ionicons name={m.icon} size={16} color={T.yellow} />
-                                <Text style={s.inputLabelText}>{m.label}</Text>
-                            </View>
-                            <View style={s.inputWithSteppers}>
-                                <StepperButton icon="remove" onStep={() => stepFn(m.key, -1)} />
-                                <View style={s.inputCenter}>
-                                    <TextInput
-                                        style={s.input}
-                                        value={vals[m.key]}
-                                        onChangeText={(v) => setters[m.key](v)}
-                                        placeholder="0"
-                                        placeholderTextColor={T.card3}
-                                        keyboardType="decimal-pad"
-                                        returnKeyType="next"
-                                        textAlign="center"
-                                    />
-                                    <Text style={s.inputUnit}>{m.unit}</Text>
-                                </View>
-                                <StepperButton icon="add" onStep={() => stepFn(m.key, 1)} />
-                            </View>
-                        </View>
-                    ))}
-
-                    <View style={s.inputRow}>
-                        <View style={s.inputLabel}>
-                            <Ionicons name="chatbubble-outline" size={16} color={T.yellow} />
-                            <Text style={s.inputLabelText}>Notas</Text>
-                        </View>
-                        <TextInput
-                            style={[s.input, s.inputMulti]}
-                            value={notes}
-                            onChangeText={setNotes}
-                            placeholder="Observaciones (opcional)"
-                            placeholderTextColor={T.card3}
-                            multiline
-                            numberOfLines={3}
-                            textAlignVertical="top"
-                        />
+        <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+            <SafeAreaView style={s.root} edges={['top']}>
+                <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+                    <View style={s.header}>
+                        <Pressable onPress={onClose} hitSlop={12}>
+                            <Text style={s.cancel}>Cancelar</Text>
+                        </Pressable>
+                        <Text style={s.title}>Nueva medición</Text>
+                        <Pressable onPress={handleSave} hitSlop={12} disabled={!hasAnyValue}>
+                            <Text style={[s.save, !hasAnyValue && { opacity: 0.3 }]}>Guardar</Text>
+                        </Pressable>
                     </View>
-                </ScrollView>
-            </KeyboardAvoidingView>
+
+                    <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+                        {METRICS.map((m) => (
+                            <View key={m.key} style={s.inputRow}>
+                                <View style={s.inputLabel}>
+                                    <Ionicons name={m.icon} size={16} color={T.yellow} />
+                                    <Text style={s.inputLabelText}>{m.label}</Text>
+                                </View>
+                                <View style={s.inputWithSteppers}>
+                                    <StepperButton icon="remove" onStep={() => stepFn(m.key, -1)} />
+                                    <View style={s.inputCenter}>
+                                        <TextInput
+                                            style={s.input}
+                                            value={vals[m.key]}
+                                            onChangeText={(v) => setters[m.key](v)}
+                                            placeholder="0"
+                                            placeholderTextColor={T.card3}
+                                            keyboardType="decimal-pad"
+                                            returnKeyType="next"
+                                            textAlign="center"
+                                        />
+                                        <Text style={s.inputUnit}>{m.unit}</Text>
+                                    </View>
+                                    <StepperButton icon="add" onStep={() => stepFn(m.key, 1)} />
+                                </View>
+                            </View>
+                        ))}
+
+                        <View style={s.inputRow}>
+                            <View style={s.inputLabel}>
+                                <Ionicons name="chatbubble-outline" size={16} color={T.yellow} />
+                                <Text style={s.inputLabelText}>Notas</Text>
+                            </View>
+                            <TextInput
+                                style={[s.input, s.inputMulti]}
+                                value={notes}
+                                onChangeText={setNotes}
+                                placeholder="Observaciones (opcional)"
+                                placeholderTextColor={T.card3}
+                                multiline
+                                numberOfLines={3}
+                                textAlignVertical="top"
+                            />
+                        </View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
         </Modal>
     );
 }
