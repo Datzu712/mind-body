@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet, Pressable, Modal, TextInput, Keyboa
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { FitColors as T } from '@/constants/theme';
-import { useMeasurementSummary } from '@/hooks/use-measurements';
+import { useMeasurementSummary, useCreateMeasurement } from '@/hooks/use-measurements';
 import { METRICS, type MetricKey } from './constants';
 
 // ── Stepper with long-press repeat ───────────────────────────────────────────
@@ -46,6 +46,7 @@ export function NewMeasurementModal({
 }) {
     const { data: summary } = useMeasurementSummary();
     const latest = summary?.latest;
+    const { mutateAsync: saveMeasurement } = useCreateMeasurement();
 
     const [weight, setWeight] = useState('');
     const [height, setHeight] = useState('');
@@ -65,8 +66,14 @@ export function NewMeasurementModal({
         if (!visible) setPrefilled(false);
     }, [visible, latest, prefilled]);
 
-    const handleSave = () => {
-        // TODO: call API to save measurement
+    const handleSave = async () => {
+        await saveMeasurement({
+            weightKg: weight ? parseFloat(weight) : undefined,
+            heightCm: height ? parseFloat(height) : undefined,
+            bodyFatPercentage: bodyFat ? parseFloat(bodyFat) : undefined,
+            waistCm: waist ? parseFloat(waist) : undefined,
+            notes: notes || undefined,
+        });
         onSaved();
     };
 

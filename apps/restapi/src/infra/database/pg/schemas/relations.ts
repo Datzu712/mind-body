@@ -29,7 +29,6 @@ export const usersInAppRelations = relations(usersInApp, ({ many }) => ({
     membersInApps: many(membersInApp),
     trainersInApps: many(trainersInApp),
     staffInApps: many(staffInApp),
-    memberMeasurementsInApps: many(memberMeasurementsInApp),
 }));
 
 export const trainersInAppRelations = relations(trainersInApp, ({ one, many }) => ({
@@ -106,10 +105,6 @@ export const memberMeasurementsInAppRelations = relations(memberMeasurementsInAp
     membersInApp: one(membersInApp, {
         fields: [memberMeasurementsInApp.memberId],
         references: [membersInApp.id],
-    }),
-    usersInApp: one(usersInApp, {
-        fields: [memberMeasurementsInApp.createdByUserId],
-        references: [usersInApp.id],
     }),
 }));
 

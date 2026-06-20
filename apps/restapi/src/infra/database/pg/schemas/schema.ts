@@ -325,7 +325,6 @@ export const memberMeasurementsInApp = app.table(
         bodyFatPercentage: numeric('body_fat_percentage', { precision: 5, scale: 2 }),
         waistCm: numeric('waist_cm', { precision: 5, scale: 2 }),
         notes: text(),
-        createdByUserId: uuid('created_by_user_id'),
         createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
     },
     (table) => [
@@ -338,11 +337,6 @@ export const memberMeasurementsInApp = app.table(
             columns: [table.memberId],
             foreignColumns: [membersInApp.id],
             name: 'member_measurements_member_id_fkey',
-        }),
-        foreignKey({
-            columns: [table.createdByUserId],
-            foreignColumns: [usersInApp.id],
-            name: 'member_measurements_created_by_user_id_fkey',
         }),
     ],
 );

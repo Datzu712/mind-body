@@ -1,5 +1,10 @@
+import { format, subMonths, startOfMonth } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Ionicons } from '@expo/vector-icons';
 import { FitColors as T } from '@/constants/theme';
+
+/** Parse YYYY-MM-DD as local midnight (not UTC) */
+const toDate = (iso: string) => new Date(iso + 'T00:00:00');
 
 export const METRICS = [
     { key: 'weightKg' as const, label: 'Peso', unit: 'kg', icon: 'scale-outline' as const, step: 0.1 },
@@ -19,21 +24,24 @@ export type MetricKey = (typeof METRICS)[number]['key'];
 export type PeriodKey = (typeof PERIODS)[number]['key'];
 
 export function formatDate(iso: string): string {
-    const d = new Date(iso + 'T00:00:00');
-    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+    return format(toDate(iso), "d 'de' MMM yyyy", { locale: es });
 }
 
 export function shortDate(iso: string): string {
-    const d = new Date(iso + 'T00:00:00');
-    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    return format(toDate(iso), 'd MMM', { locale: es });
 }
 
-export function getFromDate(periodKey: PeriodKey): string | undefined {
-    if (periodKey === 'all') return undefined;
-    const months = PERIODS.find((p) => p.key === periodKey)!.months;
-    const d = new Date();
-    d.setMonth(d.getMonth() - months);
-    return d.toISOString().slice(0, 10);
+export function monthLabel(iso: string): string {
+    return format(toDate(iso), 'MMM', { locale: es });
+}
+
+export function getDateRange(periodKey: PeriodKey): { from?: string; to: string } {
+    const today = new Date();
+    const to = format(today, 'yyyy-MM-dd');
+    if (periodKey === 'all') return { to };
+    const { months } = PERIODS.find((p) => p.key === periodKey)!;
+    const from = format(startOfMonth(subMonths(today, months - 1)), 'yyyy-MM-dd');
+    return { from, to };
 }
 
 export function deltaColor(value: number | null, key: MetricKey): string {

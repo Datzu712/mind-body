@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, Modal } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { FitColors as T } from '@/constants/theme';
 import { useMeasurements } from '@/hooks/use-measurements';
@@ -75,8 +76,8 @@ export function HistoryModal({ visible, onClose }: { visible: boolean; onClose: 
     const { data: measurements } = useMeasurements();
 
     return (
-        <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-            <View style={s.modalRoot}>
+        <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+            <SafeAreaView style={s.modalRoot} edges={['top']}>
                 <View style={s.header}>
                     <View />
                     <Text style={s.headerTitle}>Historial completo</Text>
@@ -105,7 +106,7 @@ export function HistoryModal({ visible, onClose }: { visible: boolean; onClose: 
                         <Text style={s.emptyTitle}>Sin mediciones</Text>
                     </View>
                 )}
-            </View>
+            </SafeAreaView>
         </Modal>
     );
 }
