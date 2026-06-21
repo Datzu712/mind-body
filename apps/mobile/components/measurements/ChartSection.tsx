@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Pressable, type LayoutChangeEvent } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Pressable, ActivityIndicator, type LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LineChart } from 'react-native-gifted-charts';
 import { FitColors as T } from '@/constants/theme';
@@ -16,7 +16,7 @@ export function ChartSection() {
     }, []);
 
     const { from, to } = getDateRange(period);
-    const { data: measurements } = useMeasurements(from, to);
+    const { data: measurements, isFetching } = useMeasurements(from, to);
     const metaInfo = METRICS.find((m) => m.key === metric)!;
 
     const chart = useMemo(() => {
@@ -77,7 +77,11 @@ export function ChartSection() {
                 ))}
             </View>
 
-            {chart ? (
+            {isFetching && !chart ? (
+                <View style={s.chartEmpty}>
+                    <ActivityIndicator size="small" color={T.yellow} />
+                </View>
+            ) : chart ? (
                 <View style={s.chartCard} onLayout={onLayout}>
                     <Text style={s.chartTitle}>
                         {metaInfo.label} ({metaInfo.unit})

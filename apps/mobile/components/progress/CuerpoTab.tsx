@@ -1,12 +1,20 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { FitColors as T } from '@/constants/theme';
 import { useMeasurementSummary } from '@/hooks/use-measurements';
 
 export function CuerpoTab() {
-    const { data: summary } = useMeasurementSummary();
+    const { data: summary, isLoading } = useMeasurementSummary();
     const latest = summary?.latest;
+
+    if (isLoading) {
+        return (
+            <View style={s.loading}>
+                <ActivityIndicator size="small" color={T.yellow} />
+            </View>
+        );
+    }
 
     return (
         <View style={s.px}>
@@ -164,4 +172,5 @@ const s = StyleSheet.create({
         paddingVertical: 10,
     },
     emptyBtnText: { fontSize: 13, fontWeight: '700', color: T.yellow },
+    loading: { alignItems: 'center', justifyContent: 'center', paddingVertical: 60 },
 });
