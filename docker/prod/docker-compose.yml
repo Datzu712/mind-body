@@ -1,0 +1,113 @@
+x-logging: &logging
+    driver: json-file
+    options:
+        max-size: '10m'
+        max-file: '3'
+        tag: '{{.Name}}'
+
+x-restart-policy: &restart-policy
+    restart: unless-stopped
+
+x-healthcheck-defaults: &healthcheck-defaults
+    interval: 30s
+    timeout: 10s
+    retries: 5
+    start_period: 60s
+
+services:
+    postgres:
+        image: postgres:18.3-alpine
+        <<: *restart-policy
+        logging: *logging
+        environment:
+            POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+            POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+            POSTGRES_INITDB_ARGS: '--auth-host=scram-sha-256'
+        ports:
+            - '${POSTGRES_PORT:-5432}:5432'
+        volumes:
+            - postgres_data:/var/lib/postgresql
+        networks:
+            - db
+        healthcheck:
+            <<: *healthcheck-defaults
+            test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+        deploy:
+            resources:
+                limits:
+                    cpus: '0.25'
+                    memory: 128M
+                reservations:
+                    cpus: '0.1'
+                    memory: 64M
+
+    keycloak:
+        image: quay.io/keycloak/keycloak:26.6
+        <<: *restart-policy
+        logging: *logging
+        command: start
+        env_file:
+            - ./.env
+        volumes:
+            - ../../apps/keycloak-theme/dist_keycloak/keycloak-theme-for-kc-all-other-versions.jar:/opt/keycloak/providers/mind-and-body-theme.jar
+        environment:
+            # Admin
+            KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:?KEYCLOAK_ADMIN_USER is required}
+            KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}
+
+            # Database
+            KC_DB: postgres
+            KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+            KC_DB_USERNAME: ${POSTGRES_USER:?POSTGRES_USER is required}
+            KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+            KC_DB_POOL_MIN_SIZE: ${KC_DB_POOL_MIN:-5}
+            KC_DB_POOL_MAX_SIZE: ${KC_DB_POOL_MAX:-20}
+
+            # Hostname & reverse proxy
+            KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:?KEYCLOAK_HOSTNAME is required}
+            KC_PROXY_HEADERS: xforwarded
+            KC_HTTP_ENABLED: true
+
+            # Health & metrics
+            KC_HEALTH_ENABLED: true
+            KC_METRICS_ENABLED: ${KC_METRICS_ENABLED:-true}
+
+            # Cache
+            KC_CACHE: local
+        ports:
+            - '${KEYCLOAK_HTTP_PORT:-8080}:8080'
+            - '9000:9000'
+        networks:
+            - db
+            - frontend
+        healthcheck:
+            <<: *healthcheck-defaults
+            test:
+                [
+                    'CMD-SHELL',
+                    "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.0\r\n\r\n' >&3 && grep -q 'UP' <&3",
+                ]
+            retries: 15
+        depends_on:
+            postgres:
+                condition: service_healthy
+        deploy:
+            resources:
+                limits:
+                    cpus: '0.6'
+                    memory: 640M
+                reservations:
+                    cpus: '0.25'
+                    memory: 384M
+
+volumes:
+    postgres_data:
+        name: mab_prod_postgres
+
+networks:
+    db:
+        driver: bridge
+        internal: true
+    frontend:
+        driver: bridge

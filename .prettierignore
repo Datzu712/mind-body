@@ -12,3 +12,4 @@ node_modules
 
 # Lockfiles
 pnpm-lock.yaml
+apps/kc-theme/

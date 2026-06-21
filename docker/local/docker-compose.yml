@@ -31,6 +31,8 @@ services:
         command: start-dev
         env_file:
             - ./.env
+        volumes:
+            - ../../apps/kc-theme/dist_keycloak/keycloak-theme-for-kc-all-other-versions.jar:/opt/keycloak/providers/mind-and-body-theme.jar
         environment:
             KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
             KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}

@@ -5,15 +5,8 @@
         {
             "idx": 0,
             "version": "7",
-            "when": 1780265861160,
-            "tag": "0000_lean_valkyrie",
-            "breakpoints": true
-        },
-        {
-            "idx": 1,
-            "version": "7",
-            "when": 1780267592817,
-            "tag": "0001_high_zaran",
+            "when": 1781894888695,
+            "tag": "0000_sharp_justin_hammer",
             "breakpoints": true
         }
     ]
