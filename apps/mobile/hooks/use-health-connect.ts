@@ -37,12 +37,15 @@ export function useHealthConnect() {
         try {
             const ok = await initialize();
             if (!ok) {
+                console.debug('Health Connect not available');
                 setIsLoading(false);
                 return;
             }
             const granted = await requestPermission(PERMISSIONS);
+            console.debug('Health Connect permissions granted:', granted);
             setIsConnected(granted.length > 0);
-        } catch {
+        } catch (e) {
+            console.debug('Failed to request Health Connect permissions', e);
             // permission denied or HC unavailable
         }
         setIsLoading(false);

@@ -1,6 +1,7 @@
 import { router, Stack } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 
 import { FitColors as T } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
@@ -13,7 +14,7 @@ export default function SettingsScreen() {
     const { signOut } = useAuth();
     const initiateAction = useInitiateAction();
     const hc = useHealthConnect();
-    const { sync, isSyncing } = useManualSync();
+    const { sync, isSyncing, lastResult, lastSyncLabel } = useManualSync();
 
     return (
         <SafeAreaView style={s.root} edges={['bottom']}>
@@ -46,16 +47,17 @@ export default function SettingsScreen() {
                 <Text style={s.sectionTitle}>INTEGRACIONES</Text>
                 <View style={s.section}>
                     <SettingsRow
-                        icon="heart-outline"
+                        icon={hc.isConnected ? 'heart' : 'heart-outline'}
                         label="Health Connect"
                         accentColor={hc.isConnected ? T.green : T.muted}
-                        onPress={hc.connect}
+                        onPress={hc.isConnected ? () => {} : hc.connect}
                         rightElement={
-                            <Text
-                                style={{ fontSize: 12, fontWeight: '600', color: hc.isConnected ? T.green : T.muted }}
-                            >
-                                {hc.isLoading ? 'Conectando...' : hc.isConnected ? 'Conectado' : 'Conectar'}
-                            </Text>
+                            <View style={s.rowRight}>
+                                {hc.isConnected && <Ionicons name="checkmark-circle" size={16} color={T.green} />}
+                                <Text style={[s.rowStatus, { color: hc.isConnected ? T.green : T.muted }]}>
+                                    {hc.isLoading ? 'Conectando...' : hc.isConnected ? 'Conectado' : 'Conectar'}
+                                </Text>
+                            </View>
                         }
                     />
                     {hc.isConnected && (
@@ -63,11 +65,34 @@ export default function SettingsScreen() {
                             icon="sync-outline"
                             label="Sincronizar datos"
                             accentColor={T.blue}
-                            onPress={sync}
+                            onPress={isSyncing ? () => {} : sync}
                             rightElement={
-                                <Text style={{ fontSize: 12, fontWeight: '600', color: T.blue }}>
-                                    {isSyncing ? 'Sincronizando...' : 'Sincronizar'}
-                                </Text>
+                                <View style={s.syncRight}>
+                                    <Text
+                                        style={[
+                                            s.rowStatus,
+                                            {
+                                                color:
+                                                    lastResult === 'success'
+                                                        ? T.green
+                                                        : lastResult === 'error'
+                                                          ? T.red
+                                                          : T.blue,
+                                            },
+                                        ]}
+                                    >
+                                        {isSyncing
+                                            ? 'Sincronizando...'
+                                            : lastResult === 'success'
+                                              ? 'Sincronizado'
+                                              : lastResult === 'error'
+                                                ? 'Error al sincronizar'
+                                                : 'Sincronizar'}
+                                    </Text>
+                                    {lastSyncLabel && !isSyncing && !lastResult && (
+                                        <Text style={s.lastSync}>{lastSyncLabel}</Text>
+                                    )}
+                                </View>
                             }
                         />
                     )}
@@ -102,4 +127,8 @@ const s = StyleSheet.create({
         marginBottom: 8,
     },
     section: { gap: 6 },
+    rowRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    syncRight: { alignItems: 'flex-end' },
+    rowStatus: { fontSize: 12, fontWeight: '600' },
+    lastSync: { fontSize: 10, color: T.muted, marginTop: 2 },
 });

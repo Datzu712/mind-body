@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { initialize, readRecords, getGrantedPermissions } from 'react-native-health-connect';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 import { useApiClient } from '@/lib/api/client';
 import { upsertDailyActivity } from '@/lib/api/activity';
@@ -106,15 +108,36 @@ export function useActivitySync() {
 export function useManualSync() {
     const api = useApiClient();
     const [isSyncing, setIsSyncing] = useState(false);
+    const [lastResult, setLastResult] = useState<'success' | 'error' | null>(null);
+    const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
+
+    useEffect(() => {
+        SecureStore.getItemAsync(SYNC_KEY).then((v) => {
+            if (v) setLastSyncAt(parseInt(v));
+        });
+    }, []);
 
     const sync = useCallback(async () => {
         setIsSyncing(true);
+        setLastResult(null);
         try {
             await syncToday(api);
+            setLastSyncAt(Date.now());
+            setLastResult('success');
+        } catch {
+            setLastResult('error');
         } finally {
             setIsSyncing(false);
         }
     }, [api]);
 
-    return { sync, isSyncing };
+    useEffect(() => {
+        if (!lastResult) return;
+        const t = setTimeout(() => setLastResult(null), 3000);
+        return () => clearTimeout(t);
+    }, [lastResult]);
+
+    const lastSyncLabel = lastSyncAt ? `Hace ${formatDistanceToNow(lastSyncAt, { locale: es })}` : null;
+
+    return { sync, isSyncing, lastResult, lastSyncLabel };
 }
