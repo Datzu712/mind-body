@@ -1,5 +1,6 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router';
 import { Toaster } from 'sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 export const Route = createRootRoute({
     component: RootComponent,
@@ -7,7 +8,7 @@ export const Route = createRootRoute({
 
 function RootComponent() {
     return (
-        <>
+        <TooltipProvider>
             <Outlet />
             <Toaster
                 position="top-right"
@@ -19,6 +20,6 @@ function RootComponent() {
                     },
                 }}
             />
-        </>
+        </TooltipProvider>
     );
 }

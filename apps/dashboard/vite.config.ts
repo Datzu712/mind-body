@@ -1,13 +1,13 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
+import { tanstackRouter } from '@tanstack/router-plugin/vite';
 import { fileURLToPath, URL } from 'node:url';
 
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
-export default defineConfig(async () => ({
-    plugins: [TanStackRouterVite({ target: 'react', autoCodeSplitting: true }), react()],
+export default defineConfig({
+    plugins: [tanstackRouter({ target: 'react', autoCodeSplitting: true }), react()],
     resolve: {
         alias: {
             '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -39,4 +39,4 @@ export default defineConfig(async () => ({
         minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
         sourcemap: !!process.env.TAURI_ENV_DEBUG,
     },
-}));
+});
