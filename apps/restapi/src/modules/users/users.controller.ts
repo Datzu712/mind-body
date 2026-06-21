@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Put } from '@nestjs/common';
 
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
-import { type User } from '@/infra/database/pg/schemas/drizzle.schema';
+import type { User } from '@/infra/database/pg/schemas/schema';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UsersService } from './users.service';
 
@@ -16,6 +16,6 @@ export class UsersController {
 
     @Put('me')
     async updateMe(@CurrentUser() user: User, @Body() dto: UpdateProfileDto): Promise<User> {
-        return this.usersService.updateProfile(user.keycloakId, dto);
+        return this.usersService.updateProfile(user.keycloakSubject, dto);
     }
 }

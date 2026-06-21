@@ -15,7 +15,7 @@ const QUOTES = [
 ];
 
 import { Platform } from 'react-native';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -84,9 +84,7 @@ export default function LoginScreen() {
                 <View style={s.content}>
                     {/* Branding */}
                     <View style={s.brandWrap}>
-                        <View style={s.logoBox}>
-                            <Text style={s.logoText}>MAB</Text>
-                        </View>
+                        <Image source={require('@/assets/images/icon-no-bg.png')} style={s.logoImg} />
                         <Text style={s.appName}>MIND&amp;BODY</Text>
                         <Text style={s.appTagline}>"{quote}"</Text>
                     </View>
@@ -130,20 +128,10 @@ const s = StyleSheet.create({
         alignItems: 'center',
         gap: 12,
     },
-    logoBox: {
-        width: 80,
-        height: 80,
-        borderRadius: 22,
-        backgroundColor: T.yellow,
-        alignItems: 'center',
-        justifyContent: 'center',
+    logoImg: {
+        width: 100,
+        height: 100,
         marginBottom: 8,
-    },
-    logoText: {
-        fontSize: 32,
-        fontWeight: '900',
-        color: T.bg,
-        letterSpacing: -1,
     },
     appName: {
         fontSize: 28,

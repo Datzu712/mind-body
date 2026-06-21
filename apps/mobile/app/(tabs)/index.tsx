@@ -4,8 +4,6 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// ── Shared micro-components ──────────────────────────────────────────────────
-
 const Pill = ({ label, bg = T.yellow, fg = T.bg, sm }: { label: string; bg?: string; fg?: string; sm?: boolean }) => (
     <View
         style={{
@@ -37,8 +35,6 @@ const SectionHead = ({ title, right }: { title: string; right?: string }) => (
     </View>
 );
 
-// ── Data ─────────────────────────────────────────────────────────────────────
-
 const todayPlan = [
     { name: 'Press de Banca', sets: '4×10', done: true },
     { name: 'Press Inclinado DB', sets: '3×12', done: true },
@@ -46,8 +42,6 @@ const todayPlan = [
     { name: 'Tricep Pushdown', sets: '4×12', done: false },
     { name: 'Skull Crushers', sets: '3×10', done: false },
 ];
-
-// ── Screen ───────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
     const done = todayPlan.filter((e) => e.done).length;
@@ -143,8 +137,6 @@ export default function HomeScreen() {
         </SafeAreaView>
     );
 }
-
-// ── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: T.bg },
