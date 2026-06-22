@@ -20,6 +20,7 @@ import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile
 import { Route as DashboardCatalogRouteImport } from './routes/dashboard/catalog';
 import { Route as DashboardBackupsRouteImport } from './routes/dashboard/backups';
 import { Route as DashboardAuditRouteImport } from './routes/dashboard/audit';
+import { Route as AuthForbiddenRouteImport } from './routes/auth/forbidden';
 import { Route as DashboardUsersIndexRouteImport } from './routes/dashboard/users/index';
 import { Route as DashboardMembershipsIndexRouteImport } from './routes/dashboard/memberships/index';
 import { Route as DashboardMembersIndexRouteImport } from './routes/dashboard/members/index';
@@ -85,6 +86,11 @@ const DashboardAuditRoute = DashboardAuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
+const AuthForbiddenRoute = AuthForbiddenRouteImport.update({
+  id: '/auth/forbidden',
+  path: '/auth/forbidden',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const DashboardUsersIndexRoute = DashboardUsersIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/dashboard': typeof DashboardRouteRouteWithChildren;
   '/playground': typeof PlaygroundRoute;
+  '/auth/forbidden': typeof AuthForbiddenRoute;
   '/dashboard/audit': typeof DashboardAuditRoute;
   '/dashboard/backups': typeof DashboardBackupsRoute;
   '/dashboard/catalog': typeof DashboardCatalogRoute;
@@ -159,6 +166,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/playground': typeof PlaygroundRoute;
+  '/auth/forbidden': typeof AuthForbiddenRoute;
   '/dashboard/audit': typeof DashboardAuditRoute;
   '/dashboard/backups': typeof DashboardBackupsRoute;
   '/dashboard/catalog': typeof DashboardCatalogRoute;
@@ -181,6 +189,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute;
   '/dashboard': typeof DashboardRouteRouteWithChildren;
   '/playground': typeof PlaygroundRoute;
+  '/auth/forbidden': typeof AuthForbiddenRoute;
   '/dashboard/audit': typeof DashboardAuditRoute;
   '/dashboard/backups': typeof DashboardBackupsRoute;
   '/dashboard/catalog': typeof DashboardCatalogRoute;
@@ -205,6 +214,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/playground'
+    | '/auth/forbidden'
     | '/dashboard/audit'
     | '/dashboard/backups'
     | '/dashboard/catalog'
@@ -226,6 +236,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/playground'
+    | '/auth/forbidden'
     | '/dashboard/audit'
     | '/dashboard/backups'
     | '/dashboard/catalog'
@@ -247,6 +258,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/playground'
+    | '/auth/forbidden'
     | '/dashboard/audit'
     | '/dashboard/backups'
     | '/dashboard/catalog'
@@ -270,6 +282,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren;
   PlaygroundRoute: typeof PlaygroundRoute;
+  AuthForbiddenRoute: typeof AuthForbiddenRoute;
 }
 
 declare module '@tanstack/react-router' {
@@ -350,6 +363,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/audit';
       preLoaderRoute: typeof DashboardAuditRouteImport;
       parentRoute: typeof DashboardRouteRoute;
+    };
+    '/auth/forbidden': {
+      id: '/auth/forbidden';
+      path: '/auth/forbidden';
+      fullPath: '/auth/forbidden';
+      preLoaderRoute: typeof AuthForbiddenRouteImport;
+      parentRoute: typeof rootRouteImport;
     };
     '/dashboard/users/': {
       id: '/dashboard/users/';
@@ -475,6 +495,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   PlaygroundRoute: PlaygroundRoute,
+  AuthForbiddenRoute: AuthForbiddenRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

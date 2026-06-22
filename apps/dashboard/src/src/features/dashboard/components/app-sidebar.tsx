@@ -29,6 +29,7 @@ import {
     SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useAuth } from '@/hooks/use-auth';
 
 const mainNavItems: { title: string; href: string; icon: LucideIcon; exact?: boolean }[] = [
     {
@@ -90,8 +91,24 @@ const adminNavItems: { title: string; href: string; icon: LucideIcon; exact?: bo
     },
 ];
 
+function getInitials(name: string): string {
+    return name
+        .split(' ')
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase();
+}
+
+function getRoleLabel(roles: string[]): string {
+    if (roles.includes('STAFF')) return 'Staff';
+    if (roles.includes('TRAINER')) return 'Entrenador';
+    return 'Usuario';
+}
+
 export function AppSidebar() {
     const pathname = useLocation().pathname;
+    const { user, logout } = useAuth();
 
     return (
         <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -172,20 +189,26 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                         <SidebarMenuButton className="w-full" tooltip="Perfil">
                             <Avatar className="h-6 w-6">
-                                <AvatarFallback className="bg-primary/20 text-primary text-xs">CM</AvatarFallback>
+                                <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                                    {user ? getInitials(user.fullName) : '??'}
+                                </AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col items-start group-data-[collapsible=icon]:hidden">
-                                <span className="text-sm font-medium">Carlos Mendoza</span>
-                                <span className="text-xs text-muted-foreground">Administrador</span>
+                                <span className="text-sm font-medium">{user?.fullName ?? 'Cargando...'}</span>
+                                <span className="text-xs text-muted-foreground">
+                                    {user ? getRoleLabel(user.roles) : ''}
+                                </span>
                             </div>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Cerrar sesión">
-                            <Link to="/" className="text-muted-foreground hover:text-foreground">
-                                <LogOut className="h-4 w-4" />
-                                <span>Cerrar sesión</span>
-                            </Link>
+                        <SidebarMenuButton
+                            tooltip="Cerrar sesión"
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => void logout()}
+                        >
+                            <LogOut className="h-4 w-4" />
+                            <span>Cerrar sesión</span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

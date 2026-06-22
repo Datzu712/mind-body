@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { Dumbbell, ArrowRight, Shield, BarChart3, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getLoginUrl } from '@/lib/api';
 
 export const Route = createFileRoute('/')({
     component: LandingPage,
@@ -18,14 +19,12 @@ function LandingPage() {
                     <span className="text-xl font-bold text-foreground">Mind & Body</span>
                 </div>
                 <Button
-                    asChild
                     variant="outline"
                     className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                    onClick={() => (window.location.href = getLoginUrl())}
                 >
-                    <Link to="/dashboard">
-                        Iniciar Sesión
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
+                    Iniciar Sesión
+                    <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
             </header>
 
@@ -47,14 +46,12 @@ function LandingPage() {
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
                         <Button
-                            asChild
                             size="lg"
                             className="bg-primary text-primary-foreground hover:bg-primary/90 px-8"
+                            onClick={() => (window.location.href = getLoginUrl())}
                         >
-                            <Link to="/dashboard">
-                                Acceder al Dashboard
-                                <ArrowRight className="ml-2 h-5 w-5" />
-                            </Link>
+                            Acceder al Dashboard
+                            <ArrowRight className="ml-2 h-5 w-5" />
                         </Button>
                     </div>
 
