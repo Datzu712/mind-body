@@ -1,6 +1,16 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router';
-import { Toaster } from 'sonner';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sileo';
 import { TooltipProvider } from '@/components/ui/tooltip';
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 1000 * 60 * 5,
+            refetchOnWindowFocus: false,
+        },
+    },
+});
 
 export const Route = createRootRoute({
     component: RootComponent,
@@ -8,18 +18,17 @@ export const Route = createRootRoute({
 
 function RootComponent() {
     return (
-        <TooltipProvider>
-            <Outlet />
-            <Toaster
-                position="top-right"
-                toastOptions={{
-                    style: {
-                        background: 'oklch(0.17 0.005 260)',
-                        border: '1px solid oklch(0.28 0.005 260)',
-                        color: 'oklch(0.97 0 0)',
-                    },
-                }}
-            />
-        </TooltipProvider>
+        <QueryClientProvider client={queryClient}>
+            <TooltipProvider>
+                <Outlet />
+                <Toaster
+                    position="top-right"
+                    options={{
+                        fill: '#171717',
+                        styles: {},
+                    }}
+                />
+            </TooltipProvider>
+        </QueryClientProvider>
     );
 }

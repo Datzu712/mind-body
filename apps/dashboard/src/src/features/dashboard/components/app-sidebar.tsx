@@ -30,11 +30,12 @@ import {
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
-const mainNavItems = [
+const mainNavItems: { title: string; href: string; icon: LucideIcon; exact?: boolean }[] = [
     {
         title: 'Dashboard',
         href: '/dashboard',
         icon: LayoutDashboard,
+        exact: true,
     },
     {
         title: 'Usuarios',
@@ -117,7 +118,15 @@ export function AppSidebar() {
                         <SidebarMenu>
                             {mainNavItems.map((item) => (
                                 <SidebarMenuItem key={item.href}>
-                                    <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.title}>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={
+                                            item.exact
+                                                ? pathname === item.href
+                                                : pathname === item.href || pathname.startsWith(item.href + '/')
+                                        }
+                                        tooltip={item.title}
+                                    >
                                         <Link to={item.href}>
                                             <item.icon className="h-4 w-4" />
                                             <span>{item.title}</span>

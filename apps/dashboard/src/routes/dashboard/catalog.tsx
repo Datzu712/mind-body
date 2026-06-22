@@ -19,7 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Plus, Search, MoreHorizontal, Edit, Power, AlertTriangle, Users, DollarSign, Clock } from 'lucide-react';
 import { mockCatalogItems, type CatalogItem } from '@/src/shared/lib/mock-data';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 const typeLabels: Record<CatalogItem['type'], string> = {
     class: 'Clases',
@@ -74,7 +74,7 @@ function CatalogPage() {
         };
 
         setItems([...items, newItem]);
-        toast.success('Elemento creado exitosamente');
+        sileo.success({ title: 'Elemento creado exitosamente' });
         return Promise.resolve({ success: true });
     };
 
@@ -83,7 +83,7 @@ function CatalogPage() {
 
         setItems(items.map((item) => (item.id === editingItem.id ? { ...item, ...data } : item)));
         setEditingItem(null);
-        toast.success('Elemento actualizado exitosamente');
+        sileo.success({ title: 'Elemento actualizado exitosamente' });
         return Promise.resolve({ success: true });
     };
 
@@ -94,13 +94,17 @@ function CatalogPage() {
         const hasActiveUsers = item.activeUsers && item.activeUsers > 0;
 
         if (item.status === 'active' && hasActiveUsers) {
-            toast.warning(`${item.name} tiene ${item.activeUsers} usuarios activos. Se les notificará del cambio.`);
+            sileo.warning({
+                title: `${item.name} tiene ${item.activeUsers} usuarios activos. Se les notificará del cambio.`,
+            });
         }
 
         setItems(
             items.map((i) => (i.id === item.id ? { ...i, status: i.status === 'active' ? 'inactive' : 'active' } : i)),
         );
-        toast.success(item.status === 'active' ? `${item.name} ha sido desactivado` : `${item.name} ha sido activado`);
+        sileo.success({
+            title: item.status === 'active' ? `${item.name} ha sido desactivado` : `${item.name} ha sido activado`,
+        });
         setConfirmDialog({ open: false, item: null });
     };
 

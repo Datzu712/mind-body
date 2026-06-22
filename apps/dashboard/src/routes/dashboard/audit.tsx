@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Download, Search, Calendar, ClipboardList, Filter } from 'lucide-react';
 import { mockAuditLogs, type User } from '@/src/shared/lib/mock-data';
 import { getUsers } from '@/src/shared/lib/tauri-api';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 const actionColors: Record<string, string> = {
     CREATE: 'bg-success/20 text-success border-success/30',
@@ -65,10 +65,10 @@ function AuditPage() {
     );
 
     const handleExport = () => {
-        toast.success('Exportando log de auditoría...');
+        sileo.success({ title: 'Exportando log de auditoría...' });
         // Simulate export
         setTimeout(() => {
-            toast.success('Archivo exportado exitosamente');
+            sileo.success({ title: 'Archivo exportado exitosamente' });
         }, 1500);
     };
 

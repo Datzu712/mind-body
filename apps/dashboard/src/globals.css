@@ -139,10 +139,26 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   html {
     @apply font-sans;
   }
+}
+
+/* ── Edit mode styling ── */
+/* .edit-mode-card {
+  border-color: oklch(0.75 0.15 55 / 10%);
+  background-color: oklch(0.75 0.15 55 / 1.5%);
+  box-shadow: 0 4px 6px -1px oklch(0 0 0 / 10%);
+  transition: all 300ms;
+} */
+
+.edit-mode-badge {
+  border-color: oklch(0.75 0.15 55 / 30%);
+  background-color: oklch(0.75 0.15 55 / 10%);
+  color: oklch(0.75 0.15 55);
 }

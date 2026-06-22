@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Save, RotateCcw, CheckCircle, Loader2 } from 'lucide-react';
 import { mockSettings } from '@/src/shared/lib/mock-data';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 export const Route = createFileRoute('/dashboard/settings')({
     component: SettingsPage,
@@ -47,7 +47,7 @@ function SettingsPage() {
     const handleSave = async () => {
         setSuccess(false);
         if (!validateSettings()) {
-            toast.error('Por favor corrige los errores antes de guardar');
+            sileo.error({ title: 'Por favor corrige los errores antes de guardar' });
             return;
         }
 
@@ -56,14 +56,14 @@ function SettingsPage() {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         setLoading(false);
         setSuccess(true);
-        toast.success('Configuración guardada exitosamente');
+        sileo.success({ title: 'Configuración guardada exitosamente' });
     };
 
     const handleRestore = () => {
         setSettings(mockSettings);
         setErrors({});
         setSuccess(false);
-        toast.success('Configuración restaurada a valores predeterminados');
+        sileo.success({ title: 'Configuración restaurada a valores predeterminados' });
     };
 
     const updateGeneral = (key: keyof typeof settings.general, value: string) => {

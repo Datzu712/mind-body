@@ -17,7 +17,7 @@ import {
     classPopularityData,
     membershipDistribution,
 } from '@/src/shared/lib/mock-data';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 export const Route = createFileRoute('/dashboard/reports')({
     component: ReportsPage,
@@ -32,7 +32,7 @@ function ReportsPage() {
 
     const handleGenerateReport = async () => {
         if (!selectedReport) {
-            toast.error('Selecciona un tipo de reporte');
+            sileo.error({ title: 'Selecciona un tipo de reporte' });
             return;
         }
 
@@ -41,13 +41,13 @@ function ReportsPage() {
         await new Promise((resolve) => setTimeout(resolve, 1500));
         setLoading(false);
         setShowPreview(true);
-        toast.success('Reporte generado exitosamente');
+        sileo.success({ title: 'Reporte generado exitosamente' });
     };
 
     const handleDownload = () => {
-        toast.success('Descargando reporte en PDF...');
+        sileo.success({ title: 'Descargando reporte en PDF...' });
         setTimeout(() => {
-            toast.success('Reporte descargado');
+            sileo.success({ title: 'Reporte descargado' });
         }, 1500);
     };
 

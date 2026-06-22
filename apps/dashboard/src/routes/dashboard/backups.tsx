@@ -23,7 +23,7 @@ import {
     Database,
 } from 'lucide-react';
 import { mockBackups, type Backup } from '@/src/shared/lib/mock-data';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 export const Route = createFileRoute('/dashboard/backups')({
     component: BackupsPage,
@@ -72,13 +72,13 @@ function BackupsPage() {
         setBackups([newBackup, ...backups]);
         setGenerating(false);
         setProgress(0);
-        toast.success('Respaldo generado exitosamente');
+        sileo.success({ title: 'Respaldo generado exitosamente' });
     };
 
     const handleDownload = (backup: Backup) => {
-        toast.success(`Descargando ${backup.name}...`);
+        sileo.success({ title: `Descargando ${backup.name}...` });
         setTimeout(() => {
-            toast.success('Descarga completada');
+            sileo.success({ title: 'Descarga completada' });
         }, 1500);
     };
 
@@ -86,11 +86,11 @@ function BackupsPage() {
         if (!restoreDialog.backup) return;
 
         // Simulate restore
-        toast.success(`Restaurando desde ${restoreDialog.backup.name}...`);
+        sileo.success({ title: `Restaurando desde ${restoreDialog.backup.name}...` });
         setRestoreDialog({ open: false, backup: null });
 
         setTimeout(() => {
-            toast.success('Sistema restaurado exitosamente');
+            sileo.success({ title: 'Sistema restaurado exitosamente' });
         }, 2000);
     };
 
@@ -101,21 +101,21 @@ function BackupsPage() {
         // Validate file
         if (!file.name.endsWith('.sql')) {
             setRestoreError('El archivo debe ser un respaldo válido (.sql)');
-            toast.error('Archivo de respaldo inválido');
+            sileo.error({ title: 'Archivo de respaldo inválido' });
             return;
         }
 
         setRestoreError(null);
-        toast.success(`Archivo ${file.name} seleccionado. Validando...`);
+        sileo.success({ title: `Archivo ${file.name} seleccionado. Validando...` });
 
         // Simulate validation
         setTimeout(() => {
             // Simulate a chance of invalid backup
             if (Math.random() > 0.7) {
                 setRestoreError('El archivo de respaldo está corrupto o es incompatible con la versión actual.');
-                toast.error('Respaldo inválido');
+                sileo.error({ title: 'Respaldo inválido' });
             } else {
-                toast.success('Archivo válido. Listo para restaurar.');
+                sileo.success({ title: 'Archivo válido. Listo para restaurar.' });
             }
         }, 1500);
     };
