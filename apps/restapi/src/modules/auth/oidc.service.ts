@@ -26,7 +26,7 @@ export class OidcService implements OnModuleInit {
             clientId,
             clientSecret,
             client.ClientSecretPost(clientSecret),
-            this.isProduction
+            !this.isProduction
                 ? {
                       execute: [client.allowInsecureRequests],
                   }
