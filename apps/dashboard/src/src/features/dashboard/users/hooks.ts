@@ -1,6 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
-import type { UserBase, UserDetail, PaginatedResponse, DniType } from './types';
+import type {
+    UserBase,
+    UserDetail,
+    PaginatedResponse,
+    DniType,
+    Measurement,
+    MeasurementSummary,
+    DailyActivity,
+} from './types';
 
 export const userKeys = {
     all: ['users'] as const,
@@ -177,5 +185,48 @@ export function useTseLookup(cedula: string) {
         queryFn: async () => apiFetch<TsePersonData>(`/api/v1/tse/${cedula}`),
         enabled: false, // manual trigger only
         retry: false,
+    });
+}
+
+// --- Member progress (read-only, dashboard) --------------------------------
+
+export const memberProgressKeys = {
+    measurements: (id: string, from?: string, to?: string) =>
+        ['members', id, 'measurements', { from: from ?? null, to: to ?? null }] as const,
+    summary: (id: string) => ['members', id, 'measurements', 'summary'] as const,
+    activity: (id: string, from: string, to: string) => ['members', id, 'activity', { from, to }] as const,
+};
+
+/** Measurements for a member within an optional [from, to] date range (newest first). */
+export function useMemberMeasurements(userId: string, from?: string, to?: string, options?: { enabled?: boolean }) {
+    return useQuery({
+        queryKey: memberProgressKeys.measurements(userId, from, to),
+        queryFn: async () => {
+            const params = new URLSearchParams();
+            if (from) params.set('from', from);
+            if (to) params.set('to', to);
+            const qs = params.toString();
+            return apiFetch<Measurement[]>(`/api/v1/users/${userId}/measurements${qs ? `?${qs}` : ''}`);
+        },
+        enabled: !!userId && (options?.enabled ?? true),
+    });
+}
+
+/** First-vs-latest comparison summary for a member's measurements. */
+export function useMemberMeasurementSummary(userId: string) {
+    return useQuery({
+        queryKey: memberProgressKeys.summary(userId),
+        queryFn: async () => apiFetch<MeasurementSummary>(`/api/v1/users/${userId}/measurements/summary`),
+        enabled: !!userId,
+    });
+}
+
+/** Daily activity summaries for a member within a [from, to] date range (newest first). */
+export function useMemberActivity(userId: string, from: string, to: string) {
+    return useQuery({
+        queryKey: memberProgressKeys.activity(userId, from, to),
+        queryFn: async () =>
+            apiFetch<DailyActivity[]>(`/api/v1/users/${userId}/activity/daily/range?from=${from}&to=${to}`),
+        enabled: !!userId && !!from && !!to,
     });
 }

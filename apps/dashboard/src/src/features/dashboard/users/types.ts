@@ -65,3 +65,50 @@ export interface StaffProfile {
 }
 
 export type ProfileData = MemberProfile | TrainerProfile | StaffProfile;
+
+// --- Member progress (measurements + activity) -----------------------------
+// Mirrors the mobile API shapes (apps/mobile/lib/api/types/). Numeric columns
+// come back from the backend as strings (drizzle numeric); parse with Number()
+// where a numeric value is needed.
+
+export interface Measurement {
+    id: string;
+    memberId: string;
+    /** 'YYYY-MM-DD' */
+    measuredAt: string;
+    weightKg: string | null;
+    heightCm: string | null;
+    bodyFatPercentage: string | null;
+    waistCm: string | null;
+    notes: string | null;
+    createdAt: string;
+}
+
+export interface MeasurementVariation {
+    weightKg: number | null;
+    heightCm: number | null;
+    bodyFatPercentage: number | null;
+    waistCm: number | null;
+}
+
+export interface MeasurementSummary {
+    first: Measurement | null;
+    latest: Measurement | null;
+    variations: MeasurementVariation;
+    totalRecords: number;
+}
+
+export interface DailyActivity {
+    id: string;
+    memberId: string;
+    /** 'YYYY-MM-DD' */
+    date: string;
+    steps: number;
+    caloriesTotal: string;
+    activeMinutes: number;
+    exerciseCount: number;
+    distanceMeters: string;
+    source: 'HEALTH_CONNECT' | 'MANUAL';
+    createdAt: string;
+    updatedAt: string;
+}

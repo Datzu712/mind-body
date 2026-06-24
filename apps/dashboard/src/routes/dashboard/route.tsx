@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
+import { createFileRoute, Outlet, redirect, useRouterState } from '@tanstack/react-router';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/src/features/dashboard/components/app-sidebar';
 import { apiFetch, ApiError, getLoginUrl } from '@/lib/api';
@@ -30,11 +30,17 @@ export const Route = createFileRoute('/dashboard')({
 });
 
 function DashboardLayout() {
+    // Re-key the content wrapper on each route change so the incoming page fades in.
+    // The sidebar lives outside the wrapper, so it stays put across navigations.
+    const pathname = useRouterState({ select: (s) => s.location.pathname });
+
     return (
         <SidebarProvider>
             <AppSidebar />
             <SidebarInset className="flex flex-col min-h-screen">
-                <Outlet />
+                <div key={pathname} className="flex min-h-0 flex-1 flex-col duration-300 ease-out animate-in fade-in-0">
+                    <Outlet />
+                </div>
             </SidebarInset>
         </SidebarProvider>
     );

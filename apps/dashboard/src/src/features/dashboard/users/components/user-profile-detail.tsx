@@ -11,6 +11,7 @@ import { hasChanges, formatDate, getInitials } from '@/lib/utils';
 import type { UserDetail, ProfileType, DniType } from '../types';
 import { ProfileGeneralTab, type GeneralFormValues } from './profile-general-tab';
 import { MembershipCard } from './membership-card';
+import { MemberProgressTab } from './progress/member-progress-tab';
 import { useUpdateUser, useUpdateMemberProfile, useUpdateTrainerProfile } from '../hooks';
 
 interface UserProfileDetailProps {
@@ -30,6 +31,9 @@ const statusColors: Record<string, string> = {
     INACTIVE: 'border-border bg-muted/50 text-muted-foreground',
     ARCHIVED: 'border-warning/30 bg-warning/20 text-warning',
 };
+
+// Entering-tab fade (Radix unmounts the leaving tab, so only the entry is animated).
+const tabContentAnim = 'animate-in fade-in-0 duration-300 ease-out';
 
 export function UserProfileDetail({ user, profileType, isOwnProfile = false }: UserProfileDetailProps) {
     const [editing, setEditing] = useState(false);
@@ -100,6 +104,7 @@ export function UserProfileDetail({ user, profileType, isOwnProfile = false }: U
                 <TabsList variant="line" className="mb-4">
                     <TabsTrigger value="general">General</TabsTrigger>
                     <TabsTrigger value="membership">Membresía</TabsTrigger>
+                    <TabsTrigger value="progress">Progreso</TabsTrigger>
                 </TabsList>
             )}
             <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
@@ -177,7 +182,9 @@ export function UserProfileDetail({ user, profileType, isOwnProfile = false }: U
 
                 {/* Right: tab content — General (the 2-col grid) or Membresía. */}
                 <div className="min-w-0">
-                    <TabsContent value="general">
+                    {/* Subtle fade-in on tab switch — Radix unmounts the inactive tab,
+                        so animating the entering content is what gives the smooth feel. */}
+                    <TabsContent value="general" className={tabContentAnim}>
                         {/* Remount per edit session so cancelling discards unsaved local edits. */}
                         <ProfileGeneralTab
                             key={editing ? 'editing' : 'view'}
@@ -190,8 +197,14 @@ export function UserProfileDetail({ user, profileType, isOwnProfile = false }: U
                     </TabsContent>
 
                     {showMembershipTab && (
-                        <TabsContent value="membership">
+                        <TabsContent value="membership" className={tabContentAnim}>
                             <MembershipCard membership={user.memberProfile?.activeMembership} />
+                        </TabsContent>
+                    )}
+
+                    {showMembershipTab && (
+                        <TabsContent value="progress" className={tabContentAnim}>
+                            <MemberProgressTab userId={user.id} />
                         </TabsContent>
                     )}
                 </div>
