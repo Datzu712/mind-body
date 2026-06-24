@@ -67,6 +67,13 @@ class EnvironmentVariables {
     @IsNotEmpty()
     DASHBOARD_URL!: string;
 
+    // Absolute/relative path to the TSE Padrón Nacional file (PADRON_COMPLETO.txt).
+    // Used as a fallback when the live TSE scrape is unavailable. The file is operator-
+    // downloaded (see .env.example); PadronService refuses to boot if it is missing.
+    @IsString()
+    @IsNotEmpty()
+    PADRON_PATH!: string;
+
     @IsNumber()
     @Min(1000)
     @Max(30000)

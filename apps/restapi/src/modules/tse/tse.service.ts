@@ -20,6 +20,8 @@ export interface TsePersonData {
     dni: string;
     dateOfBirth: string;
     nationality: string;
+    /** Which registry resolved the lookup. `''` dateOfBirth accompanies `'PADRON'`. */
+    source?: 'TSE' | 'PADRON';
 }
 
 // todo: move puppeteer to its own dedicated service
