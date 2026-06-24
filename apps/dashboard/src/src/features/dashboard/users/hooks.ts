@@ -164,8 +164,11 @@ export function useUpdateStaffProfile(userId: string) {
 export interface TsePersonData {
     fullName: string;
     dni: string;
+    /** Empty string when the source is the national roll (PADRON), which lacks DOB. */
     dateOfBirth: string;
     nationality: string;
+    /** Which registry resolved the lookup. Cosmetic (badge label). Defaults to 'TSE'. */
+    source?: 'TSE' | 'PADRON';
 }
 
 export function useTseLookup(cedula: string) {
