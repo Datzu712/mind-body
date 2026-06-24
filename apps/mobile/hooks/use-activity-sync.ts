@@ -1,52 +1,46 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { initialize, readRecords, getGrantedPermissions } from 'react-native-health-connect';
+import { initialize, readRecords, aggregateRecord, getGrantedPermissions } from 'react-native-health-connect';
+import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import { useApiClient } from '@/lib/api/client';
 import { upsertDailyActivity } from '@/lib/api/activity';
-import { dayKey, startOfDay } from '@/lib/date-utils';
+import { ACTIVITY_QUERY_KEY } from '@/hooks/use-health-data';
+import { dayKey, startOfDay, endOfDay } from '@/lib/date-utils';
 
 const SYNC_KEY = 'last_hc_sync';
-const SYNC_INTERVAL = 30 * 60 * 1000; // 30 min
+const SYNC_INTERVAL = 12 * 60 * 60 * 1000; // 12h (temporal: evita re-sync hasta la PoC)
 
-async function readHCRange(from: Date, to: Date) {
-    const filter = {
+async function readHCTotals(from: Date, to: Date) {
+    const timeRangeFilter = {
         operator: 'between' as const,
         startTime: from.toISOString(),
         endTime: to.toISOString(),
     };
 
-    const [stepsRes, calsRes, exRes] = await Promise.all([
-        readRecords('Steps', { timeRangeFilter: filter }),
-        readRecords('TotalCaloriesBurned', { timeRangeFilter: filter }).catch(() => ({ records: [] })),
-        readRecords('ExerciseSession', { timeRangeFilter: filter }).catch(() => ({ records: [] })),
+    // aggregateRecord applies Health Connect's data-source priority list, so steps/calories that
+    // several apps record for the same period (Samsung Health + Google Fit + the Android system,
+    // etc.) are de-duplicated. readRecords returns every source's raw records — summing them
+    // multiplied the real total (186 steps were being reported as ~558).
+    const [steps, calories, exRes] = await Promise.all([
+        aggregateRecord({ recordType: 'Steps', timeRangeFilter }).catch(() => null),
+        aggregateRecord({ recordType: 'TotalCaloriesBurned', timeRangeFilter }).catch(() => null),
+        readRecords('ExerciseSession', { timeRangeFilter }).catch(() => ({ records: [] })),
     ]);
 
-    // Group by day
-    const days = new Map<string, { steps: number; calories: number; activeMin: number; exercises: number }>();
+    const activeMin = exRes.records.reduce(
+        (sum, r) => sum + (new Date(r.endTime).getTime() - new Date(r.startTime).getTime()) / 60000,
+        0,
+    );
 
-    const ensure = (k: string) => {
-        if (!days.has(k)) days.set(k, { steps: 0, calories: 0, activeMin: 0, exercises: 0 });
-        return days.get(k)!;
+    return {
+        steps: steps?.COUNT_TOTAL ?? 0,
+        calories: calories?.ENERGY_TOTAL?.inKilocalories ?? 0,
+        activeMin,
+        exercises: exRes.records.length,
     };
-
-    for (const r of stepsRes.records) {
-        const d = ensure(dayKey(new Date(r.startTime)));
-        d.steps += r.count;
-    }
-    for (const r of calsRes.records) {
-        const d = ensure(dayKey(new Date(r.startTime)));
-        d.calories += r.energy?.inKilocalories ?? 0;
-    }
-    for (const r of exRes.records) {
-        const d = ensure(dayKey(new Date(r.startTime)));
-        d.exercises++;
-        d.activeMin += (new Date(r.endTime).getTime() - new Date(r.startTime).getTime()) / 60000;
-    }
-
-    return days;
 }
 
 async function ensureHC(): Promise<boolean> {
@@ -60,15 +54,17 @@ async function ensureHC(): Promise<boolean> {
     }
 }
 
-/** Sync only today to backend */
-async function syncToday(api: (path: string, options?: RequestInit) => Promise<Response>) {
-    if (!(await ensureHC())) return;
+/** Sync only today to backend. Returns true when data was actually pushed. */
+async function syncToday(api: (path: string, options?: RequestInit) => Promise<Response>): Promise<boolean> {
+    if (!(await ensureHC())) return false;
 
     const now = new Date();
     const todayStart = startOfDay(now);
-    const days = await readHCRange(todayStart, now);
-    const today = days.get(dayKey(todayStart));
-    if (!today) return;
+    // Query the whole local day, not [midnight, now]. Some sources (Samsung Health) write a single
+    // record whose time envelope spans the full day; Health Connect prorates a record's count by how
+    // much it overlaps the query window, so cutting at `now` scaled that daily record down (94 steps
+    // instead of 234). The full-day window contains it whole, and future steps don't exist yet.
+    const today = await readHCTotals(todayStart, endOfDay(now));
 
     await upsertDailyActivity(api, {
         date: dayKey(todayStart),
@@ -80,11 +76,13 @@ async function syncToday(api: (path: string, options?: RequestInit) => Promise<R
     });
 
     await SecureStore.setItemAsync(SYNC_KEY, String(Date.now()));
+    return true;
 }
 
 /** Auto-sync on mount (throttled, today only) */
 export function useActivitySync() {
     const api = useApiClient();
+    const qc = useQueryClient();
     const ran = useRef(false);
 
     useEffect(() => {
@@ -96,17 +94,20 @@ export function useActivitySync() {
             if (last && Date.now() - parseInt(last) < SYNC_INTERVAL) return;
 
             try {
-                await syncToday(api);
+                if (await syncToday(api)) {
+                    await qc.invalidateQueries({ queryKey: ACTIVITY_QUERY_KEY });
+                }
             } catch {
                 // silent fail
             }
         })();
-    }, [api]);
+    }, [api, qc]);
 }
 
 /** Manual sync trigger (today only, ignores throttle) */
 export function useManualSync() {
     const api = useApiClient();
+    const qc = useQueryClient();
     const [isSyncing, setIsSyncing] = useState(false);
     const [lastResult, setLastResult] = useState<'success' | 'error' | null>(null);
     const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
@@ -121,7 +122,9 @@ export function useManualSync() {
         setIsSyncing(true);
         setLastResult(null);
         try {
-            await syncToday(api);
+            if (await syncToday(api)) {
+                await qc.invalidateQueries({ queryKey: ACTIVITY_QUERY_KEY });
+            }
             setLastSyncAt(Date.now());
             setLastResult('success');
         } catch {
@@ -129,7 +132,7 @@ export function useManualSync() {
         } finally {
             setIsSyncing(false);
         }
-    }, [api]);
+    }, [api, qc]);
 
     useEffect(() => {
         if (!lastResult) return;

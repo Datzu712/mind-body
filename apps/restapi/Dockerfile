@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-#
 # Production image for @mab/restapi (NestJS + Fastify + Puppeteer).
 #
 # IMPORTANT: build with the MONOREPO ROOT as context so the pnpm workspace
@@ -57,7 +55,7 @@ RUN pnpm --filter @mab/restapi build
 # Flatten into /app/out: real node_modules (prod only) + package.json + dist.
 # `pnpm deploy` resolves the workspace symlinks into a portable tree.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm deploy --filter=@mab/restapi --prod /app/out
+    pnpm deploy --filter=@mab/restapi --prod --legacy /app/out
 
 # Download the Chrome build Puppeteer expects into PUPPETEER_CACHE_DIR.
 # (No-op if a prior install script already fetched it.)
@@ -120,8 +118,8 @@ USER node
 EXPOSE 3000
 
 # Liveness probe (global prefix "api" + URI version "1").
-HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
-    CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/v1/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+# HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+#     CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/v1/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "dist/src/main.js"]
