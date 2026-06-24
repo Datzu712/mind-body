@@ -1,15 +1,14 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
+import { delay } from 'rxjs/operators';
 
 @Injectable()
 export class DelayedResponseInterceptor implements NestInterceptor {
     private logger = new Logger('DR Interceptor');
 
-    async intercept(_ctx: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
+    intercept(_ctx: ExecutionContext, next: CallHandler): Observable<any> {
         this.logger.log(`Delaying response...`);
 
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-
-        return next.handle();
+        return next.handle().pipe(delay(3000));
     }
 }

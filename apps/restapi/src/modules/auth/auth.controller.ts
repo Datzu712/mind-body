@@ -169,6 +169,7 @@ export class AuthController {
             id: user.id,
             keycloakSubject: user.keycloakSubject,
             fullName: user.fullName,
+            email: user.email,
             phone: user.phone,
             status: user.status,
             roles,

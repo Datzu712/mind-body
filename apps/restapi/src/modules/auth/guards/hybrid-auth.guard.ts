@@ -89,10 +89,12 @@ export class HybridAuthGuard implements CanActivate {
 
             const givenName = typeof payload['given_name'] === 'string' ? payload['given_name'] : '';
             const familyName = typeof payload['family_name'] === 'string' ? payload['family_name'] : '';
+            const email = typeof payload['email'] === 'string' ? payload['email'] : undefined;
 
             request.user = await this.usersService.syncFromToken({
                 keycloakId: payload.sub!,
                 fullName: `${givenName} ${familyName}`.trim(),
+                email,
             });
 
             return true;
@@ -150,10 +152,12 @@ export class HybridAuthGuard implements CanActivate {
 
             const givenName = typeof payload['given_name'] === 'string' ? payload['given_name'] : '';
             const familyName = typeof payload['family_name'] === 'string' ? payload['family_name'] : '';
+            const email = typeof payload['email'] === 'string' ? payload['email'] : undefined;
 
             request.user = await this.usersService.syncFromToken({
                 keycloakId: payload.sub!,
                 fullName: `${givenName} ${familyName}`.trim(),
+                email,
             });
 
             // Update the cookie on the request so downstream handlers (like /auth/me) see the new token

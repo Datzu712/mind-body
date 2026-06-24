@@ -19,6 +19,7 @@ export const membershipStatusInApp = app.enum('membership_status', ['ACTIVE', 'S
 export const recordStatusInApp = app.enum('record_status', ['ACTIVE', 'INACTIVE', 'ARCHIVED']);
 export const routineStatusInApp = app.enum('routine_status', ['DRAFT', 'ACTIVE', 'PAUSED', 'FINISHED', 'ARCHIVED']);
 export const activitySourceInApp = app.enum('activity_source', ['HEALTH_CONNECT', 'MANUAL']);
+export const dniTypeInApp = app.enum('dni_type', ['CEDULA_NACIONAL', 'DIMEX', 'PASAPORTE']);
 
 export const usersInApp = app.table(
     'users',
@@ -29,7 +30,11 @@ export const usersInApp = app.table(
             .notNull(),
         keycloakSubject: uuid('keycloak_subject').notNull(),
         fullName: varchar('full_name', { length: 160 }).notNull(),
+        email: varchar({ length: 255 }),
         phone: varchar({ length: 30 }),
+        dni: varchar({ length: 20 }),
+        dniType: dniTypeInApp('dni_type'),
+        birthDate: date('birth_date'),
         status: recordStatusInApp().default('ACTIVE').notNull(),
         deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
         createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
@@ -38,6 +43,7 @@ export const usersInApp = app.table(
     (table) => [
         index('idx_users_keycloak_subject').using('btree', table.keycloakSubject.asc().nullsLast().op('uuid_ops')),
         unique('users_keycloak_subject_key').on(table.keycloakSubject),
+        unique('users_dni_key').on(table.dni),
     ],
 );
 
@@ -51,7 +57,6 @@ export const membersInApp = app.table(
             .primaryKey()
             .notNull(),
         userId: uuid('user_id').notNull(),
-        birthDate: date('birth_date'),
         emergencyContactName: varchar('emergency_contact_name', { length: 120 }),
         emergencyContactPhone: varchar('emergency_contact_phone', { length: 30 }),
         joinedAt: date('joined_at')

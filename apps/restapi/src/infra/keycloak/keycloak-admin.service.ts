@@ -9,7 +9,7 @@ import {
 import KcAdminClient from '@keycloak/keycloak-admin-client';
 import { TypedConfigService } from '@/config/typed-config.service';
 
-export type APPLICATION_ROLE = 'MEMBER' | 'TRAINER' | 'ADMIN';
+export type APPLICATION_ROLE = 'MEMBER' | 'TRAINER' | 'ADMIN' | 'STAFF';
 
 @Injectable()
 export class KeycloakAdminService implements OnModuleInit, OnModuleDestroy {
@@ -118,7 +118,7 @@ export class KeycloakAdminService implements OnModuleInit, OnModuleDestroy {
             throw new InternalServerErrorException(`Cannot seed roles: not authenticated with Keycloak`);
         }
 
-        const REQUIRED_ROLES: APPLICATION_ROLE[] = ['ADMIN', 'MEMBER', 'TRAINER'];
+        const REQUIRED_ROLES: APPLICATION_ROLE[] = ['ADMIN', 'MEMBER', 'TRAINER', 'STAFF'];
 
         const existing = await this.kcClient.roles.find();
         const existingNames = new Set(existing.map((r) => r.name));
@@ -136,5 +136,48 @@ export class KeycloakAdminService implements OnModuleInit, OnModuleDestroy {
 
         const users = await this.kcClient.users.find({ email, exact: true });
         return users.length > 0;
+    }
+
+    async createUser(data: {
+        email: string;
+        firstName: string;
+        lastName?: string;
+        enabled?: boolean;
+    }): Promise<string> {
+        this.assertAuthenticated();
+
+        const { id } = await this.kcClient.users.create({
+            email: data.email,
+            username: data.email,
+            firstName: data.firstName,
+            lastName: data.lastName ?? '',
+            enabled: data.enabled ?? true,
+            emailVerified: true,
+        });
+
+        return id;
+    }
+
+    async assignRole(userId: string, roleName: APPLICATION_ROLE) {
+        this.assertAuthenticated();
+
+        const role = await this.kcClient.roles.findOneByName({ name: roleName });
+        if (!role || !role.id || !role.name) {
+            throw new InternalServerErrorException(`Role ${roleName} not found in Keycloak`);
+        }
+
+        await this.kcClient.users.addRealmRoleMappings({
+            id: userId,
+            roles: [{ id: role.id, name: role.name }],
+        });
+    }
+
+    async sendPasswordSetupEmail(userId: string) {
+        this.assertAuthenticated();
+
+        await this.kcClient.users.executeActionsEmail({
+            id: userId,
+            actions: ['UPDATE_PASSWORD'],
+        });
     }
 }
