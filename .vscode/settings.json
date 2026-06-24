@@ -1,4 +1,5 @@
 {
     "snyk.advanced.autoSelectOrganization": false,
-    "discord.enabled": false
+    "discord.enabled": false,
+    "cSpell.words": ["cedula"]
 }

@@ -23,6 +23,12 @@ const DNI_TYPE_LABELS: Record<DniType, string> = {
 
 const LOOKUP_DEBOUNCE_MS = 600;
 
+/**
+ * Costa Rica national ID (cédula física): 9 digits with a non-zero leading
+ * province/category digit (1-7 province, 8 naturalized, 9 special).
+ */
+const CEDULA_REGEX = /^[1-9]\d{8}$/;
+
 export interface GeneralFormValues {
     fullName: string;
     dni: string;
@@ -53,9 +59,9 @@ function syncedCedulaOf(user: UserDetail): string {
 }
 
 /** Section divider: icon chip + title + hairline rule. Gives the form structure. */
-function SectionHeader({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
+function SectionHeader({ icon: Icon, title, className }: { icon: LucideIcon; title: string; className?: string }) {
     return (
-        <div className="flex items-center gap-2.5">
+        <div className={`flex items-center gap-2.5 ${className ?? ''}`}>
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <Icon className="h-4 w-4" />
             </span>
@@ -161,7 +167,9 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
     );
     const [registryDobProvided, setRegistryDobProvided] = useState(Boolean(user.birthDate));
     const [resolvedCedula, setResolvedCedula] = useState(initCedula);
-    const [lookupFailed, setLookupFailed] = useState(false);
+    // null = no failure; 'invalid' = cédula not in the registry (likely a wrong
+    // number); 'unavailable' = registry unreachable (valid cédula, just unverified).
+    const [lookupError, setLookupError] = useState<'invalid' | 'unavailable' | null>(null);
 
     const rawDni = dni.replace(/\D/g, '');
     const isCedula = dniType === 'CEDULA_NACIONAL';
@@ -178,11 +186,22 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
     const resolvedCedulaRef = useRef(resolvedCedula);
     resolvedCedulaRef.current = resolvedCedula;
 
-    const nameLocked = editing && isCedula && identitySource !== null;
+    // A cédula's registry result is only valid for the EXACT number that produced
+    // it. Once the input moves off `resolvedCedula`, any prior verified/failed
+    // result is stale, so the panel reflects the current input, never the last
+    // fetch in order to avoid showing a previous person's data for a new/invalid number.
+    const cedulaFormatValid = isCedula && CEDULA_REGEX.test(rawDni);
+    const cedulaBadFormat = isCedula && rawDni.length === 9 && !cedulaFormatValid; // 9 digits, wrong format
+    const cedulaResolved = cedulaFormatValid && rawDni === resolvedCedula;
+    const cedulaPending = cedulaFormatValid && !cedulaResolved; // well-formed, lookup not in yet
+    const lookupFailed = cedulaResolved && lookupError !== null;
+
+    const nameLocked = editing && cedulaResolved && lookupError === null && identitySource !== null;
     const dobLocked = nameLocked && registryDobProvided;
     const dobRequired = nameLocked && !registryDobProvided;
     const missingRequiredDob = dobRequired && !birthDate.trim();
-    const awaitingResolution = isCedula && rawDni.length === 9 && identitySource === null && !lookupFailed;
+    // Block saving a cédula that isn't a resolved, valid national ID.
+    const cedulaUnresolved = isCedula && (cedulaPending || cedulaBadFormat || rawDni.length < 9);
 
     // Re-sync local state when the user reloads (e.g. after a successful save).
     useEffect(() => {
@@ -199,7 +218,7 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
         setIdentitySource(user.dniType === 'CEDULA_NACIONAL' && user.dni ? (user.birthDate ? 'TSE' : 'PADRON') : null);
         setRegistryDobProvided(Boolean(user.birthDate));
         setResolvedCedula(syncedCedulaOf(user));
-        setLookupFailed(false);
+        setLookupError(null);
     }, [
         user.dniType,
         user.dni,
@@ -213,10 +232,11 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
         trainerProfile?.biography,
     ]);
 
-    // Auto-lookup: when a complete, unseen cédula settles, query the registry.
+    // Auto-lookup: when a well-formed, unseen cédula settles, query the registry.
+    // Malformed numbers are rejected by the regex before any network call.
     useEffect(() => {
         if (!editing || !isCedula) return;
-        if (debouncedDni.length !== 9 || debouncedDni === resolvedCedulaRef.current) return;
+        if (!CEDULA_REGEX.test(debouncedDni) || debouncedDni === resolvedCedulaRef.current) return;
 
         let cancelled = false;
         void (async () => {
@@ -224,22 +244,27 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
             if (cancelled) return;
 
             if (error || !data) {
+                const notFound = error instanceof ApiError && error.status === 404;
                 setIdentitySource(null);
                 setRegistryDobProvided(false);
                 setResolvedCedula(debouncedDni);
-                setLookupFailed(true);
-                const notFound = error instanceof ApiError && error.status === 404;
-                sileo.error(
-                    notFound
-                        ? {
-                              title: 'Cédula no encontrada',
-                              description: 'No está en el registro nacional. Podés ingresar los datos manualmente.',
-                          }
-                        : {
-                              title: 'Registro nacional no disponible',
-                              description: 'No se pudo consultar. Podés ingresar los datos manualmente.',
-                          },
-                );
+                setLookupError(notFound ? 'invalid' : 'unavailable');
+                if (notFound) {
+                    // Well-formed but not in the registry: don't carry a previous
+                    // person's name/DOB into the manual fallback.
+                    setFullName('');
+                    setBirthDate('');
+                    sileo.error({
+                        title: 'Cédula no encontrada',
+                        description:
+                            'No está en el registro nacional. Revisá el número o ingresá los datos manualmente.',
+                    });
+                } else {
+                    sileo.error({
+                        title: 'Registro nacional no disponible',
+                        description: 'No se pudo verificar la cédula. Podés ingresar los datos manualmente.',
+                    });
+                }
                 return;
             }
 
@@ -249,7 +274,7 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
             setIdentitySource(source);
             setRegistryDobProvided(Boolean(data.dateOfBirth));
             setResolvedCedula(debouncedDni);
-            setLookupFailed(false);
+            setLookupError(null);
             if (source === 'PADRON') {
                 sileo.info({
                     title: 'Datos del padrón',
@@ -271,21 +296,32 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
         setIdentitySource(null);
         setRegistryDobProvided(false);
         setResolvedCedula('');
-        setLookupFailed(false);
+        setLookupError(null);
     };
 
-    const handleDniChange = (raw: string) => {
-        setDni(isCedula ? formatCedula(raw) : raw);
-        // Editing the number clears a prior failed-lookup state so the Save gate
-        // re-engages (awaitingResolution) until the new cédula resolves.
-        if (lookupFailed) setLookupFailed(false);
-    };
+    // Editing the number makes any prior result stale automatically (it no longer
+    // matches `resolvedCedula`), so the panel/gate react without extra bookkeeping.
+    const handleDniChange = (raw: string) => setDni(isCedula ? formatCedula(raw) : raw);
 
     const handleSave = () => {
-        if (tseLookup.isFetching || awaitingResolution) {
+        if (tseLookup.isFetching || cedulaPending) {
             sileo.warning({
                 title: 'Esperá la verificación',
-                description: 'Estamos consultando el registro nacional para esa cédula.',
+                description: 'Estamos verificando la cédula con el registro nacional.',
+            });
+            return;
+        }
+        if (cedulaBadFormat) {
+            sileo.warning({
+                title: 'Cédula inválida',
+                description: 'El número no tiene un formato válido de cédula nacional.',
+            });
+            return;
+        }
+        if (isCedula && rawDni.length < 9) {
+            sileo.warning({
+                title: 'Cédula incompleta',
+                description: 'Ingresá los 9 dígitos de la cédula nacional.',
             });
             return;
         }
@@ -312,6 +348,12 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
 
     const badgeLabel = identitySource === 'PADRON' ? 'Padrón' : 'TSE';
 
+    // Entering edit mode reveals the content with a "focus-in" cascade (see the
+    // `.edit-focus*` utilities in globals.css). Only the editing branch carries
+    // the classes, so cancelling back to view is instant.
+    const focusGrid = editing ? ' edit-focus' : '';
+    const focusItem = editing ? 'edit-focus-self' : undefined;
+
     return (
         <Card className={`transition-all duration-300 ${editing ? 'edit-mode-card' : 'border-border bg-card'}`}>
             <CardHeader>
@@ -327,8 +369,8 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
             <CardContent className="flex flex-col gap-7">
                 {/* Identificación */}
                 <section className="flex flex-col gap-4">
-                    <SectionHeader icon={IdCard} title="Identificación" />
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <SectionHeader icon={IdCard} title="Identificación" className={focusItem} />
+                    <div className={`grid gap-4 md:grid-cols-3${focusGrid}`}>
                         {/* Tipo de documento */}
                         <div className="flex flex-col gap-1.5">
                             <Label htmlFor={`${uid}-dniType`} className="text-muted-foreground text-xs">
@@ -381,7 +423,7 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
                             )}
                         </div>
 
-                        {/* Teléfono — único campo de contacto editable (email es read-only, va en el profile card). */}
+                        {/* Teléfono - único campo de contacto editable (email es read-only, va en el profile card). */}
                         <ProfileField
                             id={`${uid}-phone`}
                             label="Teléfono"
@@ -409,17 +451,28 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
 
                     {/* Cédula en edición: panel source-aware (loading / verificado / padrón / fallback / prompt). */}
                     {editing && isCedula && (
-                        <>
-                            {tseLookup.isFetching ? (
+                        <div className={focusItem} style={{ animationDelay: '165ms' }}>
+                            {tseLookup.isFetching || cedulaPending ? (
                                 <div className="flex items-center gap-2.5 rounded-lg border border-border bg-secondary/30 px-3 py-2.5 text-sm text-muted-foreground">
                                     <Loader2 className="h-4 w-4 animate-spin" />
-                                    Consultando registro nacional…
+                                    Verificando la cédula con el registro nacional…
                                 </div>
+                            ) : cedulaBadFormat ? (
+                                <p className="flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive">
+                                    <ShieldAlert className="h-4 w-4 shrink-0" />
+                                    La cédula no es válida: una cédula nacional tiene 9 dígitos (formato 0-0000-0000).
+                                </p>
+                            ) : rawDni.length < 9 ? (
+                                <p className="rounded-lg border border-dashed border-border px-3 py-2.5 text-sm text-muted-foreground">
+                                    Ingresá los 9 dígitos de la cédula para verificarla con el registro nacional.
+                                </p>
                             ) : lookupFailed ? (
                                 <div className="flex flex-col gap-3 rounded-lg border border-warning/30 bg-warning/10 px-3 py-3">
                                     <p className="flex items-center gap-1.5 text-sm text-warning">
                                         <ShieldAlert className="h-4 w-4 shrink-0" />
-                                        No encontramos la cédula en el registro nacional. Ingresá los datos manualmente.
+                                        {lookupError === 'unavailable'
+                                            ? 'No pudimos verificar la cédula ahora (servicio no disponible). Podés ingresar los datos manualmente.'
+                                            : 'Esta cédula no está en el registro nacional. Revisá el número o ingresá los datos manualmente.'}
                                     </p>
                                     <div className="grid gap-4 md:grid-cols-3">
                                         <NameDobInputs
@@ -454,7 +507,7 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
                                                 className="flex items-center gap-1 text-xs text-warning"
                                             >
                                                 <ShieldAlert className="h-3.5 w-3.5" />
-                                                El padrón no incluye fecha de nacimiento — ingresala *
+                                                El padrón no incluye fecha de nacimiento. Ingresela para continuar.
                                             </Label>
                                             <DateField
                                                 id={`${uid}-padronDob`}
@@ -474,15 +527,15 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
                                     nacional.
                                 </p>
                             )}
-                        </>
+                        </div>
                     )}
                 </section>
 
                 {/* Contacto de emergencia (member) */}
                 {profileType === 'MEMBER' && (
                     <section className="flex flex-col gap-4">
-                        <SectionHeader icon={ShieldAlert} title="Contacto de emergencia" />
-                        <div className="grid gap-4 md:grid-cols-3">
+                        <SectionHeader icon={ShieldAlert} title="Contacto de emergencia" className={focusItem} />
+                        <div className={`grid gap-4 md:grid-cols-3${focusGrid}`}>
                             <div className="md:col-span-2">
                                 <ProfileField
                                     id={`${uid}-ecName`}
@@ -519,8 +572,8 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
                 {/* Información profesional (trainer) */}
                 {profileType === 'TRAINER' && (
                     <section className="flex flex-col gap-4">
-                        <SectionHeader icon={Dumbbell} title="Información profesional" />
-                        <div className="grid gap-4">
+                        <SectionHeader icon={Dumbbell} title="Información profesional" className={focusItem} />
+                        <div className={`grid gap-4${focusGrid}`}>
                             <ProfileField
                                 id={`${uid}-specialty`}
                                 label="Especialidad"
@@ -543,11 +596,11 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
                 )}
 
                 {editing && (
-                    <div className="flex justify-end">
+                    <div className="flex justify-end edit-focus-self" style={{ animationDelay: '220ms' }}>
                         <Button
                             type="button"
                             onClick={handleSave}
-                            disabled={isSaving || tseLookup.isFetching || awaitingResolution || missingRequiredDob}
+                            disabled={isSaving || tseLookup.isFetching || cedulaUnresolved || missingRequiredDob}
                         >
                             <Save className="mr-2 h-4 w-4" />
                             Guardar cambios
