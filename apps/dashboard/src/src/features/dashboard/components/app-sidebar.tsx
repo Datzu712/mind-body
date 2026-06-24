@@ -12,6 +12,8 @@ import {
     HardDrive,
     LogOut,
     Dumbbell,
+    List,
+    ClipboardCheck,
 } from 'lucide-react';
 
 import {
@@ -70,6 +72,24 @@ const adminNavItems = [
     },
 ];
 
+const trainingNavItems = [
+    {
+        title: 'Rutinas',
+        href: '/dashboard/training/routines',
+        icon: Dumbbell,
+    },
+    {
+        title: 'Ejercicios',
+        href: '/dashboard/training/exercises',
+        icon: List,
+    },
+    {
+        title: 'Asistencia',
+        href: '/dashboard/training/attendance',
+        icon: ClipboardCheck,
+    },
+];
+
 export function AppSidebar() {
     const pathname = usePathname();
 
@@ -117,6 +137,30 @@ export function AppSidebar() {
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {adminNavItems.map((item) => (
+                                <SidebarMenuItem key={item.href}>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
+                                        tooltip={item.title}
+                                    >
+                                        <Link href={item.href}>
+                                            <item.icon className="h-4 w-4" />
+                                            <span>{item.title}</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            ))}
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+
+                <SidebarGroup>
+                    <SidebarGroupLabel className="text-muted-foreground/70 uppercase text-xs tracking-wider">
+                        Entrenamientos
+                    </SidebarGroupLabel>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            {trainingNavItems.map((item) => (
                                 <SidebarMenuItem key={item.href}>
                                     <SidebarMenuButton
                                         asChild
