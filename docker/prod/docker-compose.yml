@@ -19,6 +19,8 @@ services:
         image: postgres:18.3-alpine
         <<: *restart-policy
         logging: *logging
+        env_file:
+            - ./.env
         environment:
             POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
             POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
@@ -64,6 +66,8 @@ services:
             - '127.0.0.1:${REDIS_PORT:-6379}:6379'
         networks:
             - db
+        env_file:
+            - ./.env
         healthcheck:
             <<: *healthcheck-defaults
             test: ['CMD-SHELL', 'redis-cli -a "$${REDIS_PASSWORD}" ping | grep -q PONG']
