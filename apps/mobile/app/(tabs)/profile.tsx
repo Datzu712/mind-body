@@ -11,12 +11,6 @@ type SettingItem =
     | { kind: 'link'; ic: string; lbl: string; ac: string }
     | { kind: 'toggle'; ic: string; lbl: string; ac: string; on: boolean };
 
-const USER_STATS = [
-    { val: '47', lbl: 'ENTRENOS' },
-    { val: '89h', lbl: 'TIEMPO' },
-    { val: '8d', lbl: 'RACHA' },
-];
-
 const SETTINGS_INITIAL: SettingItem[] = [
     { kind: 'link', ic: '🎯', lbl: 'Mis Objetivos', ac: T.green },
     { kind: 'link', ic: '🔔', lbl: 'Notificaciones', ac: '#FF9500' },
@@ -32,7 +26,7 @@ export default function ProfileScreen() {
     const { signOut } = useAuth();
     const { data: profile } = useProfile();
 
-    const displayName = [profile?.firstName, profile?.lastName].filter(Boolean).join(' ') || 'Usuario';
+    const displayName = profile?.fullName?.trim() || 'Usuario';
     const displayEmail = profile!.email;
     const avatarLabel = (displayName.trim()[0] || 'U').toUpperCase();
 
@@ -74,16 +68,6 @@ export default function ProfileScreen() {
                                     <Text style={s.memberText}>GOLD MEMBER</Text>
                                 </View>
                             </View>
-                        </View>
-
-                        {/* Stats row */}
-                        <View style={s.statsRow}>
-                            {USER_STATS.map((st, i) => (
-                                <View key={i} style={[s.statCol, i < USER_STATS.length - 1 && s.statColBorder]}>
-                                    <Text style={s.statVal}>{st.val}</Text>
-                                    <Text style={s.statLbl}>{st.lbl}</Text>
-                                </View>
-                            ))}
                         </View>
                     </View>
                 </View>
@@ -232,25 +216,6 @@ const s = StyleSheet.create({
         color: T.bg,
         letterSpacing: 0.8,
         textTransform: 'uppercase',
-    },
-
-    statsRow: {
-        flexDirection: 'row',
-        backgroundColor: 'rgba(0,0,0,0.3)',
-        borderRadius: 12,
-        marginTop: 18,
-        paddingVertical: 12,
-    },
-    statCol: { flex: 1, alignItems: 'center' },
-    statColBorder: { borderRightWidth: 1, borderRightColor: T.border },
-    statVal: { fontSize: 20, fontWeight: '900', color: T.yellow },
-    statLbl: {
-        fontSize: 9,
-        color: T.muted,
-        fontWeight: '700',
-        letterSpacing: 0.5,
-        textTransform: 'uppercase',
-        marginTop: 2,
     },
 
     // Membership

@@ -28,19 +28,17 @@ export default function PersonalInfoScreen() {
     const initiateAction = useInitiateAction();
 
     // Initialize from placeholder (JWT claims), then sync once real backend data arrives
-    const [firstName, setFirstName] = useState(profile?.firstName ?? '');
-    const [lastName, setLastName] = useState(profile?.lastName ?? '');
+    const [fullName, setFullName] = useState(profile?.fullName ?? '');
     const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
     useEffect(() => {
         if (profile && !isPlaceholderData) {
-            setFirstName(profile.firstName ?? '');
-            setLastName(profile.lastName ?? '');
+            setFullName(profile.fullName ?? '');
         }
     }, [isPlaceholderData]);
 
     const mutation = useMutation({
-        mutationFn: (data: { firstName: string; lastName: string }) =>
+        mutationFn: (data: { fullName: string }) =>
             apiFetch('/users/me', { method: 'PUT', body: JSON.stringify(data) }),
         onSuccess: async (response) => {
             if (!response.ok) {
@@ -59,11 +57,11 @@ export default function PersonalInfoScreen() {
 
     function handleSave() {
         setFeedback(null);
-        mutation.mutate({ firstName, lastName });
+        mutation.mutate({ fullName: fullName.trim() });
     }
 
     const saving = mutation.isPending;
-    const hasChanges = firstName !== (profile?.firstName ?? '') || lastName !== (profile?.lastName ?? '');
+    const hasChanges = fullName.trim() !== (profile?.fullName ?? '');
 
     return (
         <SafeAreaView style={s.root} edges={['bottom']}>
@@ -78,7 +76,12 @@ export default function PersonalInfoScreen() {
                     <View style={s.avatarWrap}>
                         <View style={s.avatar}>
                             <Text style={s.avatarText}>
-                                {(firstName[0] ?? profile?.firstName?.[0] ?? user?.username?.[0] ?? 'U').toUpperCase()}
+                                {(
+                                    fullName.trim()[0] ??
+                                    profile?.fullName?.[0] ??
+                                    user?.username?.[0] ??
+                                    'U'
+                                ).toUpperCase()}
                             </Text>
                         </View>
                     </View>
@@ -86,25 +89,12 @@ export default function PersonalInfoScreen() {
                     {/* Campos */}
                     <View style={s.fields}>
                         <View style={s.fieldGroup}>
-                            <Text style={s.fieldLabel}>NOMBRE</Text>
+                            <Text style={s.fieldLabel}>NOMBRE COMPLETO</Text>
                             <TextInput
                                 style={s.input}
-                                value={firstName}
-                                onChangeText={setFirstName}
-                                placeholder="Tu nombre"
-                                placeholderTextColor={T.muted}
-                                autoCapitalize="words"
-                                autoCorrect={false}
-                            />
-                        </View>
-
-                        <View style={s.fieldGroup}>
-                            <Text style={s.fieldLabel}>APELLIDO</Text>
-                            <TextInput
-                                style={s.input}
-                                value={lastName}
-                                onChangeText={setLastName}
-                                placeholder="Tu apellido"
+                                value={fullName}
+                                onChangeText={setFullName}
+                                placeholder="Tu nombre completo"
                                 placeholderTextColor={T.muted}
                                 autoCapitalize="words"
                                 autoCorrect={false}
