@@ -1,4 +1,14 @@
-import { IsDateString, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import {
+    IsDateString,
+    IsEmail,
+    IsEnum,
+    IsNotEmpty,
+    IsOptional,
+    IsString,
+    Matches,
+    MaxLength,
+    ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 class CreateMemberFields {
@@ -48,10 +58,12 @@ export class CreateUserDto {
 
     @IsString()
     @IsNotEmpty()
+    @MaxLength(20)
     dni!: string;
 
     @IsOptional()
     @IsDateString()
+    @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'birthDate must be a YYYY-MM-DD date' })
     birthDate?: string | undefined;
 
     @IsEnum(['MEMBER', 'TRAINER', 'STAFF'])

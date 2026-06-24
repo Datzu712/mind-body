@@ -1,5 +1,5 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { and, asc, count, desc, eq, ilike, sql } from 'drizzle-orm';
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { and, asc, count, desc, eq, ilike, ne, sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import type Redis from 'ioredis';
 
@@ -43,6 +43,13 @@ const SORT_COLUMNS = {
     createdAt: Users.createdAt,
 } as const;
 
+const DNI_CONFLICT_MESSAGE = 'Ya existe un usuario con este documento de identidad.';
+
+/** True for a Postgres unique-constraint violation (SQLSTATE 23505). */
+function isUniqueViolation(err: unknown): boolean {
+    return typeof err === 'object' && err !== null && (err as { code?: string }).code === '23505';
+}
+
 @Injectable()
 export class UsersService {
     constructor(
@@ -62,7 +69,10 @@ export class UsersService {
             .values({ keycloakSubject: keycloakId, fullName, email })
             .onConflictDoUpdate({
                 target: Users.keycloakSubject,
-                set: { fullName, email, updatedAt: sql`now()` },
+                // Only the email is token-sourced. `fullName` is admin-managed in the
+                // dashboard, so an existing user's name must NOT be reverted to the
+                // (possibly stale) token claim on every request.
+                set: { email, updatedAt: sql`now()` },
             })
             .returning();
 
@@ -169,7 +179,7 @@ export class UsersService {
                 fullName: dto.fullName,
                 email: dto.email,
                 phone: dto.phone,
-                dni: dto.dni,
+                dni: this.normalizeDni(dto.dni, dto.dniType) ?? undefined,
                 dniType: dto.dniType,
                 birthDate: dto.birthDate,
             })
@@ -195,12 +205,37 @@ export class UsersService {
         const [existing] = await this.drizzle.db.select().from(Users).where(eq(Users.id, id));
         if (!existing) throw new NotFoundException(`User ${id} not found`);
 
+        // Normalize the DNI (trim, '' -> null, validate cédula format) against the
+        // effective document type — the one being set, or the existing one.
+        const nextDni = this.normalizeDni(dto.dni, dto.dniType ?? existing.dniType);
+
+        // The DNI is UNIQUE — reject a value already taken by another user before
+        // hitting the DB constraint, so the client gets a clean 409 instead of a 500.
+        // A null DNI means "no document" and never collides (multiple NULLs allowed).
+        if (nextDni != null && nextDni !== existing.dni) {
+            const [dupe] = await this.drizzle.db
+                .select({ id: Users.id })
+                .from(Users)
+                .where(and(eq(Users.dni, nextDni), ne(Users.id, id)));
+            if (dupe) throw new ConflictException(DNI_CONFLICT_MESSAGE);
+        }
+
         const set: Record<string, unknown> = { updatedAt: sql`now()` };
         if (dto.fullName !== undefined) set.fullName = dto.fullName;
         if (dto.phone !== undefined) set.phone = dto.phone;
         if (dto.status !== undefined) set.status = dto.status;
+        if (nextDni !== undefined) set.dni = nextDni;
+        if (dto.dniType !== undefined) set.dniType = dto.dniType;
+        if (dto.birthDate !== undefined) set.birthDate = dto.birthDate === '' ? null : dto.birthDate;
 
-        await this.drizzle.db.update(Users).set(set).where(eq(Users.id, id));
+        try {
+            await this.drizzle.db.update(Users).set(set).where(eq(Users.id, id));
+        } catch (err) {
+            // Backstop the pre-check's TOCTOU race: a concurrent update can still
+            // trip the unique index — surface it as the same clean 409.
+            if (isUniqueViolation(err)) throw new ConflictException(DNI_CONFLICT_MESSAGE);
+            throw err;
+        }
 
         // Sync name to KC if changed
         if (dto.fullName) {
@@ -287,6 +322,25 @@ export class UsersService {
         ]);
 
         return user!;
+    }
+
+    /**
+     * Trim a DNI, map an empty value to null ("no document" — keeps the UNIQUE
+     * column clean), and enforce the national-ID format so the API does not rely
+     * on the client. Returns `undefined` when no DNI was provided (field left
+     * untouched on update).
+     */
+    private normalizeDni(
+        dni: string | undefined,
+        dniType: 'CEDULA_NACIONAL' | 'DIMEX' | 'PASAPORTE' | null | undefined,
+    ): string | null | undefined {
+        if (dni === undefined) return undefined;
+        const trimmed = dni.trim();
+        if (trimmed === '') return null;
+        if (dniType === 'CEDULA_NACIONAL' && !/^\d{9}$/.test(trimmed)) {
+            throw new BadRequestException('La cédula nacional debe tener 9 dígitos.');
+        }
+        return trimmed;
     }
 
     private async enrichUser(user: User) {

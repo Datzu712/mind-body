@@ -73,7 +73,7 @@ function TrainerDetailPage() {
                 ]}
             />
             <div className="flex-1 overflow-auto p-6">
-                <PageHeader title={user.fullName} description="Perfil de entrenador" className="mb-6" />
+                <PageHeader title="Perfil de entrenador" className="mb-6" />
                 <UserProfileDetail user={user} profileType="TRAINER" />
             </div>
         </>

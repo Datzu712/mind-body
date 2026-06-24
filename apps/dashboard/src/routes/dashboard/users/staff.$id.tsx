@@ -68,7 +68,7 @@ function StaffDetailPage() {
                 ]}
             />
             <div className="flex-1 overflow-auto p-6">
-                <PageHeader title={user.fullName} description="Perfil de staff" className="mb-6" />
+                <PageHeader title="Perfil de staff" className="mb-6" />
                 <UserProfileDetail user={user} profileType="STAFF" />
             </div>
         </>

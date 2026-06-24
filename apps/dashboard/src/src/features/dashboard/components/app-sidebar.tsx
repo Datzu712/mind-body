@@ -111,7 +111,7 @@ export function AppSidebar() {
 
     return (
         <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-            <SidebarHeader className="h-16 justify-center px-4 py-0">
+            <SidebarHeader className="h-16 justify-center border-b border-sidebar-border px-4 py-0">
                 <Link to="/dashboard" className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center">
                         <img src="/icon-no-bg.png" alt="Mind & Body" className="h-12 w-12 object-contain" />
@@ -122,8 +122,6 @@ export function AppSidebar() {
                     </div>
                 </Link>
             </SidebarHeader>
-
-            <SidebarSeparator />
 
             <SidebarContent>
                 <SidebarGroup>

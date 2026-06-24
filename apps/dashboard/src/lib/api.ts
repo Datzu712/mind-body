@@ -11,18 +11,41 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     });
 
     if (!res.ok) {
-        throw new ApiError(res.status, res.statusText);
+        throw new ApiError(res.status, res.statusText, await readErrorMessage(res));
     }
 
     return res.json() as Promise<T>;
+}
+
+/**
+ * Pull the human-readable message out of a failed response. NestJS error bodies
+ * are `{ statusCode, message, error }` where `message` is a string (e.g. a
+ * thrown HttpException) or a string[] (ValidationPipe). Falls back to undefined
+ * so ApiError can use its generic `API <status>` message.
+ */
+async function readErrorMessage(res: Response): Promise<string | undefined> {
+    try {
+        const body = (await res.clone().json()) as { message?: unknown };
+        if (Array.isArray(body.message)) return body.message.filter(Boolean).join(' ');
+        if (typeof body.message === 'string' && body.message) return body.message;
+    } catch {
+        try {
+            const text = await res.text();
+            if (text) return text;
+        } catch {
+            /* ignore — fall back to the generic message */
+        }
+    }
+    return undefined;
 }
 
 export class ApiError extends Error {
     constructor(
         public readonly status: number,
         public readonly statusText: string,
+        message?: string,
     ) {
-        super(`API ${status}: ${statusText}`);
+        super(message ?? `API ${status}: ${statusText}`);
         this.name = 'ApiError';
     }
 }

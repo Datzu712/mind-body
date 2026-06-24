@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api';
-import type { UserBase, UserDetail, PaginatedResponse } from './types';
+import type { UserBase, UserDetail, PaginatedResponse, DniType } from './types';
 
 export const userKeys = {
     all: ['users'] as const,
@@ -77,7 +77,14 @@ export function useCreateUser() {
 export function useUpdateUser(id: string) {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (data: { fullName?: string; phone?: string; status?: string }) =>
+        mutationFn: async (data: {
+            fullName?: string;
+            phone?: string;
+            status?: string;
+            dni?: string;
+            dniType?: DniType;
+            birthDate?: string;
+        }) =>
             apiFetch<UserDetail>(`/api/v1/users/${id}`, {
                 method: 'PUT',
                 body: JSON.stringify(data),
