@@ -274,7 +274,12 @@ export function ProfileGeneralTab({ user, profileType, editing, isSaving, onSave
         setLookupFailed(false);
     };
 
-    const handleDniChange = (raw: string) => setDni(isCedula ? formatCedula(raw) : raw);
+    const handleDniChange = (raw: string) => {
+        setDni(isCedula ? formatCedula(raw) : raw);
+        // Editing the number clears a prior failed-lookup state so the Save gate
+        // re-engages (awaitingResolution) until the new cédula resolves.
+        if (lookupFailed) setLookupFailed(false);
+    };
 
     const handleSave = () => {
         if (tseLookup.isFetching || awaitingResolution) {
