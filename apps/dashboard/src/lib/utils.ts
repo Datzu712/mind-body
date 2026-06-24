@@ -12,6 +12,15 @@ export function formatDate(raw: string | null | undefined): string {
     return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+export function getInitials(name: string): string {
+    return name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+}
+
 export function hasChanges<T extends object>(current: Partial<T>, original: T): boolean {
     const keys = Object.keys(current) as (keyof T)[];
     for (const key of keys) {

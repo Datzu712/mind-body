@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Mail, Calendar, Cake, Pencil, X } from 'lucide-react';
 import { sileo } from 'sileo';
-import { hasChanges, formatDate } from '@/lib/utils';
+import { hasChanges, formatDate, getInitials } from '@/lib/utils';
 import type { UserDetail, ProfileType } from '../types';
 import { MemberDetailSection } from './member-detail-section';
 import { TrainerDetailSection } from './trainer-detail-section';
@@ -30,15 +30,6 @@ const statusColors: Record<string, string> = {
     INACTIVE: 'border-border bg-muted/50 text-muted-foreground',
     ARCHIVED: 'border-warning/30 bg-warning/20 text-warning',
 };
-
-function getInitials(name: string): string {
-    return name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
-}
 
 export function UserProfileDetail({ user, profileType, isOwnProfile = false }: UserProfileDetailProps) {
     const [editing, setEditing] = useState(false);

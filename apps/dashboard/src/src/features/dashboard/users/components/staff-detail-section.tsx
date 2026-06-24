@@ -1,11 +1,10 @@
 import { useEffect, useId, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Briefcase, Save, AlertCircle } from 'lucide-react';
 import type { StaffProfile } from '../types';
+import { ProfileField } from './profile-field';
 
 interface StaffDetailSectionProps {
     profile?: StaffProfile;
@@ -58,22 +57,15 @@ export function StaffDetailSection({
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-1.5">
-                        <Label htmlFor={`${uid}-phone`} className="text-muted-foreground text-xs">
-                            Telefono
-                        </Label>
-                        {isOwnProfile ? (
-                            <Input
-                                id={`${uid}-phone`}
-                                value={phoneVal}
-                                onChange={(e) => setPhoneVal(e.target.value)}
-                                placeholder="+52 55 ..."
-                                className="bg-secondary/50 border-border"
-                            />
-                        ) : (
-                            <p className="text-sm text-foreground h-9 flex items-center">{phone || '—'}</p>
-                        )}
-                    </div>
+                    <ProfileField
+                        id={`${uid}-phone`}
+                        label="Telefono"
+                        editing={isOwnProfile}
+                        value={phoneVal}
+                        onChange={setPhoneVal}
+                        readonlyValue={phone}
+                        placeholder="+52 55 ..."
+                    />
                     <div
                         className={`flex justify-end transition-all duration-300 ${isOwnProfile ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'}`}
                     >

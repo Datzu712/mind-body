@@ -1,12 +1,10 @@
 import { useEffect, useId, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Dumbbell, Save, AlertCircle } from 'lucide-react';
 import type { TrainerProfile } from '../types';
+import { ProfileField } from './profile-field';
 
 interface TrainerDetailSectionProps {
     profile?: TrainerProfile;
@@ -63,52 +61,32 @@ export function TrainerDetailSection({
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-1.5">
-                        <Label htmlFor={`${uid}-phone`} className="text-muted-foreground text-xs">
-                            Telefono
-                        </Label>
-                        {isOwnProfile ? (
-                            <Input
-                                id={`${uid}-phone`}
-                                value={phoneVal}
-                                onChange={(e) => setPhoneVal(e.target.value)}
-                                placeholder="+52 55 ..."
-                                className="bg-secondary/50 border-border"
-                            />
-                        ) : (
-                            <p className="text-sm text-foreground h-9 flex items-center">{phone || '—'}</p>
-                        )}
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                        <Label htmlFor={`${uid}-specialty`} className="text-muted-foreground text-xs">
-                            Especialidad
-                        </Label>
-                        {isOwnProfile ? (
-                            <Input
-                                id={`${uid}-specialty`}
-                                value={specialty}
-                                onChange={(e) => setSpecialty(e.target.value)}
-                                className="bg-secondary/50 border-border"
-                            />
-                        ) : (
-                            <p className="text-sm text-foreground h-9 flex items-center">{profile.specialty || '—'}</p>
-                        )}
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                        <Label htmlFor={`${uid}-biography`} className="text-muted-foreground text-xs">
-                            Biografia
-                        </Label>
-                        {isOwnProfile ? (
-                            <Textarea
-                                id={`${uid}-biography`}
-                                value={biography}
-                                onChange={(e) => setBiography(e.target.value)}
-                                className="bg-secondary/50 border-border min-h-[100px]"
-                            />
-                        ) : (
-                            <p className="text-sm text-foreground h-9 flex items-center">{profile.biography || '—'}</p>
-                        )}
-                    </div>
+                    <ProfileField
+                        id={`${uid}-phone`}
+                        label="Telefono"
+                        editing={isOwnProfile}
+                        value={phoneVal}
+                        onChange={setPhoneVal}
+                        readonlyValue={phone}
+                        placeholder="+52 55 ..."
+                    />
+                    <ProfileField
+                        id={`${uid}-specialty`}
+                        label="Especialidad"
+                        editing={isOwnProfile}
+                        value={specialty}
+                        onChange={setSpecialty}
+                        readonlyValue={profile.specialty}
+                    />
+                    <ProfileField
+                        id={`${uid}-biography`}
+                        label="Biografia"
+                        editing={isOwnProfile}
+                        value={biography}
+                        onChange={setBiography}
+                        readonlyValue={profile.biography}
+                        multiline
+                    />
                     <div
                         className={`flex justify-end transition-all duration-300 ${isOwnProfile ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'}`}
                     >
