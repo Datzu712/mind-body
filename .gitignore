@@ -92,3 +92,8 @@ target
 
 
 .tanstack
+
+# Padrón Nacional data — operator-downloaded, large, contains PII. Never commit.
+/data/
+PADRON_COMPLETO.txt
+padron_completo.zip
