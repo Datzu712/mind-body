@@ -184,15 +184,17 @@ export function AppSidebar() {
                 <SidebarSeparator className="mb-2" />
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton className="w-full" tooltip="Perfil">
-                            <Avatar className="h-6 w-6">
+                        <SidebarMenuButton size="lg" className="w-full" tooltip={user?.fullName ?? 'Perfil'}>
+                            <Avatar className="h-8 w-8 shrink-0">
                                 <AvatarFallback className="bg-primary/20 text-primary text-xs">
                                     {user ? getInitials(user.fullName) : '??'}
                                 </AvatarFallback>
                             </Avatar>
-                            <div className="flex flex-col items-start group-data-[collapsible=icon]:hidden">
-                                <span className="text-sm font-medium">{user?.fullName ?? 'Cargando...'}</span>
-                                <span className="text-xs text-muted-foreground">
+                            <div className="flex min-w-0 flex-1 flex-col items-start group-data-[collapsible=icon]:hidden">
+                                <span className="w-full truncate text-sm font-medium">
+                                    {user?.fullName ?? 'Cargando...'}
+                                </span>
+                                <span className="w-full truncate text-xs text-muted-foreground">
                                     {user ? getRoleLabel(user.roles) : ''}
                                 </span>
                             </div>
