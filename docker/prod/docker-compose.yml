@@ -144,8 +144,6 @@ volumes:
         name: mab_prod_postgres
 
 networks:
-    db:
-        driver: bridge
-        internal: true
+    db: null
     frontend:
         driver: bridge
