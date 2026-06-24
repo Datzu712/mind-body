@@ -1,57 +1,19 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { FitColors as T } from '@/constants/theme';
+import { EXERCISES, type Exercise } from '@/lib/training/training-data';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type Exercise = {
-    nm: string;
-    ms: string;
-    sets: string;
-    reps: string;
-    lv: string;
-    ac: string;
-    em: string;
-};
-
-type CategoryId = 'fuerza' | 'cardio' | 'flexibilidad';
-
-// ── Data ─────────────────────────────────────────────────────────────────────
+type CategoryId = 'all' | 'fuerza' | 'cardio' | 'flexibilidad';
 
 const CATEGORIES: { id: CategoryId; label: string; icon: string }[] = [
+    { id: 'all', label: 'TODOS', icon: '🔍' },
     { id: 'fuerza', label: 'FUERZA', icon: '🏋️' },
     { id: 'cardio', label: 'CARDIO', icon: '🏃' },
     { id: 'flexibilidad', label: 'FLEXIB.', icon: '🧘' },
 ];
-
-const EXERCISES: Record<CategoryId, Exercise[]> = {
-    fuerza: [
-        { nm: 'Press de Banca', ms: 'Pecho', sets: '4', reps: '10', lv: 'AVANZADO', ac: T.orange, em: '🏋️' },
-        { nm: 'Peso Muerto', ms: 'Espalda baja', sets: '4', reps: '6', lv: 'AVANZADO', ac: T.red, em: '⚡' },
-        { nm: 'Sentadilla', ms: 'Cuádriceps', sets: '4', reps: '8', lv: 'AVANZADO', ac: '#FF9500', em: '🔥' },
-        { nm: 'Press Militar', ms: 'Hombros', sets: '3', reps: '10', lv: 'INTERMEDIO', ac: T.purple, em: '💥' },
-        { nm: 'Dominadas', ms: 'Espalda', sets: '3', reps: 'Máx.', lv: 'AVANZADO', ac: T.blue, em: '🎯' },
-        { nm: 'Fondos en Paralelas', ms: 'Tríceps', sets: '3', reps: '12', lv: 'INTERMEDIO', ac: T.green, em: '✊' },
-    ],
-    cardio: [
-        { nm: 'Carrera HIIT', ms: 'Full Body', sets: '8', reps: '30s', lv: 'INTENSO', ac: T.yellow, em: '🏃' },
-        { nm: 'Salto de Cuerda', ms: 'Cardio', sets: '5', reps: '2min', lv: 'MODERADO', ac: T.orange, em: '⚡' },
-        { nm: 'Box Jumps', ms: 'Piernas', sets: '4', reps: '15', lv: 'INTENSO', ac: T.red, em: '🦘' },
-        { nm: 'Burpees', ms: 'Full Body', sets: '4', reps: '20', lv: 'INTENSO', ac: '#FF9500', em: '🔥' },
-        { nm: 'Ciclismo Indoor', ms: 'Cardio', sets: '1', reps: '45min', lv: 'MODERADO', ac: T.green, em: '🚴' },
-    ],
-    flexibilidad: [
-        { nm: 'Hip Flexor Stretch', ms: 'Caderas', sets: '3', reps: '60s', lv: 'BÁSICO', ac: '#64D2FF', em: '🧘' },
-        { nm: 'Isquiotibiales', ms: 'Piernas', sets: '3', reps: '45s', lv: 'BÁSICO', ac: T.green, em: '🌊' },
-        { nm: 'Movilidad Hombros', ms: 'Hombros', sets: '3', reps: '30s', lv: 'BÁSICO', ac: T.purple, em: '🌀' },
-        { nm: 'Cat-Cow', ms: 'Columna', sets: '2', reps: '20', lv: 'BÁSICO', ac: '#FF9500', em: '🐱' },
-        { nm: 'Pigeon Pose', ms: 'Glúteos', sets: '2', reps: '90s', lv: 'MODERADO', ac: T.blue, em: '🕊️' },
-    ],
-};
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const Pill = ({ label, bg = T.yellow, fg = T.bg, sm }: { label: string; bg?: string; fg?: string; sm?: boolean }) => (
     <View
@@ -77,11 +39,19 @@ const Pill = ({ label, bg = T.yellow, fg = T.bg, sm }: { label: string; bg?: str
     </View>
 );
 
-// ── Screen ────────────────────────────────────────────────────────────────────
+const LEVEL_BY_CATEGORY: Record<CategoryId, string> = {
+    all: 'VARIADO',
+    fuerza: 'AVANZADO',
+    cardio: 'INTENSO',
+    flexibilidad: 'BÁSICO',
+};
 
 export default function WorkoutsScreen() {
-    const [cat, setCat] = useState<CategoryId>('fuerza');
-    const list = EXERCISES[cat];
+    const [cat, setCat] = useState<CategoryId>('all');
+    const list = useMemo<Exercise[]>(() => {
+        if (cat === 'all') return EXERCISES;
+        return EXERCISES.filter((e) => e.category === cat);
+    }, [cat]);
 
     return (
         <SafeAreaView style={s.root} edges={['top']}>
@@ -120,35 +90,33 @@ export default function WorkoutsScreen() {
 
                 {/* Exercise list */}
                 <View style={[s.px, { gap: 10 }]}>
-                    {list.map((ex, i) => (
-                        <TouchableOpacity key={`${cat}-${i}`} style={s.exCard} activeOpacity={0.8}>
-                            {/* Emoji icon */}
-                            <View style={[s.exIcon, { backgroundColor: ex.ac + '22', borderColor: ex.ac + '44' }]}>
-                                <Text style={{ fontSize: 22 }}>{ex.em}</Text>
+                    {list.map((ex) => (
+                        <TouchableOpacity
+                            key={ex.id}
+                            style={s.exCard}
+                            activeOpacity={0.8}
+                            onPress={() => router.push(`/workout/${ex.id}`)}
+                        >
+                            <View style={[s.exIcon, { backgroundColor: T.yellowDim, borderColor: T.yellowBdr }]}>
+                                <Text style={{ fontSize: 22 }}>{ex.emoji}</Text>
                             </View>
 
-                            {/* Info */}
                             <View style={{ flex: 1 }}>
                                 <View style={s.exTopRow}>
                                     <Text style={s.exName} numberOfLines={1}>
-                                        {ex.nm}
+                                        {ex.name}
                                     </Text>
-                                    <Pill label={ex.lv} bg={ex.ac + '22'} fg={ex.ac} sm />
+                                    <Pill
+                                        label={LEVEL_BY_CATEGORY[ex.category]}
+                                        bg={T.yellow + '22'}
+                                        fg={T.yellow}
+                                        sm
+                                    />
                                 </View>
-                                <Text style={s.exMuscle}>{ex.ms}</Text>
-
-                                {/* Sets / Reps chips */}
-                                <View style={s.chipsRow}>
-                                    {[
-                                        ['SERIES', ex.sets],
-                                        ['REPS', ex.reps],
-                                    ].map(([lbl, val], j) => (
-                                        <View key={j} style={s.chip}>
-                                            <Text style={s.chipLabel}>{lbl}</Text>
-                                            <Text style={s.chipVal}>{val}</Text>
-                                        </View>
-                                    ))}
-                                </View>
+                                <Text style={s.exMuscle}>{ex.muscleGroup}</Text>
+                                <Text style={s.exDesc} numberOfLines={2}>
+                                    {ex.description}
+                                </Text>
                             </View>
 
                             <Ionicons name="chevron-forward" size={16} color={T.muted} />
@@ -159,8 +127,6 @@ export default function WorkoutsScreen() {
         </SafeAreaView>
     );
 }
-
-// ── Styles ────────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: T.bg },
@@ -229,17 +195,6 @@ const s = StyleSheet.create({
     },
     exTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 },
     exName: { flex: 1, fontSize: 13, fontWeight: '700', color: T.white, marginRight: 8 },
-    exMuscle: { fontSize: 11, color: T.muted, marginBottom: 8 },
-    chipsRow: { flexDirection: 'row', gap: 7 },
-    chip: {
-        backgroundColor: T.card2,
-        borderRadius: 7,
-        paddingHorizontal: 9,
-        paddingVertical: 4,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 5,
-    },
-    chipLabel: { fontSize: 9, color: T.muted, fontWeight: '700', textTransform: 'uppercase' },
-    chipVal: { fontSize: 13, color: T.yellow, fontWeight: '900' },
+    exMuscle: { fontSize: 11, color: T.muted, marginBottom: 4 },
+    exDesc: { fontSize: 11, color: T.muted, lineHeight: 15 },
 });

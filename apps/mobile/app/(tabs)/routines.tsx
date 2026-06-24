@@ -1,78 +1,11 @@
-import React, { useState } from 'react';
+import { useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { FitColors as T } from '@/constants/theme';
-
-// ── Types & data ─────────────────────────────────────────────────────────────
-
-type Routine = {
-    name: string;
-    sub: string;
-    exs: number;
-    dur: number;
-    pct: number;
-    day: string;
-    diff: string;
-    accent: string;
-};
-
-const ROUTINES: Routine[] = [
-    {
-        name: 'PECHO & TRÍCEPS',
-        sub: 'Push Day',
-        exs: 6,
-        dur: 55,
-        pct: 40,
-        day: 'LUNES',
-        diff: 'AVANZADO',
-        accent: T.orange,
-    },
-    {
-        name: 'ESPALDA & BÍCEPS',
-        sub: 'Pull Day',
-        exs: 7,
-        dur: 60,
-        pct: 0,
-        day: 'MARTES',
-        diff: 'AVANZADO',
-        accent: T.blue,
-    },
-    { name: 'PIERNAS', sub: 'Leg Day', exs: 8, dur: 70, pct: 100, day: 'MIÉRCOLES', diff: 'INTENSO', accent: T.green },
-    {
-        name: 'HOMBROS',
-        sub: 'Shoulder Day',
-        exs: 5,
-        dur: 45,
-        pct: 0,
-        day: 'JUEVES',
-        diff: 'INTERMEDIO',
-        accent: T.purple,
-    },
-    {
-        name: 'FULL BODY HIIT',
-        sub: 'High Intensity',
-        exs: 10,
-        dur: 40,
-        pct: 40,
-        day: 'VIERNES',
-        diff: 'INTENSO',
-        accent: T.yellow,
-    },
-    {
-        name: 'DESCANSO ACTIVO',
-        sub: 'Active Recovery',
-        exs: 4,
-        dur: 30,
-        pct: 0,
-        day: 'SÁBADO',
-        diff: 'LIGERO',
-        accent: '#64D2FF',
-    },
-    { name: 'DESCANSO', sub: 'Rest Day', exs: 0, dur: 0, pct: 0, day: 'DOMINGO', diff: 'REST', accent: T.muted },
-];
-
-const DAY_LETTERS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+import { getMemberRoutinesForMember, getRoutineById, getRoutineProgress } from '@/lib/training/training-data';
+import { useWorkoutSessions } from '@/lib/training/training-storage';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -109,8 +42,21 @@ const Pill = ({ label, bg = T.yellow, fg = T.bg, sm }: { label: string; bg?: str
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export default function RoutinesScreen() {
-    const [selDay, setSelDay] = useState(0);
-    const completed = ROUTINES.filter((r) => r.pct === 100).length;
+    const { sessions } = useWorkoutSessions();
+    const memberRoutines = useMemo(() => getMemberRoutinesForMember(), []);
+
+    const routinesWithMeta = useMemo(
+        () =>
+            memberRoutines.map((mr) => {
+                const routine = getRoutineById(mr.routineId);
+                const pct = routine ? getRoutineProgress(mr.id, sessions) : 0;
+                return { memberRoutine: mr, routine, pct };
+            }),
+        [memberRoutines, sessions],
+    );
+
+    const completed = routinesWithMeta.filter((r) => r.pct === 100).length;
+    const total = routinesWithMeta.length || 1;
 
     return (
         <SafeAreaView style={s.root} edges={['top']}>
@@ -126,109 +72,74 @@ export default function RoutinesScreen() {
                     <View style={s.weekCard}>
                         <View style={s.weekTopRow}>
                             <Text style={s.weekLabel}>PROGRESO SEMANAL</Text>
-                            <Text style={s.weekCount}>{completed}/5 COMPLETADOS</Text>
+                            <Text style={s.weekCount}>
+                                {completed}/{routinesWithMeta.length} COMPLETADOS
+                            </Text>
                         </View>
-                        <Bar pct={(completed / 5) * 100} h={5} />
-
-                        {/* Day buttons */}
-                        <View style={s.dayRow}>
-                            {DAY_LETTERS.map((d, i) => {
-                                const r = ROUTINES[i];
-                                const isDone = r.pct === 100;
-                                const isToday = i === 0;
-                                const isRest = r.diff === 'REST';
-                                return (
-                                    <TouchableOpacity
-                                        key={i}
-                                        onPress={() => setSelDay(i)}
-                                        style={[
-                                            s.dayBtn,
-                                            isDone && s.dayBtnDone,
-                                            isToday && !isDone && s.dayBtnToday,
-                                            selDay === i && !isDone && s.dayBtnSel,
-                                        ]}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Text
-                                            style={[
-                                                s.dayLetter,
-                                                isDone && s.dayLetterDone,
-                                                isToday && !isDone && s.dayLetterToday,
-                                            ]}
-                                        >
-                                            {d}
-                                        </Text>
-                                        {!isRest && (
-                                            <View
-                                                style={[
-                                                    s.dayDot,
-                                                    { backgroundColor: isDone ? T.bg : r.pct > 0 ? T.yellow : T.card3 },
-                                                ]}
-                                            />
-                                        )}
-                                    </TouchableOpacity>
-                                );
-                            })}
-                        </View>
+                        <Bar pct={(completed / total) * 100} h={5} />
                     </View>
                 </View>
 
                 {/* Routine list */}
                 <View style={s.secHead}>
-                    <Text style={s.secTitle}>ESTA SEMANA</Text>
+                    <Text style={s.secTitle}>RUTINAS ASIGNADAS</Text>
                 </View>
                 <View style={[s.px, { gap: 10 }]}>
-                    {ROUTINES.map((r, i) => (
-                        <View key={i} style={[s.routineCard, r.pct === 100 && { borderColor: r.accent + '44' }]}>
-                            {/* Accent top bar */}
-                            <View
-                                style={{ height: 3, backgroundColor: r.pct > 0 ? r.accent : T.border, borderRadius: 2 }}
-                            />
-
-                            <View style={s.routineInner}>
-                                <View style={{ flex: 1 }}>
-                                    {/* Day + difficulty */}
-                                    <View style={s.routineTopRow}>
-                                        <Text style={s.routineDayLabel}>{r.day}</Text>
-                                        <Pill
-                                            label={r.diff}
-                                            bg={r.diff === 'REST' ? T.card2 : r.accent + '22'}
-                                            fg={r.diff === 'REST' ? T.muted : r.accent}
-                                            sm
-                                        />
+                    {routinesWithMeta.map(({ memberRoutine, routine, pct }) => {
+                        if (!routine) return null;
+                        const accent = pct === 100 ? T.green : T.yellow;
+                        return (
+                            <TouchableOpacity
+                                key={memberRoutine.id}
+                                style={[s.routineCard, pct === 100 && { borderColor: accent + '44' }]}
+                                activeOpacity={0.85}
+                                onPress={() => router.push(`/routine/${memberRoutine.id}`)}
+                            >
+                                <View
+                                    style={{ height: 3, backgroundColor: pct > 0 ? accent : T.border, borderRadius: 2 }}
+                                />
+                                <View style={s.routineInner}>
+                                    <View style={{ flex: 1 }}>
+                                        <View style={s.routineTopRow}>
+                                            <Text style={s.routineDayLabel}>
+                                                {new Date(memberRoutine.assignedAt).toLocaleDateString('es-ES', {
+                                                    weekday: 'long',
+                                                })}
+                                            </Text>
+                                            <Pill
+                                                label={pct === 100 ? 'HECHO' : 'PENDIENTE'}
+                                                bg={accent + '22'}
+                                                fg={accent}
+                                                sm
+                                            />
+                                        </View>
+                                        <Text style={s.routineName}>{routine.name}</Text>
+                                        <Text style={s.routineSub}>{routine.objective}</Text>
                                     </View>
-                                    <Text style={s.routineName}>{r.name}</Text>
-                                    <Text style={s.routineSub}>{r.sub}</Text>
+
+                                    {pct === 100 ? (
+                                        <View style={[s.doneCircle, { backgroundColor: accent }]}>
+                                            <Ionicons name="checkmark" size={14} color={T.bg} />
+                                        </View>
+                                    ) : (
+                                        <View style={s.startBtn}>
+                                            <Text style={s.startBtnText}>INICIAR</Text>
+                                        </View>
+                                    )}
                                 </View>
 
-                                {/* Action */}
-                                {r.pct === 100 ? (
-                                    <View style={[s.doneCircle, { backgroundColor: r.accent }]}>
-                                        <Ionicons name="checkmark" size={14} color={T.bg} />
-                                    </View>
-                                ) : r.exs > 0 ? (
-                                    <TouchableOpacity style={s.startBtn} activeOpacity={0.8}>
-                                        <Text style={s.startBtnText}>INICIAR</Text>
-                                    </TouchableOpacity>
-                                ) : null}
-                            </View>
-
-                            {/* Progress bar */}
-                            {r.exs > 0 && (
                                 <View style={s.routineProgress}>
                                     <View style={s.routineProgressRow}>
-                                        <Text style={s.routineProgressMeta}>
-                                            {r.exs} ejercicios · {r.dur} min
-                                        </Text>
-                                        <Text style={[s.routineProgressPct, { color: r.pct > 0 ? r.accent : T.muted }]}>
-                                            {r.pct}%
+                                        <Text style={s.routineProgressMeta}>{routine.exercises.length} ejercicios</Text>
+                                        <Text style={[s.routineProgressPct, { color: pct > 0 ? accent : T.muted }]}>
+                                            {pct}%
                                         </Text>
                                     </View>
-                                    <Bar pct={r.pct} color={r.accent} h={3} />
+                                    <Bar pct={pct} color={accent} h={3} />
                                 </View>
-                            )}
-                        </View>
-                    ))}
+                            </TouchableOpacity>
+                        );
+                    })}
                 </View>
             </ScrollView>
         </SafeAreaView>
@@ -258,23 +169,6 @@ const s = StyleSheet.create({
     weekTopRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
     weekLabel: { fontSize: 11, fontWeight: '700', color: T.muted, letterSpacing: 0.5, textTransform: 'uppercase' },
     weekCount: { fontSize: 11, fontWeight: '800', color: T.yellow },
-    dayRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, gap: 4 },
-    dayBtn: {
-        flex: 1,
-        height: 40,
-        borderRadius: 10,
-        backgroundColor: T.card2,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 2,
-    },
-    dayBtnDone: { backgroundColor: T.yellow },
-    dayBtnToday: { backgroundColor: T.yellowDim, borderWidth: 1, borderColor: T.yellowBdr },
-    dayBtnSel: { borderWidth: 1, borderColor: T.muted },
-    dayLetter: { fontSize: 10, fontWeight: '800', color: T.muted, letterSpacing: 0.3 },
-    dayLetterDone: { color: T.bg },
-    dayLetterToday: { color: T.yellow },
-    dayDot: { width: 4, height: 4, borderRadius: 2 },
 
     // Section head
     secHead: {
