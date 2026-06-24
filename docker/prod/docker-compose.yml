@@ -37,10 +37,44 @@ services:
             resources:
                 limits:
                     cpus: '0.25'
-                    memory: 128M
+                    memory: 256M
                 reservations:
                     cpus: '0.1'
-                    memory: 64M
+                    memory: 128M
+
+    redis:
+        image: redis:8.8-alpine
+        <<: *restart-policy
+        logging: *logging
+        # Cache-only (TSE 24h, user:* 1h — all TTL-based). No persistence:
+        # on restart the restapi simply repopulates. allkeys-lru evicts the
+        # coldest keys when maxmemory is hit instead of OOM-killing the box.
+        command: >-
+            redis-server
+            --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+            --maxmemory 128mb
+            --maxmemory-policy allkeys-lru
+            --save ""
+            --appendonly no
+        environment:
+            REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+        # Bound to loopback: the restapi reaches it on the host, never exposed
+        # to the network (nginx has no business talking to redis).
+        ports:
+            - '127.0.0.1:${REDIS_PORT:-6379}:6379'
+        networks:
+            - db
+        healthcheck:
+            <<: *healthcheck-defaults
+            test: ['CMD-SHELL', 'redis-cli -a "$${REDIS_PASSWORD}" ping | grep -q PONG']
+        deploy:
+            resources:
+                limits:
+                    cpus: '0.25'
+                    memory: 192M
+                reservations:
+                    cpus: '0.05'
+                    memory: 32M
 
     keycloak:
         image: quay.io/keycloak/keycloak:26.6
