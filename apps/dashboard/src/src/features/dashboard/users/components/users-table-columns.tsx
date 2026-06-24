@@ -122,16 +122,12 @@ function UserRowActions({
                         </DropdownMenuItem>
                     ))}
                     {user.profiles.length > 0 && missing.length > 0 && <DropdownMenuSeparator className="bg-border" />}
-                    {missing.map((type) => (
-                        <DropdownMenuItem
-                            key={type}
-                            className="cursor-pointer"
-                            onClick={() => onCreateProfile(user, type)}
-                        >
+                    {missing.length > 0 && (
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => onCreateProfile(user, missing[0])}>
                             <UserPlus className="mr-2 h-4 w-4" />
-                            Agregar perfil de {profileLabels[type].toLowerCase()}
+                            Agregar perfil
                         </DropdownMenuItem>
-                    ))}
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
         </div>

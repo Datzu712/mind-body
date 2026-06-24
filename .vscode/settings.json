@@ -1,5 +1,8 @@
 {
     "snyk.advanced.autoSelectOrganization": false,
     "discord.enabled": false,
-    "cSpell.words": ["cedula"]
+    "cSpell.words": ["cedula"],
+    "python.defaultInterpreterPath": "${workspaceFolder}/notebooks/.venv/bin/python",
+    "python.venvPath": "${workspaceFolder}/notebooks",
+    "jupyter.notebookFileRoot": "${workspaceFolder}/notebooks"
 }
