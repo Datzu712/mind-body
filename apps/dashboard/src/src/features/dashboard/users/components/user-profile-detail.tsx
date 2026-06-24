@@ -4,25 +4,20 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Mail, Phone, Calendar, Shield, Pencil, X } from 'lucide-react';
+import { Mail, Calendar, Cake, Pencil, X } from 'lucide-react';
 import { sileo } from 'sileo';
-import type { UserBase, ProfileType, KCRole } from '../types';
+import { hasChanges, formatDate } from '@/lib/utils';
+import type { UserDetail, ProfileType } from '../types';
 import { MemberDetailSection } from './member-detail-section';
 import { TrainerDetailSection } from './trainer-detail-section';
 import { StaffDetailSection } from './staff-detail-section';
-import { mockMemberProfiles, mockTrainerProfiles, mockStaffProfiles } from '../mock-data';
+import { useUpdateUser, useUpdateMemberProfile, useUpdateTrainerProfile, useUpdateStaffProfile } from '../hooks';
 
 interface UserProfileDetailProps {
-    user: UserBase;
+    user: UserDetail;
     profileType: ProfileType;
     isOwnProfile?: boolean;
 }
-
-const roleLabels: Record<KCRole, string> = {
-    admin: 'Admin',
-    trainer: 'Trainer',
-    member: 'Member',
-};
 
 const statusLabels: Record<string, string> = {
     ACTIVE: 'Activo',
@@ -47,34 +42,87 @@ function getInitials(name: string): string {
 
 export function UserProfileDetail({ user, profileType, isOwnProfile = false }: UserProfileDetailProps) {
     const [editing, setEditing] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
     const editable = isOwnProfile || editing;
 
-    const handleSave = () => {
+    const updateUser = useUpdateUser(user.id);
+    const updateMember = useUpdateMemberProfile(user.id);
+    const updateTrainer = useUpdateTrainerProfile(user.id);
+    const updateStaff = useUpdateStaffProfile(user.id);
+
+    const isSaving = updateUser.isPending || updateMember.isPending || updateTrainer.isPending || updateStaff.isPending;
+
+    const runSave = (opts: {
+        label: string;
+        phone: string;
+        profileChanged: boolean;
+        profileMutate?: (cb: { onSuccess: () => void; onError: (e: Error) => void }) => void;
+    }) => {
+        const phoneChanged = opts.phone !== (user.phone || '');
+        if (!phoneChanged && !opts.profileChanged) {
+            sileo.warning({ title: 'No hay cambios para guardar' });
+            return;
+        }
         sileo.action({
             title: '¿Guardar los cambios?',
             description: 'Se actualizaran los datos del perfil.',
             button: {
                 title: 'Confirmar',
                 onClick: () => {
-                    setIsSaving(true);
-                    const savePromise = new Promise<void>((resolve) => setTimeout(resolve, 1000));
-
-                    sileo
-                        .promise(savePromise, {
-                            loading: { title: 'Guardando cambios...' },
-                            success: { title: 'Cambios guardados exitosamente' },
-                            error: { title: 'Error al guardar los cambios' },
-                        })
-                        .catch(console.error);
-
-                    void savePromise.then(() => {
+                    const onError = (error: Error) => {
+                        sileo.error({ title: 'Error al guardar', description: error.message });
+                    };
+                    const done = () => {
+                        sileo.success({ title: `${opts.label} actualizado` });
                         setEditing(false);
-                        setIsSaving(false);
-                    });
+                    };
+
+                    // Send the raw value (including '') so a cleared field is actually saved.
+                    if (phoneChanged) {
+                        updateUser.mutate({ phone: opts.phone }, { onSuccess: () => {}, onError });
+                    }
+                    if (opts.profileChanged && opts.profileMutate) {
+                        opts.profileMutate({ onSuccess: done, onError });
+                    } else {
+                        done();
+                    }
                 },
             },
         });
+    };
+
+    const handleMemberSave = (v: { phone: string; emergencyContactName: string; emergencyContactPhone: string }) => {
+        const profileChanged =
+            !!user.memberProfile &&
+            hasChanges(
+                { emergencyContactName: v.emergencyContactName, emergencyContactPhone: v.emergencyContactPhone },
+                user.memberProfile,
+            );
+        runSave({
+            label: 'Perfil de miembro',
+            phone: v.phone,
+            profileChanged,
+            profileMutate: (cb) =>
+                updateMember.mutate(
+                    { emergencyContactName: v.emergencyContactName, emergencyContactPhone: v.emergencyContactPhone },
+                    cb,
+                ),
+        });
+    };
+
+    const handleTrainerSave = (v: { phone: string; specialty: string; biography: string }) => {
+        const profileChanged =
+            !!user.trainerProfile &&
+            hasChanges({ specialty: v.specialty, biography: v.biography }, user.trainerProfile);
+        runSave({
+            label: 'Perfil de entrenador',
+            phone: v.phone,
+            profileChanged,
+            profileMutate: (cb) => updateTrainer.mutate({ specialty: v.specialty, biography: v.biography }, cb),
+        });
+    };
+
+    const handleStaffSave = (v: { phone: string }) => {
+        runSave({ label: 'Perfil de staff', phone: v.phone, profileChanged: false });
     };
 
     return (
@@ -90,7 +138,6 @@ export function UserProfileDetail({ user, profileType, isOwnProfile = false }: U
                         </Avatar>
                         <div className="flex flex-col gap-1">
                             <p className="text-lg font-semibold text-foreground">{user.fullName}</p>
-                            <p className="font-mono text-xs text-muted-foreground">{user.id}</p>
                         </div>
                         <Badge variant="outline" className={statusColors[user.status]}>
                             {statusLabels[user.status]}
@@ -99,39 +146,28 @@ export function UserProfileDetail({ user, profileType, isOwnProfile = false }: U
 
                     <Separator />
 
-                    <div className="flex flex-col gap-3">
-                        <p className="text-sm font-semibold text-foreground">Informacion de contacto</p>
-                        <dl className="flex flex-col gap-2.5 text-sm">
-                            <div className="flex items-center gap-2">
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                                <dd className="text-foreground">{user.email}</dd>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Phone className="h-4 w-4 text-muted-foreground" />
-                                <dd className="text-foreground">{user.phone || '—'}</dd>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                <dd className="text-muted-foreground">Registrado: {user.createdAt}</dd>
-                            </div>
-                        </dl>
-                    </div>
-
-                    <Separator />
-
-                    <div className="flex flex-col gap-3">
-                        <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                            <Shield className="h-4 w-4 text-muted-foreground" />
-                            Roles (Keycloak)
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                            {user.roles.map((role) => (
-                                <Badge key={role} variant="outline" className="text-xs">
-                                    {roleLabels[role]}
-                                </Badge>
-                            ))}
+                    <dl className="flex flex-col gap-2.5 text-sm">
+                        <div className="flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <dd className="text-foreground">{user.email || '—'}</dd>
                         </div>
-                    </div>
+                        {user.birthDate && (
+                            <div className="flex items-center gap-2">
+                                <Cake className="h-4 w-4 text-muted-foreground" />
+                                <dd className="text-foreground">{formatDate(user.birthDate)}</dd>
+                            </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                            <dd className="text-muted-foreground">
+                                {profileType === 'MEMBER' && user.memberProfile
+                                    ? `Ingreso: ${formatDate(user.memberProfile.joinedAt)}`
+                                    : profileType === 'STAFF' && user.staffProfile
+                                      ? `Contratado: ${formatDate(user.staffProfile.hiredAt)}`
+                                      : `Registro: ${formatDate(user.createdAt)}`}
+                            </dd>
+                        </div>
+                    </dl>
 
                     {!isOwnProfile && (
                         <>
@@ -166,26 +202,29 @@ export function UserProfileDetail({ user, profileType, isOwnProfile = false }: U
             <div>
                 {profileType === 'MEMBER' && (
                     <MemberDetailSection
-                        profile={mockMemberProfiles.find((p) => p.userId === user.id)}
+                        profile={user.memberProfile}
+                        phone={user.phone}
                         isOwnProfile={editable}
                         isSaving={isSaving}
-                        onSave={handleSave}
+                        onSave={handleMemberSave}
                     />
                 )}
                 {profileType === 'TRAINER' && (
                     <TrainerDetailSection
-                        profile={mockTrainerProfiles.find((p) => p.userId === user.id)}
+                        profile={user.trainerProfile}
+                        phone={user.phone}
                         isOwnProfile={editable}
                         isSaving={isSaving}
-                        onSave={handleSave}
+                        onSave={handleTrainerSave}
                     />
                 )}
                 {profileType === 'STAFF' && (
                     <StaffDetailSection
-                        profile={mockStaffProfiles.find((p) => p.userId === user.id)}
+                        profile={user.staffProfile}
+                        phone={user.phone}
                         isOwnProfile={editable}
                         isSaving={isSaving}
-                        onSave={handleSave}
+                        onSave={handleStaffSave}
                     />
                 )}
             </div>

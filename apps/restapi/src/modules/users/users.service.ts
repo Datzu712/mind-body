@@ -38,6 +38,7 @@ const PROFILE_TO_KC_ROLE: Record<ProfileType, APPLICATION_ROLE> = {
 const SORT_COLUMNS = {
     fullName: Users.fullName,
     phone: Users.phone,
+    dni: Users.dni,
     status: Users.status,
     createdAt: Users.createdAt,
 } as const;
@@ -71,7 +72,7 @@ export class UsersService {
     }
 
     async findAll(query: ListUsersQueryDto) {
-        const { page, limit, name, email, phone, profile, status, sortBy, sortDir } = query;
+        const { page, limit, name, email, phone, dni, profile, status, sortBy, sortDir } = query;
         const offset = (page - 1) * limit;
 
         const sortColumn = SORT_COLUMNS[sortBy ?? 'createdAt'];
@@ -81,6 +82,7 @@ export class UsersService {
         if (name) conditions.push(ilike(Users.fullName, `%${name}%`));
         if (email) conditions.push(ilike(Users.email, `%${email}%`));
         if (phone) conditions.push(ilike(Users.phone, `%${phone}%`));
+        if (dni) conditions.push(ilike(Users.dni, `%${dni}%`));
         if (status) conditions.push(eq(Users.status, status));
 
         // Filter by profile: only return users that have a row in the matching table

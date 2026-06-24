@@ -11,7 +11,6 @@ import {
     Settings,
     BookOpen,
     LogOut,
-    Dumbbell,
     type LucideIcon,
 } from 'lucide-react';
 
@@ -114,8 +113,8 @@ export function AppSidebar() {
         <Sidebar collapsible="icon" className="border-r border-sidebar-border">
             <SidebarHeader className="h-16 justify-center px-4 py-0">
                 <Link to="/dashboard" className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                        <Dumbbell className="h-5 w-5 text-primary-foreground" />
+                    <div className="flex h-12 w-12 items-center justify-center">
+                        <img src="/icon-no-bg.png" alt="Mind & Body" className="h-12 w-12 object-contain" />
                     </div>
                     <div className="flex flex-col group-data-[collapsible=icon]:hidden">
                         <span className="text-lg font-bold text-foreground">Mind & Body</span>

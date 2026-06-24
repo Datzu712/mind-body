@@ -45,13 +45,8 @@ function RootComponent() {
             <TooltipProvider>
                 <Outlet />
                 <SessionExpiredDialog open={sessionExpired} />
-                <Toaster
-                    position="top-right"
-                    options={{
-                        fill: '#171717',
-                        styles: {},
-                    }}
-                />
+                {/* Toast surface color is themed via the --popover token in globals.css */}
+                <Toaster position="top-right" />
             </TooltipProvider>
         </QueryClientProvider>
     );

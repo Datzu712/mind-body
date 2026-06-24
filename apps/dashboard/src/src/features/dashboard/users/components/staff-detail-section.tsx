@@ -1,3 +1,4 @@
+import { useEffect, useId, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,17 +9,27 @@ import type { StaffProfile } from '../types';
 
 interface StaffDetailSectionProps {
     profile?: StaffProfile;
+    phone?: string | null;
     isOwnProfile?: boolean;
     isSaving?: boolean;
-    onSave?: () => void;
+    onSave?: (data: { phone: string }) => void;
 }
 
 export function StaffDetailSection({
     profile,
+    phone,
     isOwnProfile = false,
     isSaving = false,
     onSave,
 }: StaffDetailSectionProps) {
+    const uid = useId();
+    const [phoneVal, setPhoneVal] = useState(phone ?? '');
+
+    // Re-sync when the profile reloads (e.g. after a successful save).
+    useEffect(() => {
+        setPhoneVal(phone ?? '');
+    }, [phone]);
+
     if (!profile) {
         return (
             <Card className="border-border bg-card">
@@ -29,6 +40,8 @@ export function StaffDetailSection({
             </Card>
         );
     }
+
+    const handleSave = () => onSave?.({ phone: phoneVal });
 
     return (
         <Card className={`transition-all duration-300 ${isOwnProfile ? 'edit-mode-card' : 'border-border bg-card'}`}>
@@ -46,31 +59,25 @@ export function StaffDetailSection({
             <CardContent>
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-1.5">
-                        <Label className="text-muted-foreground text-xs">Fecha de contratacion</Label>
+                        <Label htmlFor={`${uid}-phone`} className="text-muted-foreground text-xs">
+                            Telefono
+                        </Label>
                         {isOwnProfile ? (
                             <Input
-                                type="date"
-                                defaultValue={profile.hiredAt}
+                                id={`${uid}-phone`}
+                                value={phoneVal}
+                                onChange={(e) => setPhoneVal(e.target.value)}
+                                placeholder="+52 55 ..."
                                 className="bg-secondary/50 border-border"
                             />
                         ) : (
-                            <p className="text-sm text-foreground h-9 flex items-center">{profile.hiredAt}</p>
+                            <p className="text-sm text-foreground h-9 flex items-center">{phone || '—'}</p>
                         )}
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                        <Label className="text-muted-foreground text-xs">Estado</Label>
-                        <p className="text-sm text-foreground h-9 flex items-center">
-                            {profile.status === 'ACTIVE'
-                                ? 'Activo'
-                                : profile.status === 'INACTIVE'
-                                  ? 'Inactivo'
-                                  : 'Archivado'}
-                        </p>
                     </div>
                     <div
                         className={`flex justify-end transition-all duration-300 ${isOwnProfile ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'}`}
                     >
-                        <Button type="button" onClick={onSave} disabled={isSaving}>
+                        <Button type="button" onClick={handleSave} disabled={isSaving}>
                             <Save className="mr-2 h-4 w-4" />
                             Guardar cambios
                         </Button>

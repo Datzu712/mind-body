@@ -1,55 +1,77 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useMemo, useState, useCallback } from 'react';
-import { useReactTable, getCoreRowModel, getPaginationRowModel, getSortedRowModel } from '@tanstack/react-table';
+import { useReactTable, getCoreRowModel, type SortingState, type PaginationState } from '@tanstack/react-table';
 import { DashboardHeader } from '@/src/features/dashboard/components/dashboard-header';
 import { PageHeader } from '@/src/shared/components/page-header';
 import { UsersDataTable, createUsersColumns } from '@/src/features/dashboard/users/components/users-table';
 import { UsersFilterSheet, defaultFilters } from '@/src/features/dashboard/users/components/users-filter-sheet';
+import { UsersActiveFilters } from '@/src/features/dashboard/users/components/users-active-filters';
 import { CreateUserModal } from '@/src/features/dashboard/users/components/create-user-modal';
+import { CreateProfileModal } from '@/src/features/dashboard/users/components/create-profile-modal';
+import type { UserBase, ProfileType } from '@/src/features/dashboard/users/types';
 import { Button } from '@/components/ui/button';
 import { SlidersHorizontal, Plus } from 'lucide-react';
-import { mockUsersUnified } from '@/src/features/dashboard/users/mock-data';
+import { useUsers, type UsersFilters as ApiFilters } from '@/src/features/dashboard/users/hooks';
 import type { UsersFilters } from '@/src/features/dashboard/users/components/users-filter-sheet';
+
+const ALL_PROFILE_TYPES: ProfileType[] = ['MEMBER', 'TRAINER', 'STAFF'];
 
 export const Route = createFileRoute('/dashboard/users/')({
     component: UsersPage,
 });
 
 function countActiveFilters(f: UsersFilters): number {
-    return [f.profile !== 'ALL', f.status !== 'ALL', f.name !== '', f.email !== '', f.phone !== ''].filter(Boolean)
-        .length;
+    return [
+        f.profile !== 'ALL',
+        f.status !== 'ALL',
+        f.name !== '',
+        f.email !== '',
+        f.phone !== '',
+        f.dni !== '',
+    ].filter(Boolean).length;
+}
+
+function toApiFilters(f: UsersFilters): ApiFilters {
+    return {
+        name: f.name || undefined,
+        email: f.email || undefined,
+        phone: f.phone || undefined,
+        dni: f.dni || undefined,
+        profile: f.profile !== 'ALL' ? f.profile : undefined,
+        status: f.status !== 'ALL' ? f.status : undefined,
+    };
 }
 
 function UsersPage() {
     const navigate = useNavigate();
     const [sheetOpen, setSheetOpen] = useState(false);
     const [createModalOpen, setCreateModalOpen] = useState(false);
+    const [profileModalUser, setProfileModalUser] = useState<{ user: UserBase; type: ProfileType } | null>(null);
     const [filters, setFilters] = useState<UsersFilters>(defaultFilters);
-    const [isFiltering, setIsFiltering] = useState(false);
+    const [sorting, setSorting] = useState<SortingState>([]);
+    const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
 
-    const applyFilters = useCallback((newFilters: UsersFilters) => {
-        setIsFiltering(true);
-        // Simulate network delay (remove when connected to real backend)
-        setTimeout(() => {
-            setFilters(newFilters);
-            setIsFiltering(false);
-        }, 400);
+    const apiFilters = useMemo<ApiFilters>(() => {
+        const sort = sorting[0];
+        return {
+            ...toApiFilters(filters),
+            page: pagination.pageIndex + 1,
+            limit: pagination.pageSize,
+            ...(sort && {
+                sortBy: sort.id as ApiFilters['sortBy'],
+                sortDir: sort.desc ? 'desc' : 'asc',
+            }),
+        };
+    }, [filters, sorting, pagination]);
+
+    const { data: response, isLoading, isError } = useUsers(apiFilters);
+    const users = useMemo(() => response?.data ?? [], [response]);
+
+    // Filtering or sorting changes the result set, so jump back to the first page.
+    const handleApplyFilters = useCallback((next: UsersFilters) => {
+        setFilters(next);
+        setPagination((p) => ({ ...p, pageIndex: 0 }));
     }, []);
-
-    const data = useMemo(() => {
-        const nameLower = filters.name.toLowerCase();
-        const emailLower = filters.email.toLowerCase();
-        const phoneLower = filters.phone.toLowerCase();
-
-        return mockUsersUnified.filter((user) => {
-            if (filters.profile !== 'ALL' && !user.profiles.includes(filters.profile)) return false;
-            if (filters.status !== 'ALL' && user.status !== filters.status) return false;
-            if (nameLower && !user.fullName.toLowerCase().includes(nameLower)) return false;
-            if (emailLower && !user.email.toLowerCase().includes(emailLower)) return false;
-            if (phoneLower && !(user.phone ?? '').toLowerCase().includes(phoneLower)) return false;
-            return true;
-        });
-    }, [filters]);
 
     const handleNavigate = useCallback(
         (path: string) => {
@@ -58,8 +80,8 @@ function UsersPage() {
         [navigate],
     );
 
-    const handleCreateProfile = useCallback(() => {
-        setCreateModalOpen(true);
+    const handleCreateProfile = useCallback((user: UserBase, type: ProfileType) => {
+        setProfileModalUser({ user, type });
     }, []);
 
     const columns = useMemo(
@@ -68,12 +90,18 @@ function UsersPage() {
     );
 
     const table = useReactTable({
-        data,
+        data: users,
         columns,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        initialState: { pagination: { pageSize: 10 } },
+        manualSorting: true,
+        manualPagination: true,
+        rowCount: response?.total ?? 0,
+        state: { sorting, pagination },
+        onSortingChange: (updater) => {
+            setSorting(updater);
+            setPagination((p) => ({ ...p, pageIndex: 0 }));
+        },
+        onPaginationChange: setPagination,
     });
 
     const activeCount = countActiveFilters(filters);
@@ -105,19 +133,46 @@ function UsersPage() {
                     className="mb-6"
                 />
 
+                <UsersActiveFilters filters={filters} onChange={handleApplyFilters} />
+
                 <p className="text-sm text-muted-foreground mb-4">
-                    Mostrando {data.length} de {mockUsersUnified.length} usuarios
+                    {response
+                        ? users.length > 0
+                            ? `Mostrando ${pagination.pageIndex * pagination.pageSize + 1}–${
+                                  pagination.pageIndex * pagination.pageSize + users.length
+                              } de ${response.total} usuarios`
+                            : `0 de ${response.total} usuarios`
+                        : 'Cargando...'}
                 </p>
 
-                <UsersDataTable table={table} isLoading={isFiltering} />
+                <UsersDataTable
+                    table={table}
+                    isLoading={isLoading}
+                    isError={isError}
+                    hasActiveFilters={activeCount > 0}
+                    onClearFilters={() => handleApplyFilters(defaultFilters)}
+                />
 
                 <UsersFilterSheet
                     open={sheetOpen}
                     onOpenChange={setSheetOpen}
                     filters={filters}
-                    onApply={applyFilters}
+                    onApply={handleApplyFilters}
                 />
                 <CreateUserModal open={createModalOpen} onOpenChange={setCreateModalOpen} />
+                {profileModalUser && (
+                    <CreateProfileModal
+                        key={`${profileModalUser.user.id}-${profileModalUser.type}`}
+                        open
+                        onOpenChange={(o) => {
+                            if (!o) setProfileModalUser(null);
+                        }}
+                        userId={profileModalUser.user.id}
+                        userName={profileModalUser.user.fullName}
+                        suggestedType={profileModalUser.type}
+                        availableTypes={ALL_PROFILE_TYPES.filter((t) => !profileModalUser.user.profiles.includes(t))}
+                    />
+                )}
             </div>
         </>
     );

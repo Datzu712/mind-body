@@ -1,8 +1,9 @@
+import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Bell, Search } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { CommandPalette } from '@/src/features/dashboard/components/command-palette';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -34,6 +35,19 @@ const notifications = [
 
 export function DashboardHeader({ breadcrumbs }: DashboardHeaderProps) {
     const unreadCount = notifications.filter((n) => !n.read).length;
+    const [cmdOpen, setCmdOpen] = useState(false);
+
+    // ⌘K / Ctrl+K toggles the command palette from anywhere.
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key.toLowerCase() === 'k' && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                setCmdOpen((prev) => !prev);
+            }
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, []);
 
     return (
         <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6">
@@ -65,13 +79,18 @@ export function DashboardHeader({ breadcrumbs }: DashboardHeaderProps) {
             )}
 
             <div className="ml-auto flex items-center gap-4">
-                <div className="relative hidden md:block">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        placeholder="Buscar..."
-                        className="w-64 pl-9 bg-secondary/50 border-border focus:bg-background"
-                    />
-                </div>
+                <button
+                    type="button"
+                    onClick={() => setCmdOpen(true)}
+                    aria-label="Abrir búsqueda"
+                    className="relative hidden h-9 w-64 items-center gap-2 rounded-md border border-border bg-secondary/50 px-3 text-sm text-muted-foreground transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 md:flex"
+                >
+                    <Search className="h-4 w-4" />
+                    <span className="flex-1 text-left">Buscar...</span>
+                    <kbd className="pointer-events-none inline-flex h-5 select-none items-center rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+                        ⌘K
+                    </kbd>
+                </button>
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -110,6 +129,8 @@ export function DashboardHeader({ breadcrumbs }: DashboardHeaderProps) {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
+
+            <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
         </header>
     );
 }

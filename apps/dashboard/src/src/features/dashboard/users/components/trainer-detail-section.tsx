@@ -1,3 +1,4 @@
+import { useEffect, useId, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,17 +10,31 @@ import type { TrainerProfile } from '../types';
 
 interface TrainerDetailSectionProps {
     profile?: TrainerProfile;
+    phone?: string | null;
     isOwnProfile?: boolean;
     isSaving?: boolean;
-    onSave?: () => void;
+    onSave?: (data: { phone: string; specialty: string; biography: string }) => void;
 }
 
 export function TrainerDetailSection({
     profile,
+    phone,
     isOwnProfile = false,
     isSaving = false,
     onSave,
 }: TrainerDetailSectionProps) {
+    const uid = useId();
+    const [phoneVal, setPhoneVal] = useState(phone ?? '');
+    const [specialty, setSpecialty] = useState(profile?.specialty ?? '');
+    const [biography, setBiography] = useState(profile?.biography ?? '');
+
+    // Re-sync local fields when the profile reloads (e.g. after a successful save).
+    useEffect(() => {
+        setPhoneVal(phone ?? '');
+        setSpecialty(profile?.specialty ?? '');
+        setBiography(profile?.biography ?? '');
+    }, [phone, profile?.specialty, profile?.biography]);
+
     if (!profile) {
         return (
             <Card className="border-border bg-card">
@@ -30,6 +45,8 @@ export function TrainerDetailSection({
             </Card>
         );
     }
+
+    const handleSave = () => onSave?.({ phone: phoneVal, specialty, biography });
 
     return (
         <Card className={`transition-all duration-300 ${isOwnProfile ? 'edit-mode-card' : 'border-border bg-card'}`}>
@@ -47,18 +64,45 @@ export function TrainerDetailSection({
             <CardContent>
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-1.5">
-                        <Label className="text-muted-foreground text-xs">Especialidad</Label>
+                        <Label htmlFor={`${uid}-phone`} className="text-muted-foreground text-xs">
+                            Telefono
+                        </Label>
                         {isOwnProfile ? (
-                            <Input defaultValue={profile.specialty || ''} className="bg-secondary/50 border-border" />
+                            <Input
+                                id={`${uid}-phone`}
+                                value={phoneVal}
+                                onChange={(e) => setPhoneVal(e.target.value)}
+                                placeholder="+52 55 ..."
+                                className="bg-secondary/50 border-border"
+                            />
+                        ) : (
+                            <p className="text-sm text-foreground h-9 flex items-center">{phone || '—'}</p>
+                        )}
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        <Label htmlFor={`${uid}-specialty`} className="text-muted-foreground text-xs">
+                            Especialidad
+                        </Label>
+                        {isOwnProfile ? (
+                            <Input
+                                id={`${uid}-specialty`}
+                                value={specialty}
+                                onChange={(e) => setSpecialty(e.target.value)}
+                                className="bg-secondary/50 border-border"
+                            />
                         ) : (
                             <p className="text-sm text-foreground h-9 flex items-center">{profile.specialty || '—'}</p>
                         )}
                     </div>
                     <div className="flex flex-col gap-1.5">
-                        <Label className="text-muted-foreground text-xs">Biografia</Label>
+                        <Label htmlFor={`${uid}-biography`} className="text-muted-foreground text-xs">
+                            Biografia
+                        </Label>
                         {isOwnProfile ? (
                             <Textarea
-                                defaultValue={profile.biography || ''}
+                                id={`${uid}-biography`}
+                                value={biography}
+                                onChange={(e) => setBiography(e.target.value)}
                                 className="bg-secondary/50 border-border min-h-[100px]"
                             />
                         ) : (
@@ -68,7 +112,7 @@ export function TrainerDetailSection({
                     <div
                         className={`flex justify-end transition-all duration-300 ${isOwnProfile ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'}`}
                     >
-                        <Button type="button" onClick={onSave} disabled={isSaving}>
+                        <Button type="button" onClick={handleSave} disabled={isSaving}>
                             <Save className="mr-2 h-4 w-4" />
                             Guardar cambios
                         </Button>

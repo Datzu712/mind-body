@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ export interface UsersFilters {
     name: string;
     email: string;
     phone: string;
+    dni: string;
 }
 
 export const defaultFilters: UsersFilters = {
@@ -21,6 +22,7 @@ export const defaultFilters: UsersFilters = {
     name: '',
     email: '',
     phone: '',
+    dni: '',
 };
 
 interface UsersFilterSheetProps {
@@ -31,6 +33,7 @@ interface UsersFilterSheetProps {
 }
 
 export function UsersFilterSheet({ open, onOpenChange, filters, onApply }: UsersFilterSheetProps) {
+    const uid = useId();
     const [local, setLocal] = useState<UsersFilters>(filters);
 
     useEffect(() => {
@@ -58,6 +61,7 @@ export function UsersFilterSheet({ open, onOpenChange, filters, onApply }: Users
         local.name !== '',
         local.email !== '',
         local.phone !== '',
+        local.dni !== '',
     ].filter(Boolean).length;
 
     return (
@@ -71,8 +75,11 @@ export function UsersFilterSheet({ open, onOpenChange, filters, onApply }: Users
                     <div className="grid grid-cols-1 gap-5">
                         {/* Nombre */}
                         <div className="flex flex-col gap-1.5">
-                            <Label className="text-sm font-medium text-foreground">Nombre</Label>
+                            <Label htmlFor={`${uid}-name`} className="text-sm font-medium text-foreground">
+                                Nombre
+                            </Label>
                             <Input
+                                id={`${uid}-name`}
                                 placeholder="Buscar por nombre..."
                                 value={local.name}
                                 onChange={(e) => update('name', e.target.value)}
@@ -82,8 +89,11 @@ export function UsersFilterSheet({ open, onOpenChange, filters, onApply }: Users
 
                         {/* Email */}
                         <div className="flex flex-col gap-1.5">
-                            <Label className="text-sm font-medium text-foreground">Email</Label>
+                            <Label htmlFor={`${uid}-email`} className="text-sm font-medium text-foreground">
+                                Email
+                            </Label>
                             <Input
+                                id={`${uid}-email`}
                                 placeholder="Buscar por email..."
                                 value={local.email}
                                 onChange={(e) => update('email', e.target.value)}
@@ -93,8 +103,11 @@ export function UsersFilterSheet({ open, onOpenChange, filters, onApply }: Users
 
                         {/* Telefono */}
                         <div className="flex flex-col gap-1.5">
-                            <Label className="text-sm font-medium text-foreground">Telefono</Label>
+                            <Label htmlFor={`${uid}-phone`} className="text-sm font-medium text-foreground">
+                                Telefono
+                            </Label>
                             <Input
+                                id={`${uid}-phone`}
                                 placeholder="Buscar por telefono..."
                                 value={local.phone}
                                 onChange={(e) => update('phone', e.target.value)}
@@ -102,12 +115,28 @@ export function UsersFilterSheet({ open, onOpenChange, filters, onApply }: Users
                             />
                         </div>
 
+                        {/* Cedula */}
+                        <div className="flex flex-col gap-1.5">
+                            <Label htmlFor={`${uid}-dni`} className="text-sm font-medium text-foreground">
+                                Cedula
+                            </Label>
+                            <Input
+                                id={`${uid}-dni`}
+                                placeholder="Buscar por cedula..."
+                                value={local.dni}
+                                onChange={(e) => update('dni', e.target.value)}
+                                className="bg-secondary/50 border-border"
+                            />
+                        </div>
+
                         {/* Tipo de perfil + Estado en grid 2 cols */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="flex flex-col gap-1.5">
-                                <Label className="text-sm font-medium text-foreground">Tipo de perfil</Label>
+                                <Label htmlFor={`${uid}-profile`} className="text-sm font-medium text-foreground">
+                                    Tipo de perfil
+                                </Label>
                                 <Select value={local.profile} onValueChange={(v) => update('profile', v)}>
-                                    <SelectTrigger className="bg-secondary/50 border-border">
+                                    <SelectTrigger id={`${uid}-profile`} className="bg-secondary/50 border-border">
                                         <SelectValue placeholder="Todos" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-popover border-border" position="popper">
@@ -120,9 +149,11 @@ export function UsersFilterSheet({ open, onOpenChange, filters, onApply }: Users
                             </div>
 
                             <div className="flex flex-col gap-1.5">
-                                <Label className="text-sm font-medium text-foreground">Estado</Label>
+                                <Label htmlFor={`${uid}-status`} className="text-sm font-medium text-foreground">
+                                    Estado
+                                </Label>
                                 <Select value={local.status} onValueChange={(v) => update('status', v)}>
-                                    <SelectTrigger className="bg-secondary/50 border-border">
+                                    <SelectTrigger id={`${uid}-status`} className="bg-secondary/50 border-border">
                                         <SelectValue placeholder="Todos" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-popover border-border" position="popper">

@@ -4,20 +4,31 @@ import { PageHeader } from '@/src/shared/components/page-header';
 import { UserProfileDetail } from '@/src/features/dashboard/users/components/user-profile-detail';
 import { Badge } from '@/components/ui/badge';
 import { UserRound } from 'lucide-react';
-import { mockUsersUnified } from '@/src/features/dashboard/users/mock-data';
+import { useAuth } from '@/hooks/use-auth';
+import { useUser } from '@/src/features/dashboard/users/hooks';
 
 export const Route = createFileRoute('/dashboard/profile')({
     component: ProfilePage,
 });
 
 function ProfilePage() {
-    // Simulate current logged-in user (first staff user)
-    const currentUser = mockUsersUnified.find((u) => u.profiles.includes('STAFF'))!;
+    const { user: authUser } = useAuth();
+    const { data: user, isLoading } = useUser(authUser?.id ?? '');
 
-    // Determine primary profile to show (prefer STAFF for dashboard users)
-    const primaryProfile = currentUser.profiles.includes('STAFF')
+    if (isLoading || !user) {
+        return (
+            <>
+                <DashboardHeader breadcrumbs={[{ label: 'Inicio', href: '/dashboard' }, { label: 'Mi perfil' }]} />
+                <div className="flex-1 overflow-auto p-6">
+                    <p className="text-muted-foreground">Cargando perfil...</p>
+                </div>
+            </>
+        );
+    }
+
+    const primaryProfile = user.profiles.includes('STAFF')
         ? ('STAFF' as const)
-        : currentUser.profiles.includes('TRAINER')
+        : user.profiles.includes('TRAINER')
           ? ('TRAINER' as const)
           : ('MEMBER' as const);
 
@@ -44,7 +55,7 @@ function ProfilePage() {
                     }
                     className="mb-6"
                 />
-                <UserProfileDetail user={currentUser} profileType={primaryProfile} isOwnProfile />
+                <UserProfileDetail user={user} profileType={primaryProfile} isOwnProfile />
             </div>
         </>
     );

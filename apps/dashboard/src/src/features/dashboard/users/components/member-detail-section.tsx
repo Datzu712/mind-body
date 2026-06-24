@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useId, useState } from 'react';
+import { formatDate } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -20,9 +21,10 @@ import type { MemberProfile } from '../types';
 
 interface MemberDetailSectionProps {
     profile?: MemberProfile;
+    phone?: string | null;
     isOwnProfile?: boolean;
     isSaving?: boolean;
-    onSave?: () => void;
+    onSave?: (data: { phone: string; emergencyContactName: string; emergencyContactPhone: string }) => void;
 }
 
 const membershipStatusLabels: Record<string, string> = {
@@ -39,10 +41,23 @@ const membershipStatusColors: Record<string, string> = {
 
 export function MemberDetailSection({
     profile,
+    phone,
     isOwnProfile = false,
     isSaving = false,
     onSave,
 }: MemberDetailSectionProps) {
+    const uid = useId();
+    const [phoneVal, setPhoneVal] = useState(phone ?? '');
+    const [ecName, setEcName] = useState(profile?.emergencyContactName ?? '');
+    const [ecPhone, setEcPhone] = useState(profile?.emergencyContactPhone ?? '');
+
+    // Re-sync local fields when the profile reloads (e.g. after a successful save).
+    useEffect(() => {
+        setPhoneVal(phone ?? '');
+        setEcName(profile?.emergencyContactName ?? '');
+        setEcPhone(profile?.emergencyContactPhone ?? '');
+    }, [phone, profile?.emergencyContactName, profile?.emergencyContactPhone]);
+
     if (!profile) {
         return (
             <Card className="border-border bg-card">
@@ -53,6 +68,9 @@ export function MemberDetailSection({
             </Card>
         );
     }
+
+    const handleSave = () =>
+        onSave?.({ phone: phoneVal, emergencyContactName: ecName, emergencyContactPhone: ecPhone });
 
     return (
         <div className="flex flex-col gap-6">
@@ -74,27 +92,30 @@ export function MemberDetailSection({
                 <CardContent>
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="flex flex-col gap-1.5">
-                            <Label className="text-muted-foreground text-xs">Fecha de nacimiento</Label>
+                            <Label htmlFor={`${uid}-phone`} className="text-muted-foreground text-xs">
+                                Telefono
+                            </Label>
                             {isOwnProfile ? (
                                 <Input
-                                    defaultValue={profile.birthDate || ''}
+                                    id={`${uid}-phone`}
+                                    value={phoneVal}
+                                    onChange={(e) => setPhoneVal(e.target.value)}
+                                    placeholder="+52 55 ..."
                                     className="bg-secondary/50 border-border"
                                 />
                             ) : (
-                                <p className="text-sm text-foreground h-9 flex items-center">
-                                    {profile.birthDate || '—'}
-                                </p>
+                                <p className="text-sm text-foreground h-9 flex items-center">{phone || '—'}</p>
                             )}
                         </div>
                         <div className="flex flex-col gap-1.5">
-                            <Label className="text-muted-foreground text-xs">Fecha de ingreso</Label>
-                            <p className="text-sm text-foreground h-9 flex items-center">{profile.joinedAt}</p>
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                            <Label className="text-muted-foreground text-xs">Contacto de emergencia</Label>
+                            <Label htmlFor={`${uid}-emergencyName`} className="text-muted-foreground text-xs">
+                                Contacto de emergencia
+                            </Label>
                             {isOwnProfile ? (
                                 <Input
-                                    defaultValue={profile.emergencyContactName || ''}
+                                    id={`${uid}-emergencyName`}
+                                    value={ecName}
+                                    onChange={(e) => setEcName(e.target.value)}
                                     className="bg-secondary/50 border-border"
                                 />
                             ) : (
@@ -104,10 +125,14 @@ export function MemberDetailSection({
                             )}
                         </div>
                         <div className="flex flex-col gap-1.5">
-                            <Label className="text-muted-foreground text-xs">Telefono de emergencia</Label>
+                            <Label htmlFor={`${uid}-emergencyPhone`} className="text-muted-foreground text-xs">
+                                Telefono de emergencia
+                            </Label>
                             {isOwnProfile ? (
                                 <Input
-                                    defaultValue={profile.emergencyContactPhone || ''}
+                                    id={`${uid}-emergencyPhone`}
+                                    value={ecPhone}
+                                    onChange={(e) => setEcPhone(e.target.value)}
                                     className="bg-secondary/50 border-border"
                                 />
                             ) : (
@@ -126,7 +151,7 @@ export function MemberDetailSection({
                     <div
                         className={`flex justify-end mt-4 transition-all duration-300 ${isOwnProfile ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1 pointer-events-none'}`}
                     >
-                        <Button type="button" onClick={onSave} disabled={isSaving}>
+                        <Button type="button" onClick={handleSave} disabled={isSaving}>
                             <Save className="mr-2 h-4 w-4" />
                             Guardar cambios
                         </Button>
@@ -141,6 +166,7 @@ export function MemberDetailSection({
 }
 
 function MembershipCard({ membership }: { membership?: MemberProfile['activeMembership'] }) {
+    const uid = useId();
     const [renewOpen, setRenewOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [duration, setDuration] = useState('30');
@@ -188,11 +214,11 @@ function MembershipCard({ membership }: { membership?: MemberProfile['activeMemb
                             <dl className="grid grid-cols-2 gap-3 text-sm">
                                 <div>
                                     <dt className="text-muted-foreground">Inicio</dt>
-                                    <dd className="text-foreground">{membership.startDate}</dd>
+                                    <dd className="text-foreground">{formatDate(membership.startDate)}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-muted-foreground">Vencimiento</dt>
-                                    <dd className="text-foreground">{membership.endDate}</dd>
+                                    <dd className="text-foreground">{formatDate(membership.endDate)}</dd>
                                 </div>
                             </dl>
                         </div>
@@ -212,9 +238,11 @@ function MembershipCard({ membership }: { membership?: MemberProfile['activeMemb
                     </DialogHeader>
                     <form onSubmit={handleRenew} className="flex flex-col gap-4">
                         <div className="flex flex-col gap-1.5">
-                            <Label className="text-sm font-medium">Duracion</Label>
+                            <Label htmlFor={`${uid}-duration`} className="text-sm font-medium">
+                                Duracion
+                            </Label>
                             <Select value={duration} onValueChange={setDuration}>
-                                <SelectTrigger className="bg-secondary/50 border-border">
+                                <SelectTrigger id={`${uid}-duration`} className="bg-secondary/50 border-border">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent className="bg-popover border-border">
@@ -226,15 +254,24 @@ function MembershipCard({ membership }: { membership?: MemberProfile['activeMemb
                             </Select>
                         </div>
                         <div className="flex flex-col gap-1.5">
-                            <Label className="text-sm font-medium">Metodo de pago</Label>
+                            <Label htmlFor={`${uid}-payment`} className="text-sm font-medium">
+                                Metodo de pago
+                            </Label>
                             <Input
+                                id={`${uid}-payment`}
                                 placeholder="Ej: Efectivo, Tarjeta, Transferencia..."
                                 className="bg-secondary/50 border-border"
                             />
                         </div>
                         <div className="flex flex-col gap-1.5">
-                            <Label className="text-sm font-medium">Notas (opcional)</Label>
-                            <Input placeholder="Observaciones del pago..." className="bg-secondary/50 border-border" />
+                            <Label htmlFor={`${uid}-notes`} className="text-sm font-medium">
+                                Notas (opcional)
+                            </Label>
+                            <Input
+                                id={`${uid}-notes`}
+                                placeholder="Observaciones del pago..."
+                                className="bg-secondary/50 border-border"
+                            />
                         </div>
                         <DialogFooter className="gap-2">
                             <Button

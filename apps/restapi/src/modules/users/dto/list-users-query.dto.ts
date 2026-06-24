@@ -28,6 +28,10 @@ export class ListUsersQueryDto {
     phone?: string | undefined;
 
     @IsOptional()
+    @IsString()
+    dni?: string | undefined;
+
+    @IsOptional()
     @IsEnum(['MEMBER', 'TRAINER', 'STAFF'])
     profile?: 'MEMBER' | 'TRAINER' | 'STAFF' | undefined;
 
@@ -36,8 +40,8 @@ export class ListUsersQueryDto {
     status?: 'ACTIVE' | 'INACTIVE' | 'ARCHIVED' | undefined;
 
     @IsOptional()
-    @IsEnum(['fullName', 'phone', 'status', 'createdAt'])
-    sortBy?: 'fullName' | 'phone' | 'status' | 'createdAt' | undefined;
+    @IsEnum(['fullName', 'phone', 'dni', 'status', 'createdAt'])
+    sortBy?: 'fullName' | 'phone' | 'dni' | 'status' | 'createdAt' | undefined;
 
     @IsOptional()
     @IsEnum(['asc', 'desc'])

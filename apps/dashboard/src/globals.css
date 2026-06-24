@@ -1,6 +1,5 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/dm-sans";
 @import "@fontsource-variable/inter";
@@ -161,4 +160,17 @@
   border-color: oklch(0.75 0.15 55 / 30%);
   background-color: oklch(0.75 0.15 55 / 10%);
   color: oklch(0.75 0.15 55);
+}
+
+/* Ensure toasts render above dialog overlays */
+[data-sileo-viewport] {
+  z-index: 9999 !important;
+}
+
+/* Toast surface follows the popover token. sileo paints the body/pill as SVG
+   <rect> elements, so this is set in CSS (where var() resolves and overrides the
+   presentation attribute) rather than via a hardcoded `fill` in the Toaster props. */
+[data-sileo-pill],
+[data-sileo-body] {
+  fill: var(--popover);
 }
