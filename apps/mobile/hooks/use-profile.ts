@@ -4,11 +4,15 @@ import { useAuth } from '@/context/auth-context';
 import { useApiClient } from '@/lib/api/client';
 
 export interface UserProfile {
-    id: number;
-    keycloakId: string;
-    firstName: string | null;
-    lastName: string | null;
+    id: string;
+    keycloakSubject: string;
+    fullName: string | null;
     email: string | null;
+    phone: string | null;
+    dni: string | null;
+    dniType: string | null;
+    birthDate: string | null;
+    status: string;
     createdAt: string;
     updatedAt: string;
 }
@@ -30,11 +34,15 @@ export function useProfile() {
         // JWT claims as temporary fallback while the backend responds
         placeholderData: user
             ? {
-                  id: 0,
-                  keycloakId: user.sub,
-                  firstName: user.givenName,
-                  lastName: user.familyName,
+                  id: '',
+                  keycloakSubject: user.sub,
+                  fullName: user.name ?? ([user.givenName, user.familyName].filter(Boolean).join(' ') || null),
                   email: user.email,
+                  phone: null,
+                  dni: null,
+                  dniType: null,
+                  birthDate: null,
+                  status: 'ACTIVE',
                   createdAt: '',
                   updatedAt: '',
               }

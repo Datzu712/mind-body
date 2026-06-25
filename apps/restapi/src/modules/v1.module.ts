@@ -4,8 +4,9 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ActivityModule } from './activity/activity.module';
 import { MeasurementsModule } from './measurements/measurements.module';
+import { TseModule } from './tse/tse.module';
 
 @Module({
-    imports: [HealthModule, AuthModule, UsersModule, ActivityModule, MeasurementsModule],
+    imports: [HealthModule, AuthModule, UsersModule, ActivityModule, MeasurementsModule, TseModule],
 })
 export class V1Module {}

@@ -482,3 +482,349 @@ export const reportTypes = [
     { id: 'attendance', name: 'Asistencia', description: 'Patrones de asistencia de los miembros' },
     { id: 'staff', name: 'Rendimiento del Personal', description: 'Métricas de desempeño del equipo' },
 ];
+
+// HU-CLI-002 · Buscar miembros — modelo y datos mock de miembros registrados
+export type MemberStatus = 'active' | 'inactive' | 'pending' | 'paused';
+
+export type MembershipType = 'basic-monthly' | 'premium-monthly' | 'premium-annual';
+
+export type TrainerAssignment = 'unassigned' | 'maria-gonzalez' | 'carlos-ramirez';
+
+export interface Member {
+    id: string;
+    name: string;
+    email: string;
+    status: MemberStatus;
+    membership: MembershipType;
+    trainer: TrainerAssignment;
+    expiresAt: string;
+    avatar?: string;
+}
+
+export const mockMembers: Member[] = [
+    {
+        id: 'MB-000123',
+        name: 'María Gómez',
+        email: 'maria.gomez@email.com',
+        status: 'active',
+        membership: 'premium-monthly',
+        trainer: 'maria-gonzalez',
+        expiresAt: '15/06/2025',
+        avatar: 'MG',
+    },
+    {
+        id: 'MB-000124',
+        name: 'Juan Pérez',
+        email: 'juan.perez@email.com',
+        status: 'active',
+        membership: 'premium-annual',
+        trainer: 'carlos-ramirez',
+        expiresAt: '10/09/2025',
+        avatar: 'JP',
+    },
+    {
+        id: 'MB-000125',
+        name: 'Ana Torres',
+        email: 'ana.torres@email.com',
+        status: 'paused',
+        membership: 'basic-monthly',
+        trainer: 'unassigned',
+        expiresAt: '05/05/2025',
+        avatar: 'AT',
+    },
+];
+
+export const membershipLabels: Record<MembershipType, string> = {
+    'basic-monthly': 'Básica Mensual',
+    'premium-monthly': 'Premium Mensual',
+    'premium-annual': 'Premium Anual',
+};
+
+export const trainerLabels: Record<TrainerAssignment, string> = {
+    unassigned: 'Sin asignar',
+    'maria-gonzalez': 'María González',
+    'carlos-ramirez': 'Carlos Ramírez',
+};
+
+// HU-CLI-003 · Aprobación de membresías — solicitudes pendientes (mock)
+export type MembershipPaymentStatus = 'paid' | 'pending';
+
+export interface MembershipApprovalRequest {
+    id: string;
+    memberId: string;
+    memberName: string;
+    email: string;
+    phone: string;
+    requestedPlan: string;
+    period: 'Mensual' | 'Anual';
+    paymentStatus: MembershipPaymentStatus;
+    paymentDetail: string;
+    requestedAt: string;
+    requestedTime: string;
+}
+
+export const mockMembershipApprovalRequests: MembershipApprovalRequest[] = [
+    {
+        id: 'approval-001',
+        memberId: 'MB-000124',
+        memberName: 'María González',
+        email: 'maria.gonzalez@correo.com',
+        phone: '(555) 123-4567',
+        requestedPlan: 'Plan Premium',
+        period: 'Mensual',
+        paymentStatus: 'pending',
+        paymentDetail: 'Pago por procesar',
+        requestedAt: '24/05/2025',
+        requestedTime: '10:30 a. m.',
+    },
+    {
+        id: 'approval-002',
+        memberId: 'MB-000125',
+        memberName: 'Carlos Ramírez',
+        email: 'carlos.ramirez@correo.com',
+        phone: '(555) 987-6543',
+        requestedPlan: 'Plan Básico',
+        period: 'Mensual',
+        paymentStatus: 'paid',
+        paymentDetail: 'Tarjeta **** 4242',
+        requestedAt: '24/05/2025',
+        requestedTime: '09:15 a. m.',
+    },
+    {
+        id: 'approval-003',
+        memberId: 'MB-000126',
+        memberName: 'Ana López',
+        email: 'ana.lopez@correo.com',
+        phone: '(555) 456-7890',
+        requestedPlan: 'Plan Anual',
+        period: 'Anual',
+        paymentStatus: 'pending',
+        paymentDetail: 'Transferencia',
+        requestedAt: '23/05/2025',
+        requestedTime: '04:45 p. m.',
+    },
+];
+
+export const membershipPaymentStatusLabels: Record<MembershipPaymentStatus, string> = {
+    paid: 'Pagado',
+    pending: 'Pendiente',
+};
+
+// HU-CLI-005 · Gestión de membresías activas e inactivas — modelo y datos mock
+export type MembershipStatus = 'active' | 'expired' | 'expiring-soon' | 'inactive';
+
+export interface Membership {
+    id: string;
+    memberId: string;
+    memberName: string;
+    membershipType: string;
+    status: MembershipStatus;
+    startedAt: string;
+    expiresAt: string;
+    remainingDays: string;
+    paymentMethod?: string;
+}
+
+export const mockMemberships: Membership[] = [
+    {
+        id: 'membership-001',
+        memberId: 'MB-000123',
+        memberName: 'María González',
+        membershipType: 'Premium Mensual',
+        status: 'active',
+        startedAt: '01/05/2025',
+        expiresAt: '31/05/2025',
+        remainingDays: '12 días',
+        paymentMethod: 'Tarjeta de crédito terminada en 4242',
+    },
+    {
+        id: 'membership-002',
+        memberId: 'MB-000124',
+        memberName: 'Juan Pérez',
+        membershipType: 'Premium Trimestral',
+        status: 'active',
+        startedAt: '15/04/2025',
+        expiresAt: '15/07/2025',
+        remainingDays: '57 días',
+    },
+    {
+        id: 'membership-003',
+        memberId: 'MB-000125',
+        memberName: 'Ana Rodríguez',
+        membershipType: 'Básica Mensual',
+        status: 'expired',
+        startedAt: '01/04/2025',
+        expiresAt: '30/04/2025',
+        remainingDays: '-15 días',
+    },
+    {
+        id: 'membership-004',
+        memberId: 'MB-000126',
+        memberName: 'Carlos Sánchez',
+        membershipType: 'Premium Mensual',
+        status: 'expiring-soon',
+        startedAt: '03/05/2025',
+        expiresAt: '10/05/2025',
+        remainingDays: '2 días',
+    },
+    {
+        id: 'membership-005',
+        memberId: 'MB-000127',
+        memberName: 'Laura Méndez',
+        membershipType: 'Básica Trimestral',
+        status: 'inactive',
+        startedAt: '10/01/2025',
+        expiresAt: '10/04/2025',
+        remainingDays: '-',
+    },
+    {
+        id: 'membership-006',
+        memberId: 'MB-000128',
+        memberName: 'Pedro Ramírez',
+        membershipType: 'Premium Anual',
+        status: 'active',
+        startedAt: '20/01/2025',
+        expiresAt: '20/01/2026',
+        remainingDays: '223 días',
+    },
+    {
+        id: 'membership-007',
+        memberId: 'MB-000129',
+        memberName: 'Sofía Torres',
+        membershipType: 'Básica Mensual',
+        status: 'expired',
+        startedAt: '01/04/2025',
+        expiresAt: '30/04/2025',
+        remainingDays: '-15 días',
+    },
+    {
+        id: 'membership-008',
+        memberId: 'MB-000130',
+        memberName: 'Diego Morales',
+        membershipType: 'Premium Trimestral',
+        status: 'expiring-soon',
+        startedAt: '20/04/2025',
+        expiresAt: '20/07/2025',
+        remainingDays: '10 días',
+    },
+];
+
+export const membershipStatusLabels: Record<MembershipStatus, string> = {
+    active: 'Activa',
+    expired: 'Vencida',
+    'expiring-soon': 'Próxima a vencer',
+    inactive: 'Inactiva',
+};
+
+// HU-CLI-006 · Perfil completo de miembros asignados — modelo y datos mock
+export type AssignedMemberStatus = 'active' | 'frozen' | 'expired';
+
+export interface AssignedMember {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    age: number;
+    membershipStatus: AssignedMemberStatus;
+    membershipPlan: string;
+    membershipExpiresAt: string;
+    mainGoal: string;
+    lastSessionAt: string;
+}
+
+export const mockAssignedMembers: AssignedMember[] = [
+    {
+        id: 'MB-000125',
+        name: 'María González',
+        email: 'maria.gonzalez@email.com',
+        phone: '(555) 123-4567',
+        age: 29,
+        membershipStatus: 'active',
+        membershipPlan: 'Plan Premium',
+        membershipExpiresAt: '15/08/2025',
+        mainGoal: 'Pérdida de peso',
+        lastSessionAt: '08/05/2025 · 10:30 a. m.',
+    },
+    {
+        id: 'MB-000126',
+        name: 'Carlos Ramírez',
+        email: 'carlos.ramirez@email.com',
+        phone: '(555) 987-6543',
+        age: 34,
+        membershipStatus: 'active',
+        membershipPlan: 'Plan Premium',
+        membershipExpiresAt: '20/08/2025',
+        mainGoal: 'Hipertrofia',
+        lastSessionAt: '07/05/2025 · 7:15 p. m.',
+    },
+    {
+        id: 'MB-000127',
+        name: 'Ana Torres',
+        email: 'ana.torres@email.com',
+        phone: '(555) 456-7890',
+        age: 27,
+        membershipStatus: 'frozen',
+        membershipPlan: 'Plan Básico',
+        membershipExpiresAt: '10/08/2025',
+        mainGoal: 'Tonificación',
+        lastSessionAt: '05/05/2025 · 6:45 p. m.',
+    },
+    {
+        id: 'MB-000128',
+        name: 'Luis Hernández',
+        email: 'luis.hernandez@email.com',
+        phone: '(555) 321-9876',
+        age: 41,
+        membershipStatus: 'expired',
+        membershipPlan: 'Plan Básico',
+        membershipExpiresAt: '01/05/2025',
+        mainGoal: 'Resistencia',
+        lastSessionAt: '02/05/2025 · 8:10 a. m.',
+    },
+    {
+        id: 'MB-000129',
+        name: 'Sofía Martínez',
+        email: 'sofia.martinez@email.com',
+        phone: '(555) 654-3210',
+        age: 31,
+        membershipStatus: 'active',
+        membershipPlan: 'Plan Premium',
+        membershipExpiresAt: '18/08/2025',
+        mainGoal: 'Pérdida de peso',
+        lastSessionAt: '09/05/2025 · 11:00 a. m.',
+    },
+];
+
+export const assignedMemberStatusLabels: Record<AssignedMemberStatus, string> = {
+    active: 'Activa',
+    frozen: 'Congelada',
+    expired: 'Vencida',
+};
+
+export interface TrainingHistoryEntry {
+    date: string;
+    routine: string;
+    trainer: string;
+    notes: string;
+}
+
+export const mockTrainingHistory: TrainingHistoryEntry[] = [
+    {
+        date: '08/05/2025',
+        routine: 'Fuerza - Tren superior',
+        trainer: 'Tú',
+        notes: 'Progresó en press de banca (+5 kg)',
+    },
+    {
+        date: '06/05/2025',
+        routine: 'Cardio + Core',
+        trainer: 'Tú',
+        notes: 'Sesión completa, buena resistencia',
+    },
+    {
+        date: '03/05/2025',
+        routine: 'Fuerza - Tren inferior',
+        trainer: 'Tú',
+        notes: 'Sentadillas con buena técnica',
+    },
+];

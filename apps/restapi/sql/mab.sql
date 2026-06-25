@@ -29,6 +29,9 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN CREATE TYPE app.routine_status AS ENUM ('DRAFT', 'ACTIVE', 'PAUSED', 'FINISHED', 'ARCHIVED');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+DO $$ BEGIN CREATE TYPE app.dni_type AS ENUM ('CEDULA_NACIONAL', 'DIMEX', 'PASAPORTE');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 CREATE OR REPLACE FUNCTION app.set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -42,7 +45,11 @@ CREATE TABLE IF NOT EXISTS app.users (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     keycloak_subject UUID UNIQUE NOT NULL,
     full_name VARCHAR(160) NOT NULL,
+    email VARCHAR(255),
     phone VARCHAR(30),
+    dni VARCHAR(20) UNIQUE,
+    dni_type app.dni_type,
+    birth_date DATE,
     status app.record_status NOT NULL DEFAULT 'ACTIVE',
     deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -57,7 +64,6 @@ FOR EACH ROW EXECUTE FUNCTION app.set_updated_at();
 CREATE TABLE IF NOT EXISTS app.members (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     user_id UUID UNIQUE NOT NULL REFERENCES app.users(id),
-    birth_date DATE,
     emergency_contact_name VARCHAR(120),
     emergency_contact_phone VARCHAR(30),
     joined_at DATE NOT NULL DEFAULT CURRENT_DATE,

@@ -1,0 +1,32 @@
+# Keep the build context small and secrets out of image layers.
+
+# Dependencies / build output (reinstalled & rebuilt inside the image)
+**/node_modules
+**/dist
+**/.turbo
+**/.expo
+
+# Secrets & local env — provided at runtime, must never be baked in
+**/.env
+**/.env.*
+!**/.env.example
+docker/**/.env
+
+# Logs & caches
+**/logs
+**/*.log
+**/.cache
+**/.puppeteer-cache
+
+# VCS & tooling
+.git
+.github
+.husky
+.vscode
+.idea
+
+# Other apps not needed to build the restapi image
+apps/mobile
+apps/dashboard
+apps/kc-theme
+docs

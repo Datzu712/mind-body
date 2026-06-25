@@ -1,1 +1,15 @@
+# Dependencies
+node_modules
+
+# Build output
+**/dist/**
+**/.next/**
+**/out/**
+**/build/**
+
+# Generated route tree (TanStack Router)
+**/routeTree.gen.ts
+
+# Lockfiles
+pnpm-lock.yaml
 apps/kc-theme/

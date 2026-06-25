@@ -17,6 +17,7 @@ export interface HealthData {
 }
 
 export const ACTIVITY_QUERY_DAYS = 90;
+export const ACTIVITY_QUERY_KEY = ['activity'] as const;
 
 export function useActivityRecords() {
     const api = useApiClient();
@@ -25,7 +26,7 @@ export function useActivityRecords() {
     from.setDate(from.getDate() - ACTIVITY_QUERY_DAYS);
 
     return useQuery({
-        queryKey: ['activity', 'history', dayKey(now)],
+        queryKey: [...ACTIVITY_QUERY_KEY, 'history', dayKey(now)],
         queryFn: () => getDailyActivityRange(api, dayKey(from), dayKey(now)),
         staleTime: 5 * 60 * 1000,
     });

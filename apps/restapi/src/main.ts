@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import 'dotenv/config';
 
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -7,12 +8,16 @@ import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
 import { TypedConfigService } from './config/typed-config.service';
+import { ValidationPipe } from '@nestjs/common';
 import { VersioningType } from '@nestjs/common/enums/version-type.enum';
+//import { DelayedResponseInterceptor } from './utils/delayed-response.interceptor';
 
 async function bootstrap(): Promise<void> {
     const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter({ logger: false }), {
         bufferLogs: true,
     });
+
+    //app.useGlobalInterceptors(new DelayedResponseInterceptor());
 
     await app.register(fastifyCookie);
 
@@ -25,6 +30,8 @@ async function bootstrap(): Promise<void> {
         origin: config.getOrThrow('CORS_ORIGIN'),
         credentials: true,
     });
+
+    app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
 
     app.setGlobalPrefix('api');
     app.enableVersioning({

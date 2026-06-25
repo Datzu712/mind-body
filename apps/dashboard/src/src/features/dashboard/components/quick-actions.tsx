@@ -1,6 +1,4 @@
-'use client';
-
-import Link from 'next/link';
+import { Link } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, ClipboardList, BookOpen, FileBarChart, HardDrive, Settings, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -61,7 +59,7 @@ export function QuickActions() {
                     {quickActions.map((action) => (
                         <Link
                             key={action.href}
-                            href={action.href}
+                            to={action.href}
                             className="group flex flex-col items-start p-4 rounded-lg bg-secondary/30 hover:bg-secondary/60 transition-all border border-transparent hover:border-primary/20"
                         >
                             <div

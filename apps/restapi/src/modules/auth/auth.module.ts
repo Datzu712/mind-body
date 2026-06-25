@@ -5,17 +5,19 @@ import { AuthService } from '@/modules/auth/guards/auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '@/modules/users/users.module';
 import { KeycloakModule } from '@/infra/keycloak/keycloak.module';
+import { OidcService } from './oidc.service';
 
 @Module({
     imports: [UsersModule, KeycloakModule],
     controllers: [AuthController],
     providers: [
         AuthService,
+        OidcService,
         {
             provide: APP_GUARD,
             useClass: HybridAuthGuard,
         },
     ],
-    exports: [AuthService],
+    exports: [AuthService, OidcService],
 })
 export class AuthModule {}

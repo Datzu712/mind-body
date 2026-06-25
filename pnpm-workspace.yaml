@@ -10,6 +10,7 @@ allowBuilds:
     chromedriver: true
     esbuild: true
     msgpackr-extract: true
+    puppeteer: true
     sharp: true
     unrs-resolver: true
 minimumReleaseAgeExclude:

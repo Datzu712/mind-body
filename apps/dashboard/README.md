@@ -2,11 +2,11 @@
 
 ![alt text](src/public/preview.png)
 
-A gym and fitness center management desktop application built with Next.js and Tauri.
+A gym and fitness center management desktop application built with Vite, TanStack Router and Tauri.
 
 ## Stack
 
-- **Frontend:** Next.js 16, React 19, TypeScript
+- **Frontend:** Vite, React 19, TanStack Router, TypeScript
 - **UI:** Tailwind CSS, Radix UI, Shadcn UI
 - **Desktop:** Tauri 2.0 (Rust)
 
@@ -36,23 +36,6 @@ Start the desktop app (Tauri):
 pnpm tauri dev
 ```
 
-## TODO
-
-- [ ] Move all tauri-related code to a separate app (e.g., `dashboard-desktop`) to keep the main app focused on the web frontend.
-- [ ] Implement actual backend logic in Rust for data persistence and business logic.
-- [ ] Reenable eslint and fix linting issues in the codebase (I removed them at the moment to avoid problems with CI, but they should be reenabled and fixed asap).
-- [ ] Move from Next.js to vite + tanstack router
-
-## Notes
-
-### Tiling window managers (Hyprland, i3, etc.)
-
-If the app renders as a black screen, disable GPU compositing:
-
-```bash
-WEBKIT_DISABLE_COMPOSITING_MODE=1 pnpm tauri dev
-```
-
 ## Build
 
 ```bash
@@ -64,8 +47,8 @@ Outputs the desktop installer to `src-tauri/target/release/bundle/`.
 ## Project Structure
 
 ```
-src/                # Frontend (Next.js)
-  app/              # Routes (App Router)
+src/                # Frontend (Vite + TanStack Router)
+  routes/           # Routes
   components/       # UI components
   features/         # Feature modules
   hooks/            # Custom hooks

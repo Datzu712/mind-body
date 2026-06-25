@@ -1,0 +1,31 @@
+[project]
+name = "mab-notebooks"
+version = "0.1.0"
+description = "Jupyter notebooks for data analysis & ML experiments on the Mind&Body project"
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    "jupyterlab>=4.2",
+    "ipykernel>=6.29",
+    "pandas>=2.2",
+    "numpy>=2.0",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "python-dotenv>=1.0",
+    "matplotlib>=3.9",
+    "seaborn>=0.13",
+]
+
+[dependency-groups]
+dev = [
+    "nbstripout>=0.7",
+    "ruff>=0.6",
+]
+
+[tool.ruff]
+# Notebooks are exploratory — relax a few rules that fight scratch work.
+line-length = 100
+
+[tool.ruff.lint]
+ignore = ["E402", "E501", "F401"]

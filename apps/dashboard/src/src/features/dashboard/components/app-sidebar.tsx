@@ -1,17 +1,17 @@
-'use client';
-
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, useLocation } from '@tanstack/react-router';
 import {
     LayoutDashboard,
     Users,
-    ClipboardList,
+    UserSearch,
+    UserRound,
+    UsersRound,
+    UserPlus,
+    IdCard,
+    ClipboardCheck,
     Settings,
-    FileBarChart,
     BookOpen,
-    HardDrive,
     LogOut,
-    Dumbbell,
+    type LucideIcon,
 } from 'lucide-react';
 
 import {
@@ -28,40 +28,60 @@ import {
     SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useAuth } from '@/hooks/use-auth';
 
-const mainNavItems = [
+const mainNavItems: { title: string; href: string; icon: LucideIcon; exact?: boolean }[] = [
     {
         title: 'Dashboard',
         href: '/dashboard',
         icon: LayoutDashboard,
+        exact: true,
     },
-];
-
-const adminNavItems = [
     {
         title: 'Usuarios',
         href: '/dashboard/users',
         icon: Users,
     },
+];
+
+const adminNavItems: { title: string; href: string; icon: LucideIcon; exact?: boolean }[] = [
     {
-        title: 'Auditoría',
-        href: '/dashboard/audit',
-        icon: ClipboardList,
+        title: 'Miembros',
+        href: '/dashboard/members',
+        icon: UserSearch,
+        exact: true,
+    },
+    {
+        title: 'Registrar miembro',
+        href: '/dashboard/members/new',
+        icon: UserPlus,
+    },
+    {
+        title: 'Mi perfil',
+        href: '/dashboard/profile',
+        icon: UserRound,
+        exact: true,
+    },
+    {
+        title: 'Membresías',
+        href: '/dashboard/memberships',
+        icon: IdCard,
+        exact: true,
+    },
+    {
+        title: 'Aprobación de membresías',
+        href: '/dashboard/memberships/approval',
+        icon: ClipboardCheck,
+    },
+    {
+        title: 'Mis miembros',
+        href: '/dashboard/trainer/members',
+        icon: UsersRound,
     },
     {
         title: 'Catálogo',
         href: '/dashboard/catalog',
         icon: BookOpen,
-    },
-    {
-        title: 'Reportes',
-        href: '/dashboard/reports',
-        icon: FileBarChart,
-    },
-    {
-        title: 'Respaldos',
-        href: '/dashboard/backups',
-        icon: HardDrive,
     },
     {
         title: 'Configuración',
@@ -70,15 +90,31 @@ const adminNavItems = [
     },
 ];
 
+function getInitials(name: string): string {
+    return name
+        .split(' ')
+        .slice(0, 2)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase();
+}
+
+function getRoleLabel(roles: string[]): string {
+    if (roles.includes('STAFF')) return 'Staff';
+    if (roles.includes('TRAINER')) return 'Entrenador';
+    return 'Usuario';
+}
+
 export function AppSidebar() {
-    const pathname = usePathname();
+    const pathname = useLocation().pathname;
+    const { user, logout } = useAuth();
 
     return (
         <Sidebar collapsible="icon" className="border-r border-sidebar-border">
-            <SidebarHeader className="p-4">
-                <Link href="/dashboard" className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-                        <Dumbbell className="h-5 w-5 text-primary-foreground" />
+            <SidebarHeader className="h-16 justify-center border-b border-sidebar-border px-4 py-0">
+                <Link to="/dashboard" className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 items-center justify-center">
+                        <img src="/icon-no-bg.png" alt="Mind & Body" className="h-12 w-12 object-contain" />
                     </div>
                     <div className="flex flex-col group-data-[collapsible=icon]:hidden">
                         <span className="text-lg font-bold text-foreground">Mind & Body</span>
@@ -86,8 +122,6 @@ export function AppSidebar() {
                     </div>
                 </Link>
             </SidebarHeader>
-
-            <SidebarSeparator />
 
             <SidebarContent>
                 <SidebarGroup>
@@ -98,8 +132,16 @@ export function AppSidebar() {
                         <SidebarMenu>
                             {mainNavItems.map((item) => (
                                 <SidebarMenuItem key={item.href}>
-                                    <SidebarMenuButton asChild isActive={pathname === item.href} tooltip={item.title}>
-                                        <Link href={item.href}>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={
+                                            item.exact
+                                                ? pathname === item.href
+                                                : pathname === item.href || pathname.startsWith(item.href + '/')
+                                        }
+                                        tooltip={item.title}
+                                    >
+                                        <Link to={item.href}>
                                             <item.icon className="h-4 w-4" />
                                             <span>{item.title}</span>
                                         </Link>
@@ -120,10 +162,13 @@ export function AppSidebar() {
                                 <SidebarMenuItem key={item.href}>
                                     <SidebarMenuButton
                                         asChild
-                                        isActive={pathname === item.href || pathname.startsWith(item.href + '/')}
+                                        isActive={
+                                            pathname === item.href ||
+                                            (!item.exact && pathname.startsWith(item.href + '/'))
+                                        }
                                         tooltip={item.title}
                                     >
-                                        <Link href={item.href}>
+                                        <Link to={item.href}>
                                             <item.icon className="h-4 w-4" />
                                             <span>{item.title}</span>
                                         </Link>
@@ -139,22 +184,30 @@ export function AppSidebar() {
                 <SidebarSeparator className="mb-2" />
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton className="w-full" tooltip="Perfil">
-                            <Avatar className="h-6 w-6">
-                                <AvatarFallback className="bg-primary/20 text-primary text-xs">CM</AvatarFallback>
+                        <SidebarMenuButton size="lg" className="w-full" tooltip={user?.fullName ?? 'Perfil'}>
+                            <Avatar className="h-8 w-8 shrink-0">
+                                <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                                    {user ? getInitials(user.fullName) : '??'}
+                                </AvatarFallback>
                             </Avatar>
-                            <div className="flex flex-col items-start group-data-[collapsible=icon]:hidden">
-                                <span className="text-sm font-medium">Carlos Mendoza</span>
-                                <span className="text-xs text-muted-foreground">Administrador</span>
+                            <div className="flex min-w-0 flex-1 flex-col items-start group-data-[collapsible=icon]:hidden">
+                                <span className="w-full truncate text-sm font-medium">
+                                    {user?.fullName ?? 'Cargando...'}
+                                </span>
+                                <span className="w-full truncate text-xs text-muted-foreground">
+                                    {user ? getRoleLabel(user.roles) : ''}
+                                </span>
                             </div>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild tooltip="Cerrar sesión">
-                            <Link href="/" className="text-muted-foreground hover:text-foreground">
-                                <LogOut className="h-4 w-4" />
-                                <span>Cerrar sesión</span>
-                            </Link>
+                        <SidebarMenuButton
+                            tooltip="Cerrar sesión"
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => void logout()}
+                        >
+                            <LogOut className="h-4 w-4" />
+                            <span>Cerrar sesión</span>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

@@ -84,7 +84,7 @@ export default function LoginScreen() {
                 <View style={s.content}>
                     {/* Branding */}
                     <View style={s.brandWrap}>
-                        <Image source={require('@/assets/images/icon-no-bg.png')} style={s.logoImg} />
+                        <Image source={require('@/assets/images/icon.jpg')} style={s.logoImg} />
                         <Text style={s.appName}>MIND&amp;BODY</Text>
                         <Text style={s.appTagline}>"{quote}"</Text>
                     </View>

@@ -54,10 +54,25 @@ class EnvironmentVariables {
     @IsString()
     KC_HEALTH_URL!: string;
 
-    // Tokens generated from KEYCLOAK_CLIENT_ID and KC_MOBILE_CLIENT_ID should have this audience
-    // todo: we might need some aud from kc like `account` (?)
+    // Audience for mobile tokens (bearer/header strategy)
     @IsString()
     KC_REST_API_AUDIENCE!: string;
+
+    // Audience for dashboard tokens (cookie strategy) — ensures only dashboard-issued tokens are accepted via cookies
+    @IsString()
+    KC_DASHBOARD_AUDIENCE!: string;
+
+    // URL of the dashboard frontend (used for redirects after auth flow)
+    @IsString()
+    @IsNotEmpty()
+    DASHBOARD_URL!: string;
+
+    // Absolute/relative path to the TSE Padrón Nacional file (PADRON_COMPLETO.txt).
+    // Used as a fallback when the live TSE scrape is unavailable. The file is operator-
+    // downloaded (see .env.example); PadronService refuses to boot if it is missing.
+    @IsString()
+    @IsNotEmpty()
+    PADRON_PATH!: string;
 
     @IsNumber()
     @Min(1000)
