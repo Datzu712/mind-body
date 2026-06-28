@@ -1,4 +1,4 @@
-# Mind & Body Dashboard (prototype)
+# Mind & Body Dashboard
 
 ![alt text](src/public/preview.png)
 
@@ -21,6 +21,19 @@ A gym and fitness center management desktop application built with Vite, TanStac
 ```bash
 pnpm install
 ```
+
+## Environment variables
+
+Copy `.env.example` to `.env`:
+
+```env
+# Base URL of the REST API. The Vite dev server proxies `/api` to this target,
+# so use your machine's LAN IP (not localhost) when testing from another device.
+VITE_API_BASE_URL=http://localhost:3000
+```
+
+The dev server runs on a fixed port (`3000`, required by Tauri) and proxies
+`/api` requests to `VITE_API_BASE_URL`.
 
 ## Development
 

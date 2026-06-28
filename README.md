@@ -8,22 +8,43 @@ Monorepo for the Mind & Body gym management platform, built with [Turborepo](htt
 
 _`mab` stands for Mind & Body btw_
 
-| App              | Description                 | Stack                                                    |
-| ---------------- | --------------------------- | -------------------------------------------------------- |
-| `@mab/dashboard` | Admin dashboard desktop app | Next.js 16, Tauri 2, Tailwind, shadcn/ui                 |
-| `@mab/mobile`    | Mobile app for gym members  | Expo 55, React Native 0.85, Expo Router                  |
-| `@mab/restapi`   | Backend REST API            | NestJS, Fastify, Drizzle ORM, PostgreSQL, Pino, Keycloak |
+| App              | Description                 | Stack                                                         |
+| ---------------- | --------------------------- | ------------------------------------------------------------- |
+| `@mab/dashboard` | Admin dashboard desktop app | Vite, React 19, TanStack Router, Tauri 2, Tailwind, shadcn/ui |
+| `@mab/mobile`    | Mobile app for gym members  | Expo 55, React Native 0.85, Expo Router                       |
+| `@mab/restapi`   | Backend REST API            | NestJS, Fastify, Drizzle ORM, PostgreSQL, Pino, Keycloak      |
 
 ## Requirements
 
 - [Node.js](https://nodejs.org/) >= 22
 - [pnpm](https://pnpm.io/) >= 11.X.X
-- [Rust](https://rustup.rs/) >= 1.8X (for Tauri desktop builds)
+- [Rust](https://rustup.rs/) >= 1.8X (for Tauri desktop builds but its optional)
 
 ## Getting started
 
 ```sh
 pnpm install
+```
+
+## Environment variables
+
+Each app and the Docker stacks ship a `.env.example`. Copy it to `.env` and fill
+in the values. See each app's README for the full description of its variables.
+
+| Scope       | Template                      | Documented in                                        |
+| ----------- | ----------------------------- | ---------------------------------------------------- |
+| REST API    | `apps/restapi/.env.example`   | [apps/restapi/README.md](apps/restapi/README.md)     |
+| Dashboard   | `apps/dashboard/.env.example` | [apps/dashboard/README.md](apps/dashboard/README.md) |
+| Mobile      | `apps/mobile/.env.example`    | [apps/mobile/README.md](apps/mobile/README.md)       |
+| Local infra | `docker/local/.env.example`   | [Local services](#local-services-docker) (below)     |
+| Prod infra  | `docker/prod/.env.example`    | `docker/prod/.env.example` (inline comments)         |
+| Notebooks   | `notebooks/.env.example`      | `notebooks/.env.example` (inline comments)           |
+
+```sh
+cp apps/restapi/.env.example   apps/restapi/.env
+cp apps/dashboard/.env.example apps/dashboard/.env
+cp apps/mobile/.env.example    apps/mobile/.env
+cp docker/local/.env.example   docker/local/.env
 ```
 
 ## Development
