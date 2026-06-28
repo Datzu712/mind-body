@@ -11,27 +11,43 @@ REST API for the MAB project, built with NestJS + Fastify.
 
 ## Environment variables
 
-Copy `.env.example` to `.env` and fill in the values:
+Copy `.env.example` to `.env` and fill in the values. The full schema (with
+defaults and validation) lives in [`src/config/env.ts`](src/config/env.ts).
+
+> The API will refuse to start if any required variable is missing or invalid.
 
 ```env
-# Database config
+# Server
+PORT=3000
+HOST=localhost
+NODE_ENV=development
+CORS_ORIGIN=http://localhost:3000          # allowed dashboard/web origin
+
+# Database & cache
 DATABASE_URL=postgresql://mab:mab@localhost/mab
 REDIS_URL=redis://:mab@localhost:6379
 
-# Keycloak config
+# Keycloak
 KC_BASE_URL=http://localhost:8080
 KC_REALM=mab
 KC_HEALTH_URL=http://localhost:9000/health
-KC_REST_API_AUDIENCE=restapi
+KC_REST_API_AUDIENCE=restapi               # audience for mobile (bearer) tokens
+KC_DASHBOARD_AUDIENCE=mab-admin            # audience for dashboard (cookie) tokens
+DASHBOARD_URL=http://localhost:3000        # dashboard frontend, for post-auth redirects
 
-## Oauth2
-
-### clients config (admin-dashboard & KC admin realm-management)
+## OAuth2 clients
+# admin-dashboard + KC admin (realm-management) — confidential client
 KC_ADMIN_CLIENT_ID=restapi
 KC_ADMIN_CLIENT_SECRET=
 
-### clients config (mobile-app)
+# mobile app — public client (PKCE)
 KC_MOBILE_CLIENT_ID=mobile
+
+# TSE Padrón Nacional fallback (operator-downloaded, NOT committed).
+# The API refuses to start if this file is missing. To obtain it:
+#   curl -O https://www.tse.go.cr/zip/padron/padron_completo.zip
+#   unzip padron_completo.zip   # → PADRON_COMPLETO.txt (~250MB, ISO-8859-1)
+PADRON_PATH=./data/PADRON_COMPLETO.txt
 ```
 
 ## Local development
