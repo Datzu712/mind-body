@@ -138,6 +138,5 @@ pnpm exec turbo link
 
 ## TODO
 
-- [ ] Separating Tauri from Next in different apps
-- [ ] Change nextj.js to vite + tanstack router/react router (because Next.js in this context is just vite with a LOT of overhead)
 - [ ] Add CD for mobile (EAS)
+- [ ] remove spanishlish from this readme 🙏🙏🙏
