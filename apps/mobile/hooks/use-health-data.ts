@@ -33,6 +33,7 @@ export function useActivityRecords() {
 }
 
 function computeStats(records: DailyActivity[], now: Date): Omit<HealthData, 'isLoading'> {
+    console.log(records);
     const today = dayKey(now);
     const weekStartKey = dayKey(startOfWeek(now));
     const monthStartKey = dayKey(startOfMonth(now));
