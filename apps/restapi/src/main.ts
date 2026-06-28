@@ -17,8 +17,6 @@ async function bootstrap(): Promise<void> {
         bufferLogs: true,
     });
 
-    //app.useGlobalInterceptors(new DelayedResponseInterceptor());
-
     await app.register(fastifyCookie);
 
     const logger = app.get(Logger);
@@ -32,6 +30,8 @@ async function bootstrap(): Promise<void> {
     });
 
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+
+    app.enableShutdownHooks();
 
     app.setGlobalPrefix('api');
     app.enableVersioning({

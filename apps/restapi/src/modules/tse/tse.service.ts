@@ -52,7 +52,7 @@ export class TseService implements OnModuleInit, OnModuleDestroy {
     }
 
     async onModuleDestroy() {
-        await this.browser?.close().catch(() => {});
+        await this.browser?.close().catch(console.error);
     }
 
     async lookup(cedula: string): Promise<TsePersonData | null> {
