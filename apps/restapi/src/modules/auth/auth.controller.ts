@@ -9,7 +9,7 @@ import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { User } from '@/infra/database/pg/schemas/schema';
 import { NodeEnv } from '@/config/env';
 
-const ALLOWED_ROLES = ['ADMIN', 'TRAINER'];
+const ALLOWED_ROLES = ['ADMIN', 'TRAINER', 'STAFF'];
 
 const COOKIE_OPTS_BASE = {
     httpOnly: true,
