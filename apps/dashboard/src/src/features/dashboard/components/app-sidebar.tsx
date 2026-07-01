@@ -8,6 +8,7 @@ import {
     UserPlus,
     IdCard,
     ClipboardCheck,
+    CalendarDays,
     Settings,
     BookOpen,
     LogOut,
@@ -77,6 +78,11 @@ const adminNavItems: { title: string; href: string; icon: LucideIcon; exact?: bo
         title: 'Mis miembros',
         href: '/dashboard/trainer/members',
         icon: UsersRound,
+    },
+    {
+        title: 'Agenda y clases',
+        href: '/dashboard/classes',
+        icon: CalendarDays,
     },
     {
         title: 'Catálogo',

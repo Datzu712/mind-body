@@ -17,6 +17,7 @@ import { Route as DashboardUsersRouteImport } from './routes/dashboard/users';
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings';
 import { Route as DashboardReportsRouteImport } from './routes/dashboard/reports';
 import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile';
+import { Route as DashboardClassesRouteImport } from './routes/dashboard/classes';
 import { Route as DashboardCatalogRouteImport } from './routes/dashboard/catalog';
 import { Route as DashboardBackupsRouteImport } from './routes/dashboard/backups';
 import { Route as DashboardAuditRouteImport } from './routes/dashboard/audit';
@@ -69,6 +70,11 @@ const DashboardReportsRoute = DashboardReportsRouteImport.update({
 const DashboardProfileRoute = DashboardProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => DashboardRouteRoute,
+} as any);
+const DashboardClassesRoute = DashboardClassesRouteImport.update({
+  id: '/classes',
+  path: '/classes',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
 const DashboardCatalogRoute = DashboardCatalogRouteImport.update({
@@ -148,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/audit': typeof DashboardAuditRoute;
   '/dashboard/backups': typeof DashboardBackupsRoute;
   '/dashboard/catalog': typeof DashboardCatalogRoute;
+  '/dashboard/classes': typeof DashboardClassesRoute;
   '/dashboard/profile': typeof DashboardProfileRoute;
   '/dashboard/reports': typeof DashboardReportsRoute;
   '/dashboard/settings': typeof DashboardSettingsRoute;
@@ -170,6 +177,7 @@ export interface FileRoutesByTo {
   '/dashboard/audit': typeof DashboardAuditRoute;
   '/dashboard/backups': typeof DashboardBackupsRoute;
   '/dashboard/catalog': typeof DashboardCatalogRoute;
+  '/dashboard/classes': typeof DashboardClassesRoute;
   '/dashboard/profile': typeof DashboardProfileRoute;
   '/dashboard/reports': typeof DashboardReportsRoute;
   '/dashboard/settings': typeof DashboardSettingsRoute;
@@ -193,6 +201,7 @@ export interface FileRoutesById {
   '/dashboard/audit': typeof DashboardAuditRoute;
   '/dashboard/backups': typeof DashboardBackupsRoute;
   '/dashboard/catalog': typeof DashboardCatalogRoute;
+  '/dashboard/classes': typeof DashboardClassesRoute;
   '/dashboard/profile': typeof DashboardProfileRoute;
   '/dashboard/reports': typeof DashboardReportsRoute;
   '/dashboard/settings': typeof DashboardSettingsRoute;
@@ -218,6 +227,7 @@ export interface FileRouteTypes {
     | '/dashboard/audit'
     | '/dashboard/backups'
     | '/dashboard/catalog'
+    | '/dashboard/classes'
     | '/dashboard/profile'
     | '/dashboard/reports'
     | '/dashboard/settings'
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/dashboard/audit'
     | '/dashboard/backups'
     | '/dashboard/catalog'
+    | '/dashboard/classes'
     | '/dashboard/profile'
     | '/dashboard/reports'
     | '/dashboard/settings'
@@ -262,6 +273,7 @@ export interface FileRouteTypes {
     | '/dashboard/audit'
     | '/dashboard/backups'
     | '/dashboard/catalog'
+    | '/dashboard/classes'
     | '/dashboard/profile'
     | '/dashboard/reports'
     | '/dashboard/settings'
@@ -341,6 +353,13 @@ declare module '@tanstack/react-router' {
       path: '/profile';
       fullPath: '/dashboard/profile';
       preLoaderRoute: typeof DashboardProfileRouteImport;
+      parentRoute: typeof DashboardRouteRoute;
+    };
+    '/dashboard/classes': {
+      id: '/dashboard/classes';
+      path: '/classes';
+      fullPath: '/dashboard/classes';
+      preLoaderRoute: typeof DashboardClassesRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
     '/dashboard/catalog': {
@@ -459,6 +478,7 @@ interface DashboardRouteRouteChildren {
   DashboardAuditRoute: typeof DashboardAuditRoute;
   DashboardBackupsRoute: typeof DashboardBackupsRoute;
   DashboardCatalogRoute: typeof DashboardCatalogRoute;
+  DashboardClassesRoute: typeof DashboardClassesRoute;
   DashboardProfileRoute: typeof DashboardProfileRoute;
   DashboardReportsRoute: typeof DashboardReportsRoute;
   DashboardSettingsRoute: typeof DashboardSettingsRoute;
@@ -475,6 +495,7 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardAuditRoute: DashboardAuditRoute,
   DashboardBackupsRoute: DashboardBackupsRoute,
   DashboardCatalogRoute: DashboardCatalogRoute,
+  DashboardClassesRoute: DashboardClassesRoute,
   DashboardProfileRoute: DashboardProfileRoute,
   DashboardReportsRoute: DashboardReportsRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
