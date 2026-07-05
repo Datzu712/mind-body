@@ -14,33 +14,53 @@ import { useEffect } from 'react';
 
 const queryClient = new QueryClient();
 
-onlineManager.setEventListener((setOnline) => {
-    let initialised = false;
+let networkListenerRegistered = false;
 
-    const eventSubscription = Network.addNetworkStateListener((state) => {
-        initialised = true;
-        setOnline(!!state.isConnected);
-    });
+function registerNetworkListener() {
+    if (networkListenerRegistered) return;
+    networkListenerRegistered = true;
 
-    Network.getNetworkStateAsync()
-        .then((state) => {
-            if (!initialised) {
-                setOnline(!!state.isConnected);
-            }
-        })
-        .catch(() => {
-            // getNetworkStateAsync can reject on some platforms/SDK versions
+    onlineManager.setEventListener((setOnline) => {
+        let initialised = false;
+
+        const eventSubscription = Network.addNetworkStateListener((state) => {
+            initialised = true;
+            setOnline(!!state.isConnected);
         });
 
-    return eventSubscription.remove;
-});
+        Network.getNetworkStateAsync()
+            .then((state) => {
+                if (!initialised) {
+                    setOnline(!!state.isConnected);
+                }
+            })
+            .catch(() => {
+                // getNetworkStateAsync can reject on some platforms/SDK versions
+            });
+
+        return eventSubscription.remove;
+    });
+}
+
+function warmUpBrowser() {
+    WebBrowser.warmUpAsync().catch(() => {
+        // Browser warm-up is opportunistic and unavailable on some targets.
+    });
+}
+
+function coolDownBrowser() {
+    WebBrowser.coolDownAsync().catch(() => {
+        // Browser cool-down is also best-effort.
+    });
+}
 
 export default function RootLayout() {
     useEffect(() => {
-        WebBrowser.warmUpAsync();
+        registerNetworkListener();
+        warmUpBrowser();
 
         return () => {
-            WebBrowser.coolDownAsync();
+            coolDownBrowser();
         };
     }, []);
 
@@ -76,6 +96,7 @@ function RootNavigator() {
 
             <Stack.Protected guard={!!session}>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="(reservations)" options={{ headerShown: false }} />
                 <Stack.Screen name="(settings)" options={{ headerShown: false }} />
                 <Stack.Screen name="(measurements)" options={{ headerShown: false }} />
                 <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
