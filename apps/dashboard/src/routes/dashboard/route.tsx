@@ -7,6 +7,23 @@ import { AUTH_QUERY_KEY } from '@/hooks/use-auth';
 
 export const Route = createFileRoute('/dashboard')({
     beforeLoad: async ({ context, location }) => {
+        // DEV-ONLY: bypass auth so the UI can be reviewed without a running backend.
+        // import.meta.env.DEV is statically false in production builds (vite build).
+        if (import.meta.env.DEV) {
+            const mockUser: AuthUser = {
+                id: 'dev-user',
+                keycloakSubject: 'dev-kc-subject',
+                fullName: 'Dev User',
+                phone: null,
+                status: 'active',
+                roles: ['admin'],
+            };
+            // Seed the QueryClient so useAuth() finds the mock in cache
+            // and never fires a network request against /api/v1/auth/me.
+            context.queryClient.setQueryData(AUTH_QUERY_KEY, mockUser);
+            return { user: mockUser };
+        }
+
         // Try to fetch auth — if 401, redirect to backend login
         try {
             const user = await context.queryClient.ensureQueryData({

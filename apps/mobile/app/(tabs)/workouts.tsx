@@ -1,172 +1,265 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+
 import { FitColors as T } from '@/constants/theme';
+import { TRAINING_EXERCISES, type ExerciseCategory, type TrainingExercise } from '@/components/training/mock-training';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+type Mode = 'member' | 'trainer';
+type Filter = 'Todas' | ExerciseCategory;
 
-type Exercise = {
-    nm: string;
-    ms: string;
-    sets: string;
-    reps: string;
-    lv: string;
-    ac: string;
-    em: string;
-};
+const FILTERS: Filter[] = ['Todas', 'Fuerza', 'Cardio', 'Movilidad'];
 
-type CategoryId = 'fuerza' | 'cardio' | 'flexibilidad';
-
-// ── Data ─────────────────────────────────────────────────────────────────────
-
-const CATEGORIES: { id: CategoryId; label: string; icon: string }[] = [
-    { id: 'fuerza', label: 'FUERZA', icon: '🏋️' },
-    { id: 'cardio', label: 'CARDIO', icon: '🏃' },
-    { id: 'flexibilidad', label: 'FLEXIB.', icon: '🧘' },
-];
-
-const EXERCISES: Record<CategoryId, Exercise[]> = {
-    fuerza: [
-        { nm: 'Press de Banca', ms: 'Pecho', sets: '4', reps: '10', lv: 'AVANZADO', ac: T.orange, em: '🏋️' },
-        { nm: 'Peso Muerto', ms: 'Espalda baja', sets: '4', reps: '6', lv: 'AVANZADO', ac: T.red, em: '⚡' },
-        { nm: 'Sentadilla', ms: 'Cuádriceps', sets: '4', reps: '8', lv: 'AVANZADO', ac: '#FF9500', em: '🔥' },
-        { nm: 'Press Militar', ms: 'Hombros', sets: '3', reps: '10', lv: 'INTERMEDIO', ac: T.purple, em: '💥' },
-        { nm: 'Dominadas', ms: 'Espalda', sets: '3', reps: 'Máx.', lv: 'AVANZADO', ac: T.blue, em: '🎯' },
-        { nm: 'Fondos en Paralelas', ms: 'Tríceps', sets: '3', reps: '12', lv: 'INTERMEDIO', ac: T.green, em: '✊' },
-    ],
-    cardio: [
-        { nm: 'Carrera HIIT', ms: 'Full Body', sets: '8', reps: '30s', lv: 'INTENSO', ac: T.yellow, em: '🏃' },
-        { nm: 'Salto de Cuerda', ms: 'Cardio', sets: '5', reps: '2min', lv: 'MODERADO', ac: T.orange, em: '⚡' },
-        { nm: 'Box Jumps', ms: 'Piernas', sets: '4', reps: '15', lv: 'INTENSO', ac: T.red, em: '🦘' },
-        { nm: 'Burpees', ms: 'Full Body', sets: '4', reps: '20', lv: 'INTENSO', ac: '#FF9500', em: '🔥' },
-        { nm: 'Ciclismo Indoor', ms: 'Cardio', sets: '1', reps: '45min', lv: 'MODERADO', ac: T.green, em: '🚴' },
-    ],
-    flexibilidad: [
-        { nm: 'Hip Flexor Stretch', ms: 'Caderas', sets: '3', reps: '60s', lv: 'BÁSICO', ac: '#64D2FF', em: '🧘' },
-        { nm: 'Isquiotibiales', ms: 'Piernas', sets: '3', reps: '45s', lv: 'BÁSICO', ac: T.green, em: '🌊' },
-        { nm: 'Movilidad Hombros', ms: 'Hombros', sets: '3', reps: '30s', lv: 'BÁSICO', ac: T.purple, em: '🌀' },
-        { nm: 'Cat-Cow', ms: 'Columna', sets: '2', reps: '20', lv: 'BÁSICO', ac: '#FF9500', em: '🐱' },
-        { nm: 'Pigeon Pose', ms: 'Glúteos', sets: '2', reps: '90s', lv: 'MODERADO', ac: T.blue, em: '🕊️' },
-    ],
-};
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const Pill = ({ label, bg = T.yellow, fg = T.bg, sm }: { label: string; bg?: string; fg?: string; sm?: boolean }) => (
-    <View
-        style={{
-            backgroundColor: bg,
-            borderRadius: 5,
-            paddingHorizontal: sm ? 6 : 8,
-            paddingVertical: sm ? 2 : 3,
-            alignSelf: 'flex-start',
-        }}
-    >
-        <Text
-            style={{
-                color: fg,
-                fontSize: sm ? 9 : 10,
-                fontWeight: '800',
-                letterSpacing: 0.4,
-                textTransform: 'uppercase',
-            }}
-        >
+const Pill = ({ label, bg = T.yellow, fg = T.bg }: { label: string; bg?: string; fg?: string }) => (
+    <View style={[s.pill, { backgroundColor: bg }]}>
+        <Text style={[s.pillText, { color: fg }]} numberOfLines={1}>
             {label}
         </Text>
     </View>
 );
 
-// ── Screen ────────────────────────────────────────────────────────────────────
+function ExerciseCard({
+    exercise,
+    selected,
+    onPress,
+}: {
+    exercise: TrainingExercise;
+    selected: boolean;
+    onPress: () => void;
+}) {
+    return (
+        <TouchableOpacity
+            activeOpacity={0.82}
+            onPress={onPress}
+            style={[s.exerciseCard, selected && { borderColor: exercise.accent + '99' }]}
+        >
+            <View style={[s.exerciseIcon, { backgroundColor: exercise.accent + '22' }]}>
+                <Ionicons name="barbell-outline" size={20} color={exercise.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+                <View style={s.cardTop}>
+                    <Text style={s.exerciseName} numberOfLines={1}>
+                        {exercise.name}
+                    </Text>
+                    <Pill label={exercise.level} bg={exercise.accent + '22'} fg={exercise.accent} />
+                </View>
+                <Text style={s.exerciseMeta}>{exercise.muscleGroup}</Text>
+                <View style={s.chipsRow}>
+                    <View style={s.chip}>
+                        <Text style={s.chipLabel}>Series</Text>
+                        <Text style={s.chipValue}>{exercise.sets}</Text>
+                    </View>
+                    <View style={s.chip}>
+                        <Text style={s.chipLabel}>Reps</Text>
+                        <Text style={s.chipValue}>{exercise.reps}</Text>
+                    </View>
+                </View>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={T.muted} />
+        </TouchableOpacity>
+    );
+}
+
+function ExerciseDetail({ exercise, mode }: { exercise: TrainingExercise; mode: Mode }) {
+    const [published, setPublished] = useState(false);
+
+    return (
+        <View style={s.detailCard}>
+            <View style={s.detailHead}>
+                <View style={[s.detailIcon, { backgroundColor: exercise.accent + '22' }]}>
+                    <Ionicons name="fitness-outline" size={22} color={exercise.accent} />
+                </View>
+                <View style={{ flex: 1 }}>
+                    <Text style={s.detailEyebrow}>{exercise.category}</Text>
+                    <Text style={s.detailTitle}>{exercise.name}</Text>
+                    <Text style={s.detailSub}>
+                        {exercise.equipment} - {exercise.rest} descanso
+                    </Text>
+                </View>
+            </View>
+
+            <View style={s.metricGrid}>
+                {[
+                    ['Grupo', exercise.muscleGroup],
+                    ['Carga', exercise.load],
+                    ['Nivel', exercise.level],
+                ].map(([label, value]) => (
+                    <View key={label} style={s.metricBox}>
+                        <Text style={s.metricLabel}>{label}</Text>
+                        <Text style={s.metricValue} numberOfLines={1}>
+                            {value}
+                        </Text>
+                    </View>
+                ))}
+            </View>
+
+            <Text style={s.sectionTitle}>Instrucciones</Text>
+            <View style={{ gap: 8 }}>
+                {exercise.instructions.map((instruction, index) => (
+                    <View key={instruction} style={s.instructionRow}>
+                        <Text style={[s.instructionIndex, { color: exercise.accent }]}>{index + 1}</Text>
+                        <Text style={s.instructionText}>{instruction}</Text>
+                    </View>
+                ))}
+            </View>
+
+            {mode === 'member' ? (
+                <>
+                    <Text style={s.sectionTitle}>Ultima ejecucion</Text>
+                    {exercise.lastExecution ? (
+                        <View style={s.historyCard}>
+                            <Text style={s.historyDate}>{exercise.lastExecution.date}</Text>
+                            <Text style={s.historyValue}>
+                                {exercise.lastExecution.load} - {exercise.lastExecution.reps}
+                            </Text>
+                            <Text style={s.historyNote}>{exercise.lastExecution.note}</Text>
+                        </View>
+                    ) : (
+                        <Text style={s.emptyInline}>Todavia no hay historial para este ejercicio.</Text>
+                    )}
+                </>
+            ) : (
+                <>
+                    <Text style={s.sectionTitle}>Gestion de catalogo</Text>
+                    <View style={s.formGrid}>
+                        <TextInput value={String(exercise.sets)} style={s.smallInput} placeholderTextColor={T.muted} />
+                        <TextInput value={exercise.reps} style={s.smallInput} placeholderTextColor={T.muted} />
+                        <TextInput value={exercise.load} style={s.smallInput} placeholderTextColor={T.muted} />
+                    </View>
+                    <TouchableOpacity
+                        activeOpacity={0.86}
+                        onPress={() => setPublished(true)}
+                        style={[s.primaryAction, published && { backgroundColor: T.green }]}
+                    >
+                        <Ionicons
+                            name={published ? 'checkmark-circle' : 'cloud-upload-outline'}
+                            size={17}
+                            color={T.bg}
+                        />
+                        <Text style={s.primaryActionText}>
+                            {published ? 'Cambio publicado' : 'Actualizar ejercicio'}
+                        </Text>
+                    </TouchableOpacity>
+                </>
+            )}
+        </View>
+    );
+}
 
 export default function WorkoutsScreen() {
-    const [cat, setCat] = useState<CategoryId>('fuerza');
-    const list = EXERCISES[cat];
+    const [mode, setMode] = useState<Mode>('member');
+    const [query, setQuery] = useState('');
+    const [filter, setFilter] = useState<Filter>('Todas');
+    const [selectedId, setSelectedId] = useState(TRAINING_EXERCISES[0].id);
+
+    const filtered = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        return TRAINING_EXERCISES.filter((exercise) => {
+            const matchesFilter = filter === 'Todas' || exercise.category === filter;
+            const matchesQuery =
+                !q ||
+                exercise.name.toLowerCase().includes(q) ||
+                exercise.muscleGroup.toLowerCase().includes(q) ||
+                exercise.equipment.toLowerCase().includes(q);
+            return matchesFilter && matchesQuery;
+        });
+    }, [filter, query]);
+
+    const selected = TRAINING_EXERCISES.find((exercise) => exercise.id === selectedId) ?? TRAINING_EXERCISES[0];
 
     return (
         <SafeAreaView style={s.root} edges={['top']}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
-                {/* Header */}
                 <View style={s.header}>
-                    <Text style={s.eyebrow}>CATÁLOGO</Text>
+                    <Text style={s.eyebrow}>{mode === 'member' ? 'Catalogo miembro' : 'Catalogo entrenador'}</Text>
                     <Text style={s.title}>EJERCICIOS</Text>
                 </View>
 
-                {/* Search bar (visual) */}
-                <View style={s.px}>
-                    <View style={s.searchBar}>
-                        <Ionicons name="search" size={15} color={T.muted} />
-                        <Text style={s.searchPlaceholder}>Buscar ejercicio...</Text>
-                    </View>
-                </View>
-
-                {/* Category tabs */}
-                <View style={s.catRow}>
-                    {CATEGORIES.map((c) => {
-                        const active = cat === c.id;
+                <View style={s.modeRow}>
+                    {(['member', 'trainer'] as const).map((item) => {
+                        const active = mode === item;
                         return (
                             <TouchableOpacity
-                                key={c.id}
-                                style={[s.catTab, active && s.catTabActive]}
-                                onPress={() => setCat(c.id)}
-                                activeOpacity={0.75}
+                                key={item}
+                                onPress={() => setMode(item)}
+                                style={[s.modeButton, active && s.modeButtonActive]}
                             >
-                                <Text style={s.catIcon}>{c.icon}</Text>
-                                <Text style={[s.catLabel, active && s.catLabelActive]}>{c.label}</Text>
+                                <Ionicons
+                                    name={item === 'member' ? 'person-outline' : 'construct-outline'}
+                                    size={15}
+                                    color={active ? T.bg : T.muted}
+                                />
+                                <Text style={[s.modeText, active && s.modeTextActive]}>
+                                    {item === 'member' ? 'Miembro' : 'Entrenador'}
+                                </Text>
                             </TouchableOpacity>
                         );
                     })}
                 </View>
 
-                {/* Exercise list */}
-                <View style={[s.px, { gap: 10 }]}>
-                    {list.map((ex, i) => (
-                        <TouchableOpacity key={`${cat}-${i}`} style={s.exCard} activeOpacity={0.8}>
-                            {/* Emoji icon */}
-                            <View style={[s.exIcon, { backgroundColor: ex.ac + '22', borderColor: ex.ac + '44' }]}>
-                                <Text style={{ fontSize: 22 }}>{ex.em}</Text>
-                            </View>
+                <View style={s.searchWrap}>
+                    <View style={s.search}>
+                        <Ionicons name="search" size={18} color={T.muted} />
+                        <TextInput
+                            value={query}
+                            onChangeText={setQuery}
+                            placeholder="Buscar ejercicio, musculo o equipo"
+                            placeholderTextColor={T.muted}
+                            style={s.searchInput}
+                            returnKeyType="search"
+                        />
+                        {query.length > 0 ? (
+                            <TouchableOpacity onPress={() => setQuery('')} accessibilityLabel="Limpiar busqueda">
+                                <Ionicons name="close-circle" size={18} color={T.muted} />
+                            </TouchableOpacity>
+                        ) : null}
+                    </View>
+                </View>
 
-                            {/* Info */}
-                            <View style={{ flex: 1 }}>
-                                <View style={s.exTopRow}>
-                                    <Text style={s.exName} numberOfLines={1}>
-                                        {ex.nm}
-                                    </Text>
-                                    <Pill label={ex.lv} bg={ex.ac + '22'} fg={ex.ac} sm />
-                                </View>
-                                <Text style={s.exMuscle}>{ex.ms}</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.filterRow}>
+                    {FILTERS.map((item) => {
+                        const active = filter === item;
+                        return (
+                            <TouchableOpacity
+                                key={item}
+                                onPress={() => setFilter(item)}
+                                style={[s.filterChip, active && s.filterChipActive]}
+                            >
+                                <Text style={[s.filterText, active && s.filterTextActive]}>{item}</Text>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
 
-                                {/* Sets / Reps chips */}
-                                <View style={s.chipsRow}>
-                                    {[
-                                        ['SERIES', ex.sets],
-                                        ['REPS', ex.reps],
-                                    ].map(([lbl, val], j) => (
-                                        <View key={j} style={s.chip}>
-                                            <Text style={s.chipLabel}>{lbl}</Text>
-                                            <Text style={s.chipVal}>{val}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            </View>
+                <View style={s.secHead}>
+                    <Text style={s.secTitle}>{mode === 'member' ? 'Catalogo disponible' : 'Gestion del catalogo'}</Text>
+                    <Text style={s.secRight}>{filtered.length} resultados</Text>
+                </View>
 
-                            <Ionicons name="chevron-forward" size={16} color={T.muted} />
-                        </TouchableOpacity>
+                <View style={s.listStack}>
+                    {filtered.map((exercise) => (
+                        <ExerciseCard
+                            key={exercise.id}
+                            exercise={exercise}
+                            selected={exercise.id === selectedId}
+                            onPress={() => setSelectedId(exercise.id)}
+                        />
                     ))}
                 </View>
+
+                <View style={s.secHead}>
+                    <Text style={s.secTitle}>Detalle</Text>
+                </View>
+                <ExerciseDetail exercise={selected} mode={mode} />
             </ScrollView>
         </SafeAreaView>
     );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
-
 const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: T.bg },
-    scroll: { paddingBottom: 28 },
-    px: { paddingHorizontal: 20 },
-
+    scroll: { paddingBottom: 32 },
     header: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 14 },
     eyebrow: {
         fontSize: 11,
@@ -177,69 +270,134 @@ const s = StyleSheet.create({
         marginBottom: 4,
     },
     title: { fontSize: 24, fontWeight: '900', color: T.white },
-
-    searchBar: {
+    modeRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 14 },
+    modeButton: {
+        flex: 1,
+        height: 42,
+        borderRadius: 10,
+        backgroundColor: T.card,
+        borderWidth: 1,
+        borderColor: T.border,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        gap: 7,
+    },
+    modeButtonActive: { backgroundColor: T.yellow, borderColor: T.yellow },
+    modeText: { color: T.muted, fontSize: 12, fontWeight: '800', textTransform: 'uppercase' },
+    modeTextActive: { color: T.bg },
+    searchWrap: { paddingHorizontal: 20 },
+    search: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
         backgroundColor: T.card,
         borderRadius: 12,
         borderWidth: 1,
         borderColor: T.border,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
         paddingHorizontal: 14,
-        paddingVertical: 11,
-        marginBottom: 14,
+        height: 48,
     },
-    searchPlaceholder: { fontSize: 13, color: T.muted, fontWeight: '500' },
-
-    catRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 14 },
-    catTab: {
-        flex: 1,
-        backgroundColor: T.card,
+    searchInput: { flex: 1, color: T.white, fontSize: 14, padding: 0 },
+    filterRow: { gap: 8, paddingHorizontal: 20, paddingTop: 14 },
+    filterChip: {
         borderRadius: 10,
-        paddingVertical: 9,
-        alignItems: 'center',
         borderWidth: 1,
         borderColor: T.border,
-        gap: 4,
+        backgroundColor: T.card,
+        paddingHorizontal: 13,
+        paddingVertical: 9,
     },
-    catTabActive: { backgroundColor: T.yellow, borderColor: T.yellow },
-    catIcon: { fontSize: 14 },
-    catLabel: { fontSize: 10, fontWeight: '800', color: T.muted, letterSpacing: 0.3, textTransform: 'uppercase' },
-    catLabelActive: { color: T.bg },
-
-    exCard: {
+    filterChipActive: { backgroundColor: T.yellow, borderColor: T.yellow },
+    filterText: { color: T.muted, fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
+    filterTextActive: { color: T.bg },
+    secHead: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingTop: 20,
+        paddingBottom: 10,
+    },
+    secTitle: { fontSize: 12, fontWeight: '800', color: T.white, letterSpacing: 1.2, textTransform: 'uppercase' },
+    secRight: { fontSize: 11, color: T.muted, fontWeight: '700' },
+    listStack: { paddingHorizontal: 20, gap: 10 },
+    exerciseCard: {
         backgroundColor: T.card,
         borderRadius: 14,
         borderWidth: 1,
         borderColor: T.border,
-        padding: 14,
+        padding: 13,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
     },
-    exIcon: {
-        width: 50,
-        height: 50,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        flexShrink: 0,
-    },
-    exTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 },
-    exName: { flex: 1, fontSize: 13, fontWeight: '700', color: T.white, marginRight: 8 },
-    exMuscle: { fontSize: 11, color: T.muted, marginBottom: 8 },
+    exerciseIcon: { width: 48, height: 48, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+    cardTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+    exerciseName: { flex: 1, color: T.white, fontSize: 14, fontWeight: '900' },
+    exerciseMeta: { color: T.muted, fontSize: 11, fontWeight: '600', marginBottom: 8 },
     chipsRow: { flexDirection: 'row', gap: 7 },
     chip: {
         backgroundColor: T.card2,
         borderRadius: 7,
-        paddingHorizontal: 9,
+        paddingHorizontal: 8,
         paddingVertical: 4,
         flexDirection: 'row',
         alignItems: 'center',
         gap: 5,
     },
-    chipLabel: { fontSize: 9, color: T.muted, fontWeight: '700', textTransform: 'uppercase' },
-    chipVal: { fontSize: 13, color: T.yellow, fontWeight: '900' },
+    chipLabel: { color: T.muted, fontSize: 9, fontWeight: '800', textTransform: 'uppercase' },
+    chipValue: { color: T.yellow, fontSize: 12, fontWeight: '900' },
+    pill: { borderRadius: 5, paddingHorizontal: 7, paddingVertical: 3, alignSelf: 'flex-start' },
+    pillText: { fontSize: 9, fontWeight: '800', textTransform: 'uppercase' },
+    detailCard: {
+        marginHorizontal: 20,
+        backgroundColor: T.card,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: T.border,
+        padding: 15,
+        gap: 12,
+    },
+    detailHead: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+    detailIcon: { width: 50, height: 50, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    detailEyebrow: { color: T.muted, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+    detailTitle: { color: T.white, fontSize: 18, fontWeight: '900', marginTop: 2 },
+    detailSub: { color: T.muted, fontSize: 12, fontWeight: '600', marginTop: 4 },
+    metricGrid: { flexDirection: 'row', gap: 8 },
+    metricBox: { flex: 1, backgroundColor: T.card2, borderRadius: 11, padding: 10 },
+    metricLabel: { color: T.muted, fontSize: 9, fontWeight: '800', textTransform: 'uppercase' },
+    metricValue: { color: T.white, fontSize: 12, fontWeight: '900', marginTop: 4 },
+    sectionTitle: { color: T.white, fontSize: 12, fontWeight: '900', letterSpacing: 1.1, textTransform: 'uppercase' },
+    instructionRow: { flexDirection: 'row', gap: 10, backgroundColor: T.card2, borderRadius: 12, padding: 10 },
+    instructionIndex: { width: 18, fontSize: 12, fontWeight: '900' },
+    instructionText: { flex: 1, color: T.muted, fontSize: 12, lineHeight: 17 },
+    historyCard: { backgroundColor: T.card2, borderRadius: 12, padding: 12 },
+    historyDate: { color: T.muted, fontSize: 10, fontWeight: '800', textTransform: 'uppercase' },
+    historyValue: { color: T.white, fontSize: 14, fontWeight: '900', marginTop: 4 },
+    historyNote: { color: T.muted, fontSize: 12, lineHeight: 17, marginTop: 4 },
+    emptyInline: { color: T.muted, fontSize: 12 },
+    formGrid: { flexDirection: 'row', gap: 8 },
+    smallInput: {
+        flex: 1,
+        height: 42,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: T.border,
+        backgroundColor: T.card2,
+        color: T.white,
+        paddingHorizontal: 10,
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    primaryAction: {
+        minHeight: 48,
+        borderRadius: 12,
+        backgroundColor: T.yellow,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        gap: 8,
+    },
+    primaryActionText: { color: T.bg, fontSize: 14, fontWeight: '900' },
 });
