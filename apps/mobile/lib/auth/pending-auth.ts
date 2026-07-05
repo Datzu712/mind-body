@@ -1,5 +1,5 @@
-import * as SecureStore from 'expo-secure-store';
 import { logger } from '../utils/log';
+import { deleteAuthStorageItem, getAuthStorageItem, setAuthStorageItem } from './storage';
 
 export type PendingAuthAction = 'login' | 'UPDATE_PASSWORD' | 'UPDATE_EMAIL' | 'CONFIGURE_TOTP';
 
@@ -18,17 +18,17 @@ const KEYS = {
 export async function savePendingAuthRequest(request: PendingAuthRequest): Promise<void> {
     logger.debug('[auth] saving pending auth request', request);
     await Promise.all([
-        SecureStore.setItemAsync(KEYS.codeVerifier, request.codeVerifier),
-        SecureStore.setItemAsync(KEYS.state, request.state ?? ''),
-        SecureStore.setItemAsync(KEYS.action, request.action),
+        setAuthStorageItem(KEYS.codeVerifier, request.codeVerifier),
+        setAuthStorageItem(KEYS.state, request.state ?? ''),
+        setAuthStorageItem(KEYS.action, request.action),
     ]);
 }
 
 export async function loadPendingAuthRequest(): Promise<PendingAuthRequest | null> {
     const [codeVerifier, state, action] = await Promise.all([
-        SecureStore.getItemAsync(KEYS.codeVerifier),
-        SecureStore.getItemAsync(KEYS.state),
-        SecureStore.getItemAsync(KEYS.action),
+        getAuthStorageItem(KEYS.codeVerifier),
+        getAuthStorageItem(KEYS.state),
+        getAuthStorageItem(KEYS.action),
     ]);
 
     if (!codeVerifier) return null;
@@ -42,8 +42,8 @@ export async function loadPendingAuthRequest(): Promise<PendingAuthRequest | nul
 
 export async function clearPendingAuthRequest(): Promise<void> {
     await Promise.all([
-        SecureStore.deleteItemAsync(KEYS.codeVerifier),
-        SecureStore.deleteItemAsync(KEYS.state),
-        SecureStore.deleteItemAsync(KEYS.action),
+        deleteAuthStorageItem(KEYS.codeVerifier),
+        deleteAuthStorageItem(KEYS.state),
+        deleteAuthStorageItem(KEYS.action),
     ]);
 }

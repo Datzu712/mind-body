@@ -1,4 +1,4 @@
-import * as SecureStore from 'expo-secure-store';
+import { deleteAuthStorageItem, getAuthStorageItem, setAuthStorageItem } from './storage';
 
 export interface AuthSession {
     accessToken: string;
@@ -14,17 +14,17 @@ const KEYS = {
 
 export async function saveSession(session: AuthSession): Promise<void> {
     await Promise.all([
-        SecureStore.setItemAsync(KEYS.accessToken, session.accessToken),
-        SecureStore.setItemAsync(KEYS.refreshToken, session.refreshToken),
-        SecureStore.setItemAsync(KEYS.expiresAt, String(session.expiresAt)),
+        setAuthStorageItem(KEYS.accessToken, session.accessToken),
+        setAuthStorageItem(KEYS.refreshToken, session.refreshToken),
+        setAuthStorageItem(KEYS.expiresAt, String(session.expiresAt)),
     ]);
 }
 
 export async function loadSession(): Promise<AuthSession | null> {
     const [accessToken, refreshToken, expiresAtStr] = await Promise.all([
-        SecureStore.getItemAsync(KEYS.accessToken),
-        SecureStore.getItemAsync(KEYS.refreshToken),
-        SecureStore.getItemAsync(KEYS.expiresAt),
+        getAuthStorageItem(KEYS.accessToken),
+        getAuthStorageItem(KEYS.refreshToken),
+        getAuthStorageItem(KEYS.expiresAt),
     ]);
 
     if (!accessToken || !refreshToken || !expiresAtStr) return null;
@@ -34,8 +34,8 @@ export async function loadSession(): Promise<AuthSession | null> {
 
 export async function clearSession(): Promise<void> {
     await Promise.all([
-        SecureStore.deleteItemAsync(KEYS.accessToken),
-        SecureStore.deleteItemAsync(KEYS.refreshToken),
-        SecureStore.deleteItemAsync(KEYS.expiresAt),
+        deleteAuthStorageItem(KEYS.accessToken),
+        deleteAuthStorageItem(KEYS.refreshToken),
+        deleteAuthStorageItem(KEYS.expiresAt),
     ]);
 }
