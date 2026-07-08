@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { z } from 'zod';
 import { DashboardHeader } from '@/src/features/dashboard/components/dashboard-header';
 import { PageHeader } from '@/src/shared/components/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,12 +7,24 @@ import { CalendarDays, ClipboardList } from 'lucide-react';
 import { TrainerAgendaTab } from '@/src/features/dashboard/classes/components/TrainerAgendaTab';
 import { ClassManagementTab } from '@/src/features/dashboard/classes/components/ClassManagementTab';
 
+const classesSearchSchema = z.object({
+    tab: z.enum(['agenda', 'management']).catch('agenda'),
+    search: z.string().catch(''),
+    status: z.enum(['all', 'active', 'inactive', 'full', 'waitlist']).catch('all'),
+});
+
 export const Route = createFileRoute('/dashboard/classes')({
+    validateSearch: classesSearchSchema,
     component: ClassesPage,
 });
 
 function ClassesPage() {
-    const [activeTab, setActiveTab] = useState('agenda');
+    const { tab } = Route.useSearch();
+    const navigate = Route.useNavigate();
+
+    const handleTabChange = (value: string) => {
+        navigate({ search: (prev) => ({ ...prev, tab: value as any }), replace: true });
+    };
 
     return (
         <>
@@ -24,7 +36,7 @@ function ClassesPage() {
                     className="mb-6"
                 />
 
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-6">
+                <Tabs value={tab} onValueChange={handleTabChange} className="gap-6">
                     <TabsList className="bg-secondary/50 border border-border">
                         <TabsTrigger value="agenda">
                             <CalendarDays className="h-4 w-4" />
