@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { DateField } from '@/components/ui/date-field';
 import { cn, formatDate } from '@/lib/utils';
+import { useAuth, canManageMembers } from '@/hooks/use-auth';
 import type { DniType, ProfileType } from '../types';
 import { useCreateUser, useTseLookup, type TsePersonData } from '../hooks';
 
@@ -105,6 +106,8 @@ export function CreateUserModal({ open, onOpenChange }: CreateUserModalProps) {
     const createUser = useCreateUser();
     const rawDni = dni.replace(/\D/g, '');
     const tseLookup = useTseLookup(rawDni);
+    const { user: authUser, isLoading: authLoading } = useAuth();
+    const canAddMember = canManageMembers(authUser?.roles);
 
     // Clears everything captured in step 2 (TSE autocomplete + profile choice).
     // Called whenever the document changes so a stale lookup never carries over.
@@ -374,12 +377,18 @@ export function CreateUserModal({ open, onOpenChange }: CreateUserModalProps) {
 
                         <Field label="Perfil inicial" full>
                             {(id) => (
-                                <Select value={profileType} onValueChange={(v) => setProfileType(v as ProfileType)}>
+                                <Select
+                                    value={profileType}
+                                    onValueChange={(v) => setProfileType(v as ProfileType)}
+                                    disabled={authLoading}
+                                >
                                     <SelectTrigger id={id} className="w-full bg-secondary/50 border-border">
-                                        <SelectValue placeholder="Seleccionar tipo..." />
+                                        <SelectValue
+                                            placeholder={authLoading ? 'Cargando permisos...' : 'Seleccionar tipo...'}
+                                        />
                                     </SelectTrigger>
                                     <SelectContent className="bg-popover border-border">
-                                        <SelectItem value="MEMBER">Miembro</SelectItem>
+                                        {canAddMember && <SelectItem value="MEMBER">Miembro</SelectItem>}
                                         <SelectItem value="TRAINER">Entrenador</SelectItem>
                                         <SelectItem value="STAFF">Staff</SelectItem>
                                     </SelectContent>

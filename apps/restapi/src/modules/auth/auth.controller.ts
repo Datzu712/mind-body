@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Query, Res, Req, UnauthorizedException, Logger } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { randomBytes } from 'crypto';
+import { decodeJwt } from 'jose';
 
 import { Public } from '@/modules/auth/decorators/public-endpoint.decorator';
 import { TypedConfigService } from '@/config/typed-config.service';
@@ -8,8 +9,7 @@ import { OidcService } from './oidc.service';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import type { User } from '@/infra/database/pg/schemas/schema';
 import { NodeEnv } from '@/config/env';
-
-const ALLOWED_ROLES = ['ADMIN', 'TRAINER', 'STAFF'];
+import { DASHBOARD_ROLES, extractRealmRoles } from '@/common/constant/roles.constant';
 
 const COOKIE_OPTS_BASE = {
     httpOnly: true,
@@ -21,11 +21,6 @@ interface OAuthStateCookie {
     codeVerifier: string;
     state: string;
     redirect: string;
-}
-
-interface JwtPayload {
-    sub: string;
-    realm_access?: { roles?: string[] };
 }
 
 @Controller({
@@ -111,21 +106,13 @@ export class AuthController {
             throw new UnauthorizedException('Token exchange failed — missing tokens.');
         }
 
-        // Decode the access token to get the user's roles
-        const tokenParts = accessToken.split('.');
-        if (!tokenParts[1]) {
-            throw new UnauthorizedException('Invalid access token format.');
-        }
-        const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString('utf8')) as JwtPayload;
+        const payload = decodeJwt(accessToken);
+        const realmRoles = extractRealmRoles(payload);
 
-        const sub = payload.sub;
-        const realmRoles = payload.realm_access?.roles ?? [];
-
-        // Check if user has ALLOWED role
-        const hasAllowedRole = realmRoles.some((role) => ALLOWED_ROLES.includes(role));
+        const hasAllowedRole = realmRoles.some((role) => DASHBOARD_ROLES.includes(role));
 
         if (!hasAllowedRole) {
-            this.logger.warn(`User ${sub} denied dashboard access — roles: ${realmRoles.join(', ')}`);
+            this.logger.warn(`User ${payload.sub} denied dashboard access — roles: ${realmRoles.join(', ')}`);
             return reply.redirect(`${this.dashboardUrl}/auth/forbidden`, 302);
         }
 
@@ -149,22 +136,6 @@ export class AuthController {
 
     @Get('me')
     me(@CurrentUser() user: User, @Req() request: FastifyRequest) {
-        const accessToken = request.cookies?.access_token;
-        let roles: string[] = [];
-
-        if (accessToken) {
-            try {
-                const payload = JSON.parse(
-                    Buffer.from(accessToken.split('.')[1]!, 'base64').toString('utf8'),
-                ) as JwtPayload;
-                roles = (payload.realm_access?.roles ?? []).filter(
-                    (r) => !r.startsWith('default-roles-') && r !== 'offline_access' && r !== 'uma_authorization',
-                );
-            } catch {
-                // If decode fails, roles remain empty
-            }
-        }
-
         return {
             id: user.id,
             keycloakSubject: user.keycloakSubject,
@@ -172,7 +143,7 @@ export class AuthController {
             email: user.email,
             phone: user.phone,
             status: user.status,
-            roles,
+            roles: request.roles ?? [],
         };
     }
 

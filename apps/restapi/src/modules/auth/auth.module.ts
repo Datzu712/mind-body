@@ -1,4 +1,5 @@
 import { HybridAuthGuard } from '@/modules/auth/guards/hybrid-auth.guard';
+import { RolesGuard } from '@/modules/auth/guards/roles.guard';
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthService } from '@/modules/auth/guards/auth.service';
@@ -16,6 +17,11 @@ import { OidcService } from './oidc.service';
         {
             provide: APP_GUARD,
             useClass: HybridAuthGuard,
+        },
+        {
+            // Runs after HybridAuthGuard (registration order), which populates request.roles
+            provide: APP_GUARD,
+            useClass: RolesGuard,
         },
     ],
     exports: [AuthService, OidcService],

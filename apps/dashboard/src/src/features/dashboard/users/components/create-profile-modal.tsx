@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { DateField } from '@/components/ui/date-field';
 import { sileo } from 'sileo';
+import { useAuth, canManageMembers } from '@/hooks/use-auth';
 import type { ProfileType } from '../types';
 import { useCreateProfile } from '../hooks';
 
@@ -27,6 +28,12 @@ const PROFILE_TYPE_LABELS: Record<ProfileType, string> = {
     STAFF: 'Staff',
 };
 
+// A suggested/preselected type only sticks if the viewer is actually allowed to assign it.
+function resolveInitialProfileType(suggestedType: ProfileType | undefined, canAddMember: boolean): ProfileType | '' {
+    if (!suggestedType) return '';
+    return suggestedType !== 'MEMBER' || canAddMember ? suggestedType : '';
+}
+
 export function CreateProfileModal({
     open,
     onOpenChange,
@@ -35,8 +42,14 @@ export function CreateProfileModal({
     suggestedType,
     availableTypes,
 }: CreateProfileModalProps) {
-    const [profileType, setProfileType] = useState<ProfileType | ''>(suggestedType || '');
-    const typeOptions = availableTypes ?? (['MEMBER', 'TRAINER', 'STAFF'] as ProfileType[]);
+    const { user: authUser, isLoading: authLoading } = useAuth();
+    const canAddMember = canManageMembers(authUser?.roles);
+    const typeOptions = (availableTypes ?? (['MEMBER', 'TRAINER', 'STAFF'] as ProfileType[])).filter(
+        (t) => t !== 'MEMBER' || canAddMember,
+    );
+    const [profileType, setProfileType] = useState<ProfileType | ''>(
+        resolveInitialProfileType(suggestedType, canAddMember),
+    );
     const formRef = useRef<HTMLFormElement>(null);
     const createProfile = useCreateProfile(userId);
 
@@ -66,7 +79,7 @@ export function CreateProfileModal({
                         profileType === 'MEMBER' ? 'miembro' : profileType === 'TRAINER' ? 'entrenador' : 'staff';
                     sileo.success({ title: `Perfil de ${label} creado exitosamente` });
                     onOpenChange(false);
-                    setProfileType(suggestedType || '');
+                    setProfileType(resolveInitialProfileType(suggestedType, canAddMember));
                     form.reset();
                 },
                 onError: (error) => {
@@ -91,18 +104,30 @@ export function CreateProfileModal({
                 <form ref={formRef} onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
                     <div className="col-span-2 flex flex-col gap-1.5">
                         <Label className="text-sm font-medium">Tipo de perfil</Label>
-                        <Select value={profileType} onValueChange={(v) => setProfileType(v as ProfileType)}>
-                            <SelectTrigger className="w-full bg-secondary/50 border-border">
-                                <SelectValue placeholder="Seleccionar tipo..." />
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover border-border">
-                                {typeOptions.map((type) => (
-                                    <SelectItem key={type} value={type}>
-                                        {PROFILE_TYPE_LABELS[type]}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        {typeOptions.length === 0 && !authLoading ? (
+                            <p className="text-sm text-muted-foreground">
+                                Tu rol no puede agregar ninguno de los perfiles disponibles para este usuario.
+                            </p>
+                        ) : (
+                            <Select
+                                value={profileType}
+                                onValueChange={(v) => setProfileType(v as ProfileType)}
+                                disabled={authLoading || typeOptions.length === 0}
+                            >
+                                <SelectTrigger className="w-full bg-secondary/50 border-border">
+                                    <SelectValue
+                                        placeholder={authLoading ? 'Cargando permisos...' : 'Seleccionar tipo...'}
+                                    />
+                                </SelectTrigger>
+                                <SelectContent className="bg-popover border-border">
+                                    {typeOptions.map((type) => (
+                                        <SelectItem key={type} value={type}>
+                                            {PROFILE_TYPE_LABELS[type]}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
                     </div>
 
                     <Separator className="col-span-2" />

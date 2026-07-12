@@ -8,8 +8,7 @@ import {
 } from '@nestjs/common';
 import KcAdminClient from '@keycloak/keycloak-admin-client';
 import { TypedConfigService } from '@/config/typed-config.service';
-
-export type APPLICATION_ROLE = 'MEMBER' | 'TRAINER' | 'ADMIN' | 'STAFF';
+import { APP_ROLES, type AppRole } from '@/common/constant/roles.constant';
 
 @Injectable()
 export class KeycloakAdminService implements OnModuleInit, OnModuleDestroy {
@@ -118,12 +117,10 @@ export class KeycloakAdminService implements OnModuleInit, OnModuleDestroy {
             throw new InternalServerErrorException(`Cannot seed roles: not authenticated with Keycloak`);
         }
 
-        const REQUIRED_ROLES: APPLICATION_ROLE[] = ['ADMIN', 'MEMBER', 'TRAINER', 'STAFF'];
-
         const existing = await this.kcClient.roles.find();
         const existingNames = new Set(existing.map((r) => r.name));
 
-        for (const role of REQUIRED_ROLES) {
+        for (const role of APP_ROLES) {
             if (!existingNames.has(role)) {
                 await this.kcClient.roles.create({ name: role });
                 this.logger.log(`Created realm role: ${role}`);
@@ -158,7 +155,7 @@ export class KeycloakAdminService implements OnModuleInit, OnModuleDestroy {
         return id;
     }
 
-    async assignRole(userId: string, roleName: APPLICATION_ROLE) {
+    async assignRole(userId: string, roleName: AppRole) {
         this.assertAuthenticated();
 
         const role = await this.kcClient.roles.findOneByName({ name: roleName });

@@ -12,6 +12,12 @@ export interface AuthUser {
 
 export const AUTH_QUERY_KEY = ['auth', 'me'] as const;
 
+// Trainers can do everything ADMIN/STAFF can except add a MEMBER — single source
+// of truth for that check so it can't drift between the different creation flows.
+export function canManageMembers(roles: string[] | undefined): boolean {
+    return roles?.some((r) => r === 'ADMIN' || r === 'STAFF') ?? false;
+}
+
 export function useAuth() {
     const queryClient = useQueryClient();
 
