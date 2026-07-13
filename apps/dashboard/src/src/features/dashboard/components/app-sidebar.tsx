@@ -8,8 +8,10 @@ import {
     UserPlus,
     IdCard,
     ClipboardCheck,
+    CalendarDays,
     Settings,
     BookOpen,
+    Dumbbell,
     LogOut,
     type LucideIcon,
 } from 'lucide-react';
@@ -79,9 +81,19 @@ const adminNavItems: { title: string; href: string; icon: LucideIcon; exact?: bo
         icon: UsersRound,
     },
     {
+        title: 'Agenda y clases',
+        href: '/dashboard/classes',
+        icon: CalendarDays,
+    },
+    {
         title: 'Catálogo',
         href: '/dashboard/catalog',
         icon: BookOpen,
+    },
+    {
+        title: 'Rutinas',
+        href: '/dashboard/routines',
+        icon: Dumbbell,
     },
     {
         title: 'Configuración',

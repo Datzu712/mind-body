@@ -233,5 +233,80 @@ CREATE INDEX IF NOT EXISTS idx_members_status ON app.members(status);
 CREATE INDEX IF NOT EXISTS idx_trainers_status ON app.trainers(status);
 CREATE INDEX IF NOT EXISTS idx_memberships_member_status_dates ON app.memberships(member_id, status, start_date, end_date);
 CREATE INDEX IF NOT EXISTS idx_routines_trainer_status ON app.routines(trainer_id, status);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_routines_trainer_name_active ON app.routines(trainer_id, name) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_member_routines_member_status ON app.member_routines(member_id, status);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_member_routines_active ON app.member_routines(member_id, routine_id) WHERE status = 'ACTIVE' AND deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_member_measurements_member_date ON app.member_measurements(member_id, measured_at DESC);
+
+-- ENT (entrenamientos): sesiones, logs, versiones y notificaciones
+DO $$ BEGIN CREATE TYPE app.training_session_status AS ENUM ('PENDING', 'CONFIRMED', 'VALIDATED', 'EXPIRED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN CREATE TYPE app.notification_type AS ENUM ('ROUTINE_ASSIGNED', 'ROUTINE_UPDATED', 'SESSION_VALIDATED');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS app.training_sessions (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    member_routine_id UUID NOT NULL REFERENCES app.member_routines(id),
+    date DATE NOT NULL DEFAULT CURRENT_DATE,
+    status app.training_session_status NOT NULL DEFAULT 'PENDING',
+    confirmed_at TIMESTAMPTZ,
+    confirmed_by UUID REFERENCES app.users(id),
+    validated_by_trainer_id UUID REFERENCES app.trainers(id),
+    validated_at TIMESTAMPTZ,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TRIGGER trg_training_sessions_updated_at
+BEFORE UPDATE ON app.training_sessions
+FOR EACH ROW EXECUTE FUNCTION app.set_updated_at();
+
+CREATE TABLE IF NOT EXISTS app.exercise_logs (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    session_id UUID NOT NULL REFERENCES app.training_sessions(id) ON DELETE CASCADE,
+    routine_exercise_id UUID NOT NULL REFERENCES app.routine_exercises(id),
+    target_sets INTEGER,
+    target_reps VARCHAR(40),
+    target_weight_kg NUMERIC(5,2),
+    completed_sets INTEGER,
+    completed_reps_log TEXT,
+    weight_kg_actual NUMERIC(5,2),
+    notes TEXT,
+    completed BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_exercise_logs_session_routine_exercise UNIQUE (session_id, routine_exercise_id)
+);
+
+CREATE TRIGGER trg_exercise_logs_updated_at
+BEFORE UPDATE ON app.exercise_logs
+FOR EACH ROW EXECUTE FUNCTION app.set_updated_at();
+
+CREATE TABLE IF NOT EXISTS app.routine_versions (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    routine_id UUID NOT NULL REFERENCES app.routines(id) ON DELETE CASCADE,
+    version_number INTEGER NOT NULL,
+    snapshot JSONB NOT NULL,
+    changed_by UUID REFERENCES app.trainers(id),
+    change_reason TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_routine_versions_routine_version UNIQUE (routine_id, version_number)
+);
+
+CREATE TABLE IF NOT EXISTS app.notifications (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    user_id UUID NOT NULL REFERENCES app.users(id) ON DELETE CASCADE,
+    type app.notification_type NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    body TEXT,
+    payload JSONB,
+    read BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_training_sessions_member_routine_status ON app.training_sessions(member_routine_id, status);
+CREATE INDEX IF NOT EXISTS idx_exercise_logs_session_id ON app.exercise_logs(session_id);
+CREATE INDEX IF NOT EXISTS idx_routine_versions_routine_id ON app.routine_versions(routine_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON app.notifications(user_id, read);

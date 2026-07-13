@@ -15,16 +15,20 @@ import { Route as IndexRouteImport } from './routes/index';
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index';
 import { Route as DashboardUsersRouteImport } from './routes/dashboard/users';
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings';
+import { Route as DashboardRoutinesRouteImport } from './routes/dashboard/routines';
 import { Route as DashboardReportsRouteImport } from './routes/dashboard/reports';
 import { Route as DashboardProfileRouteImport } from './routes/dashboard/profile';
+import { Route as DashboardClassesRouteImport } from './routes/dashboard/classes';
 import { Route as DashboardCatalogRouteImport } from './routes/dashboard/catalog';
 import { Route as DashboardBackupsRouteImport } from './routes/dashboard/backups';
 import { Route as DashboardAuditRouteImport } from './routes/dashboard/audit';
 import { Route as AuthForbiddenRouteImport } from './routes/auth/forbidden';
 import { Route as DashboardUsersIndexRouteImport } from './routes/dashboard/users/index';
+import { Route as DashboardRoutinesIndexRouteImport } from './routes/dashboard/routines/index';
 import { Route as DashboardMembershipsIndexRouteImport } from './routes/dashboard/memberships/index';
 import { Route as DashboardMembersIndexRouteImport } from './routes/dashboard/members/index';
 import { Route as DashboardTrainerMembersRouteImport } from './routes/dashboard/trainer/members';
+import { Route as DashboardRoutinesIdRouteImport } from './routes/dashboard/routines/$id';
 import { Route as DashboardMembershipsApprovalRouteImport } from './routes/dashboard/memberships/approval';
 import { Route as DashboardMembersNewRouteImport } from './routes/dashboard/members/new';
 import { Route as DashboardUsersTrainersIdRouteImport } from './routes/dashboard/users/trainers.$id';
@@ -61,6 +65,11 @@ const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
+const DashboardRoutinesRoute = DashboardRoutinesRouteImport.update({
+  id: '/routines',
+  path: '/routines',
+  getParentRoute: () => DashboardRouteRoute,
+} as any);
 const DashboardReportsRoute = DashboardReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -69,6 +78,11 @@ const DashboardReportsRoute = DashboardReportsRouteImport.update({
 const DashboardProfileRoute = DashboardProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => DashboardRouteRoute,
+} as any);
+const DashboardClassesRoute = DashboardClassesRouteImport.update({
+  id: '/classes',
+  path: '/classes',
   getParentRoute: () => DashboardRouteRoute,
 } as any);
 const DashboardCatalogRoute = DashboardCatalogRouteImport.update({
@@ -96,6 +110,11 @@ const DashboardUsersIndexRoute = DashboardUsersIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardUsersRoute,
 } as any);
+const DashboardRoutinesIndexRoute = DashboardRoutinesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRoutinesRoute,
+} as any);
 const DashboardMembershipsIndexRoute =
   DashboardMembershipsIndexRouteImport.update({
     id: '/memberships/',
@@ -111,6 +130,11 @@ const DashboardTrainerMembersRoute = DashboardTrainerMembersRouteImport.update({
   id: '/trainer/members',
   path: '/trainer/members',
   getParentRoute: () => DashboardRouteRoute,
+} as any);
+const DashboardRoutinesIdRoute = DashboardRoutinesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => DashboardRoutinesRoute,
 } as any);
 const DashboardMembershipsApprovalRoute =
   DashboardMembershipsApprovalRouteImport.update({
@@ -148,16 +172,20 @@ export interface FileRoutesByFullPath {
   '/dashboard/audit': typeof DashboardAuditRoute;
   '/dashboard/backups': typeof DashboardBackupsRoute;
   '/dashboard/catalog': typeof DashboardCatalogRoute;
+  '/dashboard/classes': typeof DashboardClassesRoute;
   '/dashboard/profile': typeof DashboardProfileRoute;
   '/dashboard/reports': typeof DashboardReportsRoute;
+  '/dashboard/routines': typeof DashboardRoutinesRouteWithChildren;
   '/dashboard/settings': typeof DashboardSettingsRoute;
   '/dashboard/users': typeof DashboardUsersRouteWithChildren;
   '/dashboard/': typeof DashboardIndexRoute;
   '/dashboard/members/new': typeof DashboardMembersNewRoute;
   '/dashboard/memberships/approval': typeof DashboardMembershipsApprovalRoute;
+  '/dashboard/routines/$id': typeof DashboardRoutinesIdRoute;
   '/dashboard/trainer/members': typeof DashboardTrainerMembersRoute;
   '/dashboard/members/': typeof DashboardMembersIndexRoute;
   '/dashboard/memberships/': typeof DashboardMembershipsIndexRoute;
+  '/dashboard/routines/': typeof DashboardRoutinesIndexRoute;
   '/dashboard/users/': typeof DashboardUsersIndexRoute;
   '/dashboard/users/members/$id': typeof DashboardUsersMembersIdRoute;
   '/dashboard/users/staff/$id': typeof DashboardUsersStaffIdRoute;
@@ -170,15 +198,18 @@ export interface FileRoutesByTo {
   '/dashboard/audit': typeof DashboardAuditRoute;
   '/dashboard/backups': typeof DashboardBackupsRoute;
   '/dashboard/catalog': typeof DashboardCatalogRoute;
+  '/dashboard/classes': typeof DashboardClassesRoute;
   '/dashboard/profile': typeof DashboardProfileRoute;
   '/dashboard/reports': typeof DashboardReportsRoute;
   '/dashboard/settings': typeof DashboardSettingsRoute;
   '/dashboard': typeof DashboardIndexRoute;
   '/dashboard/members/new': typeof DashboardMembersNewRoute;
   '/dashboard/memberships/approval': typeof DashboardMembershipsApprovalRoute;
+  '/dashboard/routines/$id': typeof DashboardRoutinesIdRoute;
   '/dashboard/trainer/members': typeof DashboardTrainerMembersRoute;
   '/dashboard/members': typeof DashboardMembersIndexRoute;
   '/dashboard/memberships': typeof DashboardMembershipsIndexRoute;
+  '/dashboard/routines': typeof DashboardRoutinesIndexRoute;
   '/dashboard/users': typeof DashboardUsersIndexRoute;
   '/dashboard/users/members/$id': typeof DashboardUsersMembersIdRoute;
   '/dashboard/users/staff/$id': typeof DashboardUsersStaffIdRoute;
@@ -193,16 +224,20 @@ export interface FileRoutesById {
   '/dashboard/audit': typeof DashboardAuditRoute;
   '/dashboard/backups': typeof DashboardBackupsRoute;
   '/dashboard/catalog': typeof DashboardCatalogRoute;
+  '/dashboard/classes': typeof DashboardClassesRoute;
   '/dashboard/profile': typeof DashboardProfileRoute;
   '/dashboard/reports': typeof DashboardReportsRoute;
+  '/dashboard/routines': typeof DashboardRoutinesRouteWithChildren;
   '/dashboard/settings': typeof DashboardSettingsRoute;
   '/dashboard/users': typeof DashboardUsersRouteWithChildren;
   '/dashboard/': typeof DashboardIndexRoute;
   '/dashboard/members/new': typeof DashboardMembersNewRoute;
   '/dashboard/memberships/approval': typeof DashboardMembershipsApprovalRoute;
+  '/dashboard/routines/$id': typeof DashboardRoutinesIdRoute;
   '/dashboard/trainer/members': typeof DashboardTrainerMembersRoute;
   '/dashboard/members/': typeof DashboardMembersIndexRoute;
   '/dashboard/memberships/': typeof DashboardMembershipsIndexRoute;
+  '/dashboard/routines/': typeof DashboardRoutinesIndexRoute;
   '/dashboard/users/': typeof DashboardUsersIndexRoute;
   '/dashboard/users/members/$id': typeof DashboardUsersMembersIdRoute;
   '/dashboard/users/staff/$id': typeof DashboardUsersStaffIdRoute;
@@ -218,16 +253,20 @@ export interface FileRouteTypes {
     | '/dashboard/audit'
     | '/dashboard/backups'
     | '/dashboard/catalog'
+    | '/dashboard/classes'
     | '/dashboard/profile'
     | '/dashboard/reports'
+    | '/dashboard/routines'
     | '/dashboard/settings'
     | '/dashboard/users'
     | '/dashboard/'
     | '/dashboard/members/new'
     | '/dashboard/memberships/approval'
+    | '/dashboard/routines/$id'
     | '/dashboard/trainer/members'
     | '/dashboard/members/'
     | '/dashboard/memberships/'
+    | '/dashboard/routines/'
     | '/dashboard/users/'
     | '/dashboard/users/members/$id'
     | '/dashboard/users/staff/$id'
@@ -240,15 +279,18 @@ export interface FileRouteTypes {
     | '/dashboard/audit'
     | '/dashboard/backups'
     | '/dashboard/catalog'
+    | '/dashboard/classes'
     | '/dashboard/profile'
     | '/dashboard/reports'
     | '/dashboard/settings'
     | '/dashboard'
     | '/dashboard/members/new'
     | '/dashboard/memberships/approval'
+    | '/dashboard/routines/$id'
     | '/dashboard/trainer/members'
     | '/dashboard/members'
     | '/dashboard/memberships'
+    | '/dashboard/routines'
     | '/dashboard/users'
     | '/dashboard/users/members/$id'
     | '/dashboard/users/staff/$id'
@@ -262,16 +304,20 @@ export interface FileRouteTypes {
     | '/dashboard/audit'
     | '/dashboard/backups'
     | '/dashboard/catalog'
+    | '/dashboard/classes'
     | '/dashboard/profile'
     | '/dashboard/reports'
+    | '/dashboard/routines'
     | '/dashboard/settings'
     | '/dashboard/users'
     | '/dashboard/'
     | '/dashboard/members/new'
     | '/dashboard/memberships/approval'
+    | '/dashboard/routines/$id'
     | '/dashboard/trainer/members'
     | '/dashboard/members/'
     | '/dashboard/memberships/'
+    | '/dashboard/routines/'
     | '/dashboard/users/'
     | '/dashboard/users/members/$id'
     | '/dashboard/users/staff/$id'
@@ -329,6 +375,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardSettingsRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
+    '/dashboard/routines': {
+      id: '/dashboard/routines';
+      path: '/routines';
+      fullPath: '/dashboard/routines';
+      preLoaderRoute: typeof DashboardRoutinesRouteImport;
+      parentRoute: typeof DashboardRouteRoute;
+    };
     '/dashboard/reports': {
       id: '/dashboard/reports';
       path: '/reports';
@@ -341,6 +394,13 @@ declare module '@tanstack/react-router' {
       path: '/profile';
       fullPath: '/dashboard/profile';
       preLoaderRoute: typeof DashboardProfileRouteImport;
+      parentRoute: typeof DashboardRouteRoute;
+    };
+    '/dashboard/classes': {
+      id: '/dashboard/classes';
+      path: '/classes';
+      fullPath: '/dashboard/classes';
+      preLoaderRoute: typeof DashboardClassesRouteImport;
       parentRoute: typeof DashboardRouteRoute;
     };
     '/dashboard/catalog': {
@@ -378,6 +438,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardUsersIndexRouteImport;
       parentRoute: typeof DashboardUsersRoute;
     };
+    '/dashboard/routines/': {
+      id: '/dashboard/routines/';
+      path: '/';
+      fullPath: '/dashboard/routines/';
+      preLoaderRoute: typeof DashboardRoutinesIndexRouteImport;
+      parentRoute: typeof DashboardRoutinesRoute;
+    };
     '/dashboard/memberships/': {
       id: '/dashboard/memberships/';
       path: '/memberships';
@@ -398,6 +465,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/trainer/members';
       preLoaderRoute: typeof DashboardTrainerMembersRouteImport;
       parentRoute: typeof DashboardRouteRoute;
+    };
+    '/dashboard/routines/$id': {
+      id: '/dashboard/routines/$id';
+      path: '/$id';
+      fullPath: '/dashboard/routines/$id';
+      preLoaderRoute: typeof DashboardRoutinesIdRouteImport;
+      parentRoute: typeof DashboardRoutinesRoute;
     };
     '/dashboard/memberships/approval': {
       id: '/dashboard/memberships/approval';
@@ -437,6 +511,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DashboardRoutinesRouteChildren {
+  DashboardRoutinesIdRoute: typeof DashboardRoutinesIdRoute;
+  DashboardRoutinesIndexRoute: typeof DashboardRoutinesIndexRoute;
+}
+
+const DashboardRoutinesRouteChildren: DashboardRoutinesRouteChildren = {
+  DashboardRoutinesIdRoute: DashboardRoutinesIdRoute,
+  DashboardRoutinesIndexRoute: DashboardRoutinesIndexRoute,
+};
+
+const DashboardRoutinesRouteWithChildren =
+  DashboardRoutinesRoute._addFileChildren(DashboardRoutinesRouteChildren);
+
 interface DashboardUsersRouteChildren {
   DashboardUsersIndexRoute: typeof DashboardUsersIndexRoute;
   DashboardUsersMembersIdRoute: typeof DashboardUsersMembersIdRoute;
@@ -459,8 +546,10 @@ interface DashboardRouteRouteChildren {
   DashboardAuditRoute: typeof DashboardAuditRoute;
   DashboardBackupsRoute: typeof DashboardBackupsRoute;
   DashboardCatalogRoute: typeof DashboardCatalogRoute;
+  DashboardClassesRoute: typeof DashboardClassesRoute;
   DashboardProfileRoute: typeof DashboardProfileRoute;
   DashboardReportsRoute: typeof DashboardReportsRoute;
+  DashboardRoutinesRoute: typeof DashboardRoutinesRouteWithChildren;
   DashboardSettingsRoute: typeof DashboardSettingsRoute;
   DashboardUsersRoute: typeof DashboardUsersRouteWithChildren;
   DashboardIndexRoute: typeof DashboardIndexRoute;
@@ -475,8 +564,10 @@ const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
   DashboardAuditRoute: DashboardAuditRoute,
   DashboardBackupsRoute: DashboardBackupsRoute,
   DashboardCatalogRoute: DashboardCatalogRoute,
+  DashboardClassesRoute: DashboardClassesRoute,
   DashboardProfileRoute: DashboardProfileRoute,
   DashboardReportsRoute: DashboardReportsRoute,
+  DashboardRoutinesRoute: DashboardRoutinesRouteWithChildren,
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardUsersRoute: DashboardUsersRouteWithChildren,
   DashboardIndexRoute: DashboardIndexRoute,

@@ -2,6 +2,7 @@ import {
     pgSchema,
     index,
     unique,
+    uniqueIndex,
     uuid,
     varchar,
     timestamp,
@@ -11,6 +12,8 @@ import {
     check,
     integer,
     numeric,
+    jsonb,
+    boolean,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -19,6 +22,17 @@ export const membershipStatusInApp = app.enum('membership_status', ['ACTIVE', 'S
 export const recordStatusInApp = app.enum('record_status', ['ACTIVE', 'INACTIVE', 'ARCHIVED']);
 export const routineStatusInApp = app.enum('routine_status', ['DRAFT', 'ACTIVE', 'PAUSED', 'FINISHED', 'ARCHIVED']);
 export const activitySourceInApp = app.enum('activity_source', ['HEALTH_CONNECT', 'MANUAL']);
+export const trainingSessionStatusInApp = app.enum('training_session_status', [
+    'PENDING',
+    'CONFIRMED',
+    'VALIDATED',
+    'EXPIRED',
+]);
+export const notificationTypeInApp = app.enum('notification_type', [
+    'ROUTINE_ASSIGNED',
+    'ROUTINE_UPDATED',
+    'SESSION_VALIDATED',
+]);
 export const dniTypeInApp = app.enum('dni_type', ['CEDULA_NACIONAL', 'DIMEX', 'PASAPORTE']);
 
 export const usersInApp = app.table(
@@ -229,8 +243,11 @@ export const routinesInApp = app.table(
         index('idx_routines_trainer_status').using(
             'btree',
             table.trainerId.asc().nullsLast().op('uuid_ops'),
-            table.status.asc().nullsLast().op('uuid_ops'),
+            table.status.asc().nullsLast(),
         ),
+        uniqueIndex('uq_routines_trainer_name_active')
+            .on(table.trainerId, table.name)
+            .where(sql`${table.deletedAt} is null`),
         foreignKey({
             columns: [table.trainerId],
             foreignColumns: [trainersInApp.id],
@@ -295,6 +312,9 @@ export const memberRoutinesInApp = app.table(
             table.memberId.asc().nullsLast().op('uuid_ops'),
             table.status.asc().nullsLast().op('uuid_ops'),
         ),
+        uniqueIndex('uq_member_routines_active')
+            .on(table.memberId, table.routineId)
+            .where(sql`${table.status} = 'ACTIVE' AND ${table.deletedAt} IS NULL`),
         foreignKey({
             columns: [table.memberId],
             foreignColumns: [membersInApp.id],
@@ -376,5 +396,144 @@ export const dailyActivitySummariesInApp = app.table(
             name: 'daily_activity_summaries_member_id_fkey',
         }),
         unique('daily_activity_summaries_member_date_key').on(table.memberId, table.date),
+    ],
+);
+
+export const trainingSessionsInApp = app.table(
+    'training_sessions',
+    {
+        id: uuid()
+            .default(sql`uuidv7()`)
+            .primaryKey()
+            .notNull(),
+        memberRoutineId: uuid('member_routine_id').notNull(),
+        date: date()
+            .default(sql`CURRENT_DATE`)
+            .notNull(),
+        status: trainingSessionStatusInApp().default('PENDING').notNull(),
+        confirmedAt: timestamp('confirmed_at', { withTimezone: true, mode: 'string' }),
+        confirmedBy: uuid('confirmed_by'),
+        validatedByTrainerId: uuid('validated_by_trainer_id'),
+        validatedAt: timestamp('validated_at', { withTimezone: true, mode: 'string' }),
+        notes: text(),
+        createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    },
+    (table) => [
+        index('idx_training_sessions_member_routine_status').using(
+            'btree',
+            table.memberRoutineId.asc().nullsLast().op('uuid_ops'),
+            table.status.asc().nullsLast(),
+        ),
+        foreignKey({
+            columns: [table.memberRoutineId],
+            foreignColumns: [memberRoutinesInApp.id],
+            name: 'training_sessions_member_routine_id_fkey',
+        }),
+        foreignKey({
+            columns: [table.confirmedBy],
+            foreignColumns: [usersInApp.id],
+            name: 'training_sessions_confirmed_by_fkey',
+        }),
+        foreignKey({
+            columns: [table.validatedByTrainerId],
+            foreignColumns: [trainersInApp.id],
+            name: 'training_sessions_validated_by_trainer_id_fkey',
+        }),
+    ],
+);
+
+export const exerciseLogsInApp = app.table(
+    'exercise_logs',
+    {
+        id: uuid()
+            .default(sql`uuidv7()`)
+            .primaryKey()
+            .notNull(),
+        sessionId: uuid('session_id').notNull(),
+        routineExerciseId: uuid('routine_exercise_id').notNull(),
+        targetSets: integer('target_sets'),
+        targetReps: varchar('target_reps', { length: 40 }),
+        targetWeightKg: numeric('target_weight_kg', { precision: 5, scale: 2, mode: 'number' }),
+        completedSets: integer('completed_sets'),
+        completedRepsLog: text('completed_reps_log'),
+        weightKgActual: numeric('weight_kg_actual', { precision: 5, scale: 2, mode: 'number' }),
+        notes: text(),
+        completed: boolean().default(false).notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    },
+    (table) => [
+        index('idx_exercise_logs_session_id').using('btree', table.sessionId.asc().nullsLast().op('uuid_ops')),
+        foreignKey({
+            columns: [table.sessionId],
+            foreignColumns: [trainingSessionsInApp.id],
+            name: 'exercise_logs_session_id_fkey',
+        }).onDelete('cascade'),
+        foreignKey({
+            columns: [table.routineExerciseId],
+            foreignColumns: [routineExercisesInApp.id],
+            name: 'exercise_logs_routine_exercise_id_fkey',
+        }),
+        unique('uq_exercise_logs_session_routine_exercise').on(table.sessionId, table.routineExerciseId),
+    ],
+);
+
+export const routineVersionsInApp = app.table(
+    'routine_versions',
+    {
+        id: uuid()
+            .default(sql`uuidv7()`)
+            .primaryKey()
+            .notNull(),
+        routineId: uuid('routine_id').notNull(),
+        versionNumber: integer('version_number').notNull(),
+        snapshot: jsonb().notNull(),
+        changedBy: uuid('changed_by'),
+        changeReason: text('change_reason'),
+        createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    },
+    (table) => [
+        index('idx_routine_versions_routine_id').using('btree', table.routineId.asc().nullsLast().op('uuid_ops')),
+        foreignKey({
+            columns: [table.routineId],
+            foreignColumns: [routinesInApp.id],
+            name: 'routine_versions_routine_id_fkey',
+        }).onDelete('cascade'),
+        foreignKey({
+            columns: [table.changedBy],
+            foreignColumns: [trainersInApp.id],
+            name: 'routine_versions_changed_by_fkey',
+        }),
+        unique('uq_routine_versions_routine_version').on(table.routineId, table.versionNumber),
+    ],
+);
+
+export const notificationsInApp = app.table(
+    'notifications',
+    {
+        id: uuid()
+            .default(sql`uuidv7()`)
+            .primaryKey()
+            .notNull(),
+        userId: uuid('user_id').notNull(),
+        type: notificationTypeInApp().notNull(),
+        title: varchar({ length: 200 }).notNull(),
+        body: text(),
+        payload: jsonb(),
+        read: boolean().default(false).notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    },
+    (table) => [
+        index('idx_notifications_user_read').using(
+            'btree',
+            table.userId.asc().nullsLast().op('uuid_ops'),
+            table.read.asc().nullsLast(),
+        ),
+        foreignKey({
+            columns: [table.userId],
+            foreignColumns: [usersInApp.id],
+            name: 'notifications_user_id_fkey',
+        }).onDelete('cascade'),
     ],
 );

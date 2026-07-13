@@ -12,6 +12,10 @@ import {
     memberRoutinesInApp,
     memberMeasurementsInApp,
     dailyActivitySummariesInApp,
+    trainingSessionsInApp,
+    exerciseLogsInApp,
+    routineVersionsInApp,
+    notificationsInApp,
 } from './schema';
 
 export const membersInAppRelations = relations(membersInApp, ({ one, many }) => ({
@@ -86,21 +90,6 @@ export const exercisesInAppRelations = relations(exercisesInApp, ({ many }) => (
     routineExercisesInApps: many(routineExercisesInApp),
 }));
 
-export const memberRoutinesInAppRelations = relations(memberRoutinesInApp, ({ one }) => ({
-    membersInApp: one(membersInApp, {
-        fields: [memberRoutinesInApp.memberId],
-        references: [membersInApp.id],
-    }),
-    routinesInApp: one(routinesInApp, {
-        fields: [memberRoutinesInApp.routineId],
-        references: [routinesInApp.id],
-    }),
-    trainersInApp: one(trainersInApp, {
-        fields: [memberRoutinesInApp.assignedByTrainerId],
-        references: [trainersInApp.id],
-    }),
-}));
-
 export const memberMeasurementsInAppRelations = relations(memberMeasurementsInApp, ({ one }) => ({
     membersInApp: one(membersInApp, {
         fields: [memberMeasurementsInApp.memberId],
@@ -113,4 +102,65 @@ export const dailyActivitySummariesInAppRelations = relations(dailyActivitySumma
         fields: [dailyActivitySummariesInApp.memberId],
         references: [membersInApp.id],
     }),
+}));
+
+export const trainingSessionsInAppRelations = relations(trainingSessionsInApp, ({ one, many }) => ({
+    memberRoutinesInApp: one(memberRoutinesInApp, {
+        fields: [trainingSessionsInApp.memberRoutineId],
+        references: [memberRoutinesInApp.id],
+    }),
+    usersInApp: one(usersInApp, {
+        fields: [trainingSessionsInApp.confirmedBy],
+        references: [usersInApp.id],
+    }),
+    trainersInApp: one(trainersInApp, {
+        fields: [trainingSessionsInApp.validatedByTrainerId],
+        references: [trainersInApp.id],
+    }),
+    exerciseLogsInApps: many(exerciseLogsInApp),
+}));
+
+export const exerciseLogsInAppRelations = relations(exerciseLogsInApp, ({ one }) => ({
+    trainingSessionsInApp: one(trainingSessionsInApp, {
+        fields: [exerciseLogsInApp.sessionId],
+        references: [trainingSessionsInApp.id],
+    }),
+    routineExercisesInApp: one(routineExercisesInApp, {
+        fields: [exerciseLogsInApp.routineExerciseId],
+        references: [routineExercisesInApp.id],
+    }),
+}));
+
+export const routineVersionsInAppRelations = relations(routineVersionsInApp, ({ one }) => ({
+    routinesInApp: one(routinesInApp, {
+        fields: [routineVersionsInApp.routineId],
+        references: [routinesInApp.id],
+    }),
+    trainersInApp: one(trainersInApp, {
+        fields: [routineVersionsInApp.changedBy],
+        references: [trainersInApp.id],
+    }),
+}));
+
+export const notificationsInAppRelations = relations(notificationsInApp, ({ one }) => ({
+    usersInApp: one(usersInApp, {
+        fields: [notificationsInApp.userId],
+        references: [usersInApp.id],
+    }),
+}));
+
+export const memberRoutinesInAppRelations = relations(memberRoutinesInApp, ({ one, many }) => ({
+    membersInApp: one(membersInApp, {
+        fields: [memberRoutinesInApp.memberId],
+        references: [membersInApp.id],
+    }),
+    routinesInApp: one(routinesInApp, {
+        fields: [memberRoutinesInApp.routineId],
+        references: [routinesInApp.id],
+    }),
+    trainersInApp: one(trainersInApp, {
+        fields: [memberRoutinesInApp.assignedByTrainerId],
+        references: [trainersInApp.id],
+    }),
+    trainingSessionsInApps: many(trainingSessionsInApp),
 }));

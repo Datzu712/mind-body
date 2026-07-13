@@ -4,6 +4,7 @@ import { Bell, Search } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { CommandPalette } from '@/src/features/dashboard/components/command-palette';
+import { useNotifications, useMarkNotificationRead } from '@/src/features/dashboard/hooks/use-notifications';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -27,13 +28,20 @@ interface DashboardHeaderProps {
     breadcrumbs?: { label: string; href?: string }[];
 }
 
-const notifications = [
-    { id: 1, title: 'Nueva membresía registrada', time: 'Hace 5 min', read: false },
-    { id: 2, title: 'Respaldo automático completado', time: 'Hace 1 hora', read: false },
-    { id: 3, title: 'Usuario desactivado', time: 'Hace 2 horas', read: true },
-];
+function formatRelativeTime(iso: string) {
+    const seconds = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (seconds < 60) return 'Hace un momento';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `Hace ${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `Hace ${hours} h`;
+    const days = Math.floor(hours / 24);
+    return `Hace ${days} d`;
+}
 
 export function DashboardHeader({ breadcrumbs }: DashboardHeaderProps) {
+    const { data: notifications = [] } = useNotifications();
+    const markRead = useMarkNotificationRead();
     const unreadCount = notifications.filter((n) => !n.read).length;
     const [cmdOpen, setCmdOpen] = useState(false);
 
@@ -114,18 +122,17 @@ export function DashboardHeader({ breadcrumbs }: DashboardHeaderProps) {
                             <DropdownMenuItem
                                 key={notification.id}
                                 className="flex flex-col items-start gap-1 py-3 cursor-pointer"
+                                onClick={() => !notification.read && markRead.mutate(notification.id)}
                             >
                                 <div className="flex items-center gap-2 w-full">
                                     {!notification.read && <div className="h-2 w-2 rounded-full bg-primary" />}
                                     <span className="text-sm font-medium text-foreground">{notification.title}</span>
                                 </div>
-                                <span className="text-xs text-muted-foreground">{notification.time}</span>
+                                <span className="text-xs text-muted-foreground">
+                                    {formatRelativeTime(notification.createdAt)}
+                                </span>
                             </DropdownMenuItem>
                         ))}
-                        <DropdownMenuSeparator className="bg-border" />
-                        <DropdownMenuItem className="text-center text-sm text-primary cursor-pointer">
-                            Ver todas las notificaciones
-                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
