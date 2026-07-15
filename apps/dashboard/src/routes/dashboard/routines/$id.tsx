@@ -113,6 +113,11 @@ function RoutineDetailPage() {
         { key: 'name', header: 'Ejercicio', render: (e) => e.exerciseName ?? e.exercise?.name ?? '—' },
         { key: 'sets', header: 'Series', render: (e) => e.sets },
         { key: 'reps', header: 'Reps', render: (e) => e.reps || '—' },
+        {
+            key: 'restSeconds',
+            header: 'Descanso',
+            render: (e) => (e.restSeconds === 0 ? 'Sin descanso' : `${e.restSeconds ?? 60} s`),
+        },
         { key: 'notes', header: 'Notas', render: (e) => e.notes || '—' },
     ];
 
@@ -178,6 +183,7 @@ function RoutineDetailPage() {
             display_order?: number | null;
             sets?: number | null;
             reps?: string | null;
+            rest_seconds?: number | null;
             notes?: string | null;
         }>;
     };
@@ -193,7 +199,13 @@ function RoutineDetailPage() {
         for (const [id, e] of currMap) {
             const p = prevMap.get(id);
             if (!p) continue;
-            if (e.display_order !== p.display_order || e.sets !== p.sets || e.reps !== p.reps || e.notes !== p.notes)
+            if (
+                e.display_order !== p.display_order ||
+                e.sets !== p.sets ||
+                e.reps !== p.reps ||
+                (e.rest_seconds ?? 60) !== (p.rest_seconds ?? 60) ||
+                e.notes !== p.notes
+            )
                 changed++;
         }
         const nameChanged = prev ? prev.name !== curr.name : false;

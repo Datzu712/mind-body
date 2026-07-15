@@ -191,6 +191,7 @@ CREATE TABLE IF NOT EXISTS app.routine_exercises (
     display_order INTEGER NOT NULL CHECK (display_order > 0),
     sets INTEGER CHECK (sets > 0),
     reps VARCHAR(40),
+    rest_seconds INTEGER NOT NULL DEFAULT 60 CHECK (rest_seconds >= 0 AND rest_seconds <= 600),
     notes TEXT,
     CONSTRAINT uq_routine_exercise_order UNIQUE (routine_id, display_order)
 );

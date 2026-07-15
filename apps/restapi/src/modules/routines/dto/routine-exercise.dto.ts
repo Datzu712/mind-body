@@ -1,7 +1,15 @@
 import { Transform } from 'class-transformer';
-import { IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 
 export class RoutineExerciseDto {
+    @Transform(
+        ({ obj }: { obj: Record<string, unknown> }) =>
+            (obj.routine_exercise_id ?? obj.routineExerciseId ?? obj.id) as string,
+    )
+    @IsOptional()
+    @IsUUID()
+    routineExerciseId?: string;
+
     @Transform(({ obj }: { obj: Record<string, unknown> }) => (obj.exercise_id ?? obj.exerciseId) as string)
     @IsUUID()
     exerciseId!: string;
@@ -23,4 +31,10 @@ export class RoutineExerciseDto {
     @IsOptional()
     @IsString()
     notes?: string;
+
+    @Transform(({ obj }: { obj: Record<string, unknown> }) => obj.rest_seconds ?? obj.restSeconds ?? 60)
+    @IsInt()
+    @Min(0)
+    @Max(600)
+    restSeconds!: number;
 }
