@@ -14,32 +14,25 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
-import { MOCK_TRAINERS, WEEK_DAYS, type ManagedClass, type WeekDay } from '../mock-classes';
+import { sileo } from 'sileo';
+import { cn } from '@/lib/utils';
 
-export interface ClassFormData {
-    name: string;
-    description: string;
-    trainer: string;
-    day: WeekDay;
-    time: string;
-    durationMin: number;
-    capacity: number;
-    allowWaitlist: boolean;
-    status: 'active' | 'inactive';
-}
+import { useTrainers } from '../hooks';
+import type { ClassFormData, ClassStatus, GymClass, WeekDay } from '../types';
+import { WEEK_DAYS } from '../utils';
 
 interface ClassFormDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    item?: ManagedClass | null;
+    item?: GymClass | null;
     onSubmit: (data: ClassFormData) => Promise<{ success: boolean; error?: string }>;
 }
 
 const emptyForm: ClassFormData = {
     name: '',
     description: '',
-    trainer: MOCK_TRAINERS[0],
-    day: 'Lunes',
+    trainer: '',
+    days: [],
     time: '08:00',
     durationMin: 60,
     capacity: 10,
@@ -50,21 +43,12 @@ const emptyForm: ClassFormData = {
 export function ClassFormDialog({ open, onOpenChange, item, onSubmit }: ClassFormDialogProps) {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<ClassFormData>(emptyForm);
+    const { data: trainers = [] } = useTrainers();
 
     useEffect(() => {
         if (item) {
-            setFormData({
-                name: item.name,
-                description: item.description,
-                trainer: item.trainer,
-                day: item.day,
-                time: item.time,
-                durationMin: item.durationMin,
-                capacity: item.capacity,
-                allowWaitlist: item.allowWaitlist,
-                // full / waitlist are derived states — the form only toggles active/inactive.
-                status: item.status === 'inactive' ? 'inactive' : 'active',
-            });
+            const { id: _id, ...rest } = item;
+            setFormData(rest);
         } else {
             setFormData(emptyForm);
         }
@@ -72,8 +56,22 @@ export function ClassFormDialog({ open, onOpenChange, item, onSubmit }: ClassFor
 
     const isEditing = !!item;
 
+    const toggleDay = (day: WeekDay) =>
+        setFormData((prev) => ({
+            ...prev,
+            days: prev.days.includes(day) ? prev.days.filter((d) => d !== day) : [...prev.days, day],
+        }));
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (formData.days.length === 0) {
+            sileo.warning({ title: 'Seleccioná al menos un día' });
+            return;
+        }
+        if (!formData.trainer) {
+            sileo.warning({ title: 'Seleccioná un entrenador' });
+            return;
+        }
         setLoading(true);
         try {
             const result = await onSubmit(formData);
@@ -92,8 +90,8 @@ export function ClassFormDialog({ open, onOpenChange, item, onSubmit }: ClassFor
                     <DialogTitle className="text-foreground">{isEditing ? 'Editar clase' : 'Nueva clase'}</DialogTitle>
                     <DialogDescription className="text-muted-foreground">
                         {isEditing
-                            ? 'Modifica la información, horario y cupos de la clase.'
-                            : 'Completa los datos para crear una nueva clase disponible.'}
+                            ? 'Los cambios de horario se aplican a todas las sesiones futuras de la clase.'
+                            : 'Definí la clase y su recurrencia semanal; las sesiones se generan solas.'}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -126,6 +124,31 @@ export function ClassFormDialog({ open, onOpenChange, item, onSubmit }: ClassFor
                         />
                     </div>
 
+                    <div className="flex flex-col gap-2">
+                        <Label>Días de la semana</Label>
+                        <div className="flex flex-wrap gap-1.5">
+                            {WEEK_DAYS.map((day) => {
+                                const selected = formData.days.includes(day);
+                                return (
+                                    <button
+                                        type="button"
+                                        key={day}
+                                        onClick={() => toggleDay(day)}
+                                        aria-pressed={selected}
+                                        className={cn(
+                                            'rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors',
+                                            selected
+                                                ? 'border-primary/60 bg-primary/15 text-primary'
+                                                : 'border-border bg-secondary/50 text-muted-foreground hover:text-foreground',
+                                        )}
+                                    >
+                                        {day}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="class-trainer">Entrenador</Label>
@@ -134,10 +157,10 @@ export function ClassFormDialog({ open, onOpenChange, item, onSubmit }: ClassFor
                                 onValueChange={(value) => setFormData({ ...formData, trainer: value })}
                             >
                                 <SelectTrigger id="class-trainer" className="bg-secondary/50 border-border">
-                                    <SelectValue />
+                                    <SelectValue placeholder="Seleccionar entrenador" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-popover border-border">
-                                    {MOCK_TRAINERS.map((trainer) => (
+                                    {trainers.map((trainer) => (
                                         <SelectItem key={trainer} value={trainer}>
                                             {trainer}
                                         </SelectItem>
@@ -146,27 +169,6 @@ export function ClassFormDialog({ open, onOpenChange, item, onSubmit }: ClassFor
                             </Select>
                         </div>
 
-                        <div className="flex flex-col gap-2">
-                            <Label htmlFor="class-day">Día</Label>
-                            <Select
-                                value={formData.day}
-                                onValueChange={(value) => setFormData({ ...formData, day: value as WeekDay })}
-                            >
-                                <SelectTrigger id="class-day" className="bg-secondary/50 border-border">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-popover border-border">
-                                    {WEEK_DAYS.map((day) => (
-                                        <SelectItem key={day} value={day}>
-                                            {day}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-3">
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="class-time">Hora</Label>
                             <Input
@@ -178,7 +180,9 @@ export function ClassFormDialog({ open, onOpenChange, item, onSubmit }: ClassFor
                                 className="bg-secondary/50 border-border"
                             />
                         </div>
+                    </div>
 
+                    <div className="grid gap-4 md:grid-cols-2">
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="class-duration">Duración (min)</Label>
                             <Input
@@ -226,9 +230,7 @@ export function ClassFormDialog({ open, onOpenChange, item, onSubmit }: ClassFor
                         <Label htmlFor="class-status">Estado</Label>
                         <Select
                             value={formData.status}
-                            onValueChange={(value) =>
-                                setFormData({ ...formData, status: value as 'active' | 'inactive' })
-                            }
+                            onValueChange={(value) => setFormData({ ...formData, status: value as ClassStatus })}
                         >
                             <SelectTrigger id="class-status" className="bg-secondary/50 border-border">
                                 <SelectValue />

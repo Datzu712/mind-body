@@ -1,18 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import {
-    CheckCircle2,
-    Clock,
-    XCircle,
-    CircleSlash,
-    Users,
-    UserCheck,
-    UserX,
-    ListOrdered,
-    type LucideIcon,
-} from 'lucide-react';
-import type { ClassStatus } from '../mock-classes';
-import type { ReservationStatus } from '../mock-reservations';
+import { CheckCircle2, Clock, XCircle, CircleSlash, UserCheck, UserX, type LucideIcon } from 'lucide-react';
+import type { ClassStatus, ReservationStatus } from '../types';
 
 /** Union of the reservation states and the class-management states. */
 export type ClassBadgeStatus = ReservationStatus | ClassStatus;
@@ -54,16 +43,6 @@ const config: Record<ClassBadgeStatus, { label: string; icon: LucideIcon; classN
         label: 'Inactiva',
         icon: CircleSlash,
         className: 'bg-muted text-muted-foreground hover:bg-muted/80 border-muted-foreground/30',
-    },
-    full: {
-        label: 'Cupo lleno',
-        icon: Users,
-        className: 'bg-destructive/20 text-destructive hover:bg-destructive/30 border-destructive/30',
-    },
-    waitlist: {
-        label: 'Lista de espera',
-        icon: ListOrdered,
-        className: 'bg-warning/20 text-warning hover:bg-warning/30 border-warning/30',
     },
 };
 

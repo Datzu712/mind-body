@@ -15,30 +15,24 @@ import { Plus, Search, MoreHorizontal, Edit, Power, Trash2 } from 'lucide-react'
 import { sileo } from 'sileo';
 
 import { ConfirmDialog } from '@/src/shared/components/confirm-dialog';
+import { useCreateClass, useDeleteClass, useGymClasses, useSetClassStatus, useUpdateClass } from '../hooks';
+import type { ClassFormData, ClassStatus, GymClass } from '../types';
+import { formatScheduleLabel } from '../utils';
 import { ClassStatusBadge } from './ClassStatusBadge';
-import { ClassFormDialog, type ClassFormData } from './ClassFormDialog';
-import { mockManagedClasses, type ClassStatus, type ManagedClass } from '../mock-classes';
-
-/** Derive the visible status from capacity/waitlist, respecting a manual "inactive". */
-function deriveStatus(
-    chosen: 'active' | 'inactive',
-    booked: number,
-    capacity: number,
-    allowWaitlist: boolean,
-    waitlistCount: number,
-): ClassStatus {
-    if (chosen === 'inactive') return 'inactive';
-    if (booked >= capacity) return allowWaitlist && waitlistCount > 0 ? 'waitlist' : 'full';
-    return 'active';
-}
+import { ClassFormDialog } from './ClassFormDialog';
 
 export function ClassManagementTab() {
-    const [classes, setClasses] = useState<ManagedClass[]>(mockManagedClasses);
+    const { data: classes = [] } = useGymClasses();
+    const createClass = useCreateClass();
+    const updateClass = useUpdateClass();
+    const setClassStatus = useSetClassStatus();
+    const deleteClass = useDeleteClass();
+
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | ClassStatus>('all');
     const [formOpen, setFormOpen] = useState(false);
-    const [editingClass, setEditingClass] = useState<ManagedClass | null>(null);
-    const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; item: ManagedClass | null }>({
+    const [editingClass, setEditingClass] = useState<GymClass | null>(null);
+    const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; item: GymClass | null }>({
         open: false,
         item: null,
     });
@@ -55,90 +49,56 @@ export function ClassManagementTab() {
         [classes, search, statusFilter],
     );
 
-    const handleCreate = (data: ClassFormData) => {
-        const newClass: ManagedClass = {
-            id: `cls-${Date.now()}`,
-            name: data.name,
-            description: data.description,
-            trainer: data.trainer,
-            day: data.day,
-            time: data.time,
-            durationMin: data.durationMin,
-            capacity: data.capacity,
-            booked: 0,
-            waitlistCount: 0,
-            allowWaitlist: data.allowWaitlist,
-            status: deriveStatus(data.status, 0, data.capacity, data.allowWaitlist, 0),
-            activeReservations: 0,
-        };
-        setClasses((prev) => [...prev, newClass]);
-        sileo.success({ title: `Clase "${newClass.name}" creada` });
-        return Promise.resolve({ success: true });
-    };
-
-    const handleEdit = (data: ClassFormData) => {
-        if (!editingClass) return Promise.resolve({ success: false, error: 'No hay clase seleccionada' });
-        setClasses((prev) =>
-            prev.map((cls) =>
-                cls.id === editingClass.id
-                    ? {
-                          ...cls,
-                          name: data.name,
-                          description: data.description,
-                          trainer: data.trainer,
-                          day: data.day,
-                          time: data.time,
-                          durationMin: data.durationMin,
-                          capacity: data.capacity,
-                          allowWaitlist: data.allowWaitlist,
-                          status: deriveStatus(
-                              data.status,
-                              cls.booked,
-                              data.capacity,
-                              data.allowWaitlist,
-                              cls.waitlistCount,
-                          ),
-                      }
-                    : cls,
-            ),
-        );
-        setEditingClass(null);
-        sileo.success({ title: `Clase "${data.name}" actualizada` });
-        return Promise.resolve({ success: true });
-    };
-
-    const handleToggleStatus = (cls: ManagedClass) => {
-        const goingInactive = cls.status !== 'inactive';
-        if (goingInactive && cls.activeReservations > 0) {
-            sileo.warning({ title: 'Esta clase tiene reservas activas. Los miembros serán notificados.' });
+    const handleCreate = async (data: ClassFormData) => {
+        try {
+            await createClass.mutateAsync(data);
+            sileo.success({ title: `Clase "${data.name}" creada` });
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error instanceof Error ? error.message : 'No se pudo crear la clase' };
         }
-        setClasses((prev) =>
-            prev.map((c) =>
-                c.id === cls.id
-                    ? {
-                          ...c,
-                          status: goingInactive
-                              ? 'inactive'
-                              : deriveStatus('active', c.booked, c.capacity, c.allowWaitlist, c.waitlistCount),
-                      }
-                    : c,
-            ),
-        );
-        sileo.success({ title: goingInactive ? `"${cls.name}" desactivada` : `"${cls.name}" activada` });
+    };
+
+    const handleEdit = async (data: ClassFormData) => {
+        if (!editingClass) return { success: false, error: 'No hay clase seleccionada' };
+        try {
+            const result = await updateClass.mutateAsync({ id: editingClass.id, dto: data });
+            setEditingClass(null);
+            sileo.success({ title: `Clase "${data.name}" actualizada` });
+            if (result.affectedReservations > 0) {
+                sileo.warning({
+                    title: `${result.affectedReservations} reservas canceladas por el cambio de horario`,
+                });
+            }
+            return { success: true };
+        } catch (error) {
+            return { success: false, error: error instanceof Error ? error.message : 'No se pudo actualizar' };
+        }
+    };
+
+    const handleToggleStatus = (cls: GymClass) => {
+        const next: ClassStatus = cls.status === 'inactive' ? 'active' : 'inactive';
+        void setClassStatus.mutateAsync({ id: cls.id, status: next }).then((result) => {
+            sileo.success({ title: next === 'inactive' ? `"${cls.name}" desactivada` : `"${cls.name}" activada` });
+            if (result.affectedReservations > 0) {
+                sileo.warning({ title: `${result.affectedReservations} reservas activas fueron canceladas` });
+            }
+        });
     };
 
     const handleDelete = () => {
         const cls = confirmDialog.item;
         if (!cls) return;
-        if (cls.activeReservations > 0) {
-            sileo.warning({ title: 'Esta clase tiene reservas activas. Los miembros serán notificados.' });
-        }
-        setClasses((prev) => prev.filter((c) => c.id !== cls.id));
-        sileo.success({ title: `Clase "${cls.name}" eliminada` });
+        void deleteClass.mutateAsync(cls.id).then((result) => {
+            sileo.success({ title: `Clase "${cls.name}" eliminada` });
+            if (result.affectedReservations > 0) {
+                sileo.warning({ title: `${result.affectedReservations} reservas activas fueron canceladas` });
+            }
+        });
         setConfirmDialog({ open: false, item: null });
     };
 
-    const openEditForm = (cls: ManagedClass) => {
+    const openEditForm = (cls: GymClass) => {
         setEditingClass(cls);
         setFormOpen(true);
     };
@@ -150,7 +110,7 @@ export function ClassManagementTab() {
 
     return (
         <div className="flex flex-col gap-6">
-            {/* Toolbar: search + status filter + new class */}
+            {/* Toolbar: búsqueda + filtro de estado + nueva clase */}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex flex-1 flex-col gap-3 sm:flex-row">
                     <div className="relative flex-1">
@@ -173,8 +133,6 @@ export function ClassManagementTab() {
                             <SelectItem value="all">Todos los estados</SelectItem>
                             <SelectItem value="active">Activa</SelectItem>
                             <SelectItem value="inactive">Inactiva</SelectItem>
-                            <SelectItem value="full">Cupo lleno</SelectItem>
-                            <SelectItem value="waitlist">Lista de espera</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -184,7 +142,7 @@ export function ClassManagementTab() {
                 </Button>
             </div>
 
-            {/* Classes table */}
+            {/* Tabla de series */}
             <Card className="border-border bg-card">
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
@@ -193,8 +151,8 @@ export function ClassManagementTab() {
                                 <TableRow className="bg-muted/30 hover:bg-muted/30">
                                     <TableHead className="text-muted-foreground font-semibold">Clase</TableHead>
                                     <TableHead className="text-muted-foreground font-semibold">Entrenador</TableHead>
-                                    <TableHead className="text-muted-foreground font-semibold">Día y hora</TableHead>
-                                    <TableHead className="text-muted-foreground font-semibold">Cupos</TableHead>
+                                    <TableHead className="text-muted-foreground font-semibold">Horario</TableHead>
+                                    <TableHead className="text-muted-foreground font-semibold">Capacidad</TableHead>
                                     <TableHead className="text-muted-foreground font-semibold">Estado</TableHead>
                                     <TableHead className="text-muted-foreground font-semibold text-right">
                                         Acciones
@@ -214,15 +172,13 @@ export function ClassManagementTab() {
                                             <TableCell className="font-medium text-foreground">{cls.name}</TableCell>
                                             <TableCell className="text-muted-foreground">{cls.trainer}</TableCell>
                                             <TableCell className="text-muted-foreground whitespace-nowrap">
-                                                {cls.day} {cls.time}
+                                                {formatScheduleLabel(cls)}
                                             </TableCell>
                                             <TableCell className="whitespace-nowrap">
-                                                <span className="font-medium text-foreground">
-                                                    {cls.booked} / {cls.capacity}
-                                                </span>
-                                                {cls.waitlistCount > 0 && (
-                                                    <span className="ml-2 text-xs text-warning">
-                                                        +{cls.waitlistCount} en espera
+                                                <span className="font-medium text-foreground">{cls.capacity}</span>
+                                                {cls.allowWaitlist && (
+                                                    <span className="ml-2 text-xs text-muted-foreground">
+                                                        + lista de espera
                                                     </span>
                                                 )}
                                             </TableCell>
@@ -243,7 +199,7 @@ export function ClassManagementTab() {
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent
                                                         align="end"
-                                                        className="bg-popover border-border"
+                                                        className="w-auto min-w-44 whitespace-nowrap bg-popover border-border"
                                                     >
                                                         <DropdownMenuItem
                                                             className="cursor-pointer"
@@ -283,7 +239,7 @@ export function ClassManagementTab() {
                 Mostrando {filteredClasses.length} de {classes.length} clases
             </p>
 
-            {/* Create / edit form */}
+            {/* Formulario crear / editar */}
             <ClassFormDialog
                 open={formOpen}
                 onOpenChange={handleFormClose}
@@ -291,16 +247,12 @@ export function ClassManagementTab() {
                 onSubmit={editingClass ? handleEdit : handleCreate}
             />
 
-            {/* Delete confirmation */}
+            {/* Confirmación de borrado */}
             <ConfirmDialog
                 open={confirmDialog.open}
                 onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
                 title="Eliminar clase"
-                description={
-                    confirmDialog.item && confirmDialog.item.activeReservations > 0
-                        ? `¿Estás seguro de eliminar "${confirmDialog.item.name}"? Las ${confirmDialog.item.activeReservations} reservas activas se cancelarán y los miembros recibirán una notificación por los canales configurados.`
-                        : `¿Estás seguro de eliminar "${confirmDialog.item?.name ?? ''}"? Esta acción no se puede deshacer.`
-                }
+                description={`¿Eliminar "${confirmDialog.item?.name ?? ''}"? Sus sesiones futuras se borrarán y las reservas activas se cancelarán. Los miembros serán notificados. Esta acción no se puede deshacer.`}
                 confirmLabel="Eliminar"
                 onConfirm={handleDelete}
                 variant="destructive"

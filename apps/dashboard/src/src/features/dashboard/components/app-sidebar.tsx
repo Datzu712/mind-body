@@ -9,6 +9,7 @@ import {
     IdCard,
     ClipboardCheck,
     CalendarDays,
+    Dumbbell,
     Settings,
     BookOpen,
     LogOut,
@@ -42,6 +43,16 @@ const mainNavItems: { title: string; href: string; icon: LucideIcon; exact?: boo
         title: 'Usuarios',
         href: '/dashboard/users',
         icon: Users,
+    },
+    {
+        title: 'Clases',
+        href: '/dashboard/classes',
+        icon: Dumbbell,
+    },
+    {
+        title: 'Reservas',
+        href: '/dashboard/reservations',
+        icon: CalendarDays,
     },
 ];
 
@@ -78,11 +89,6 @@ const adminNavItems: { title: string; href: string; icon: LucideIcon; exact?: bo
         title: 'Mis miembros',
         href: '/dashboard/trainer/members',
         icon: UsersRound,
-    },
-    {
-        title: 'Reservas',
-        href: '/dashboard/reservations',
-        icon: CalendarDays,
     },
     {
         title: 'Catálogo',

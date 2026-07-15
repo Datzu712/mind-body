@@ -11,13 +11,14 @@ import { CalendarClock, MoreHorizontal, UserCheck, UserX, XCircle } from 'lucide
 import { sileo } from 'sileo';
 
 import { ConfirmDialog } from '@/src/shared/components/confirm-dialog';
-import { isPastSession, type Reservation } from '../mock-reservations';
-import type { ReservationsStore } from '../use-reservations-mock';
+import { useCancelReservation, useMarkAttendance } from '../hooks';
+import type { ClassSession, Reservation } from '../types';
+import { isLateCancellation, isPastSession } from '../utils';
 import { RescheduleDialog } from './RescheduleDialog';
 
 interface ReservationActionsProps {
-    store: ReservationsStore;
     reservation: Reservation;
+    session: ClassSession;
 }
 
 /**
@@ -26,23 +27,26 @@ interface ReservationActionsProps {
  * acciones son ítems de menú con el nombre del miembro en el feedback, para
  * evitar cambios accidentales sobre la fila equivocada.
  */
-export function ReservationActions({ store, reservation }: ReservationActionsProps) {
+export function ReservationActions({ reservation, session }: ReservationActionsProps) {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [rescheduleOpen, setRescheduleOpen] = useState(false);
+    const cancelReservation = useCancelReservation();
+    const markAttendanceMutation = useMarkAttendance();
 
-    const session = store.sessionById.get(reservation.sessionId);
-    const past = session ? isPastSession(session) : false;
+    const past = isPastSession(session);
 
+    if (session.status === 'cancelada') return null;
     if (reservation.status === 'cancelada') return null;
     if (past && reservation.status === 'en-espera') return null;
     if (!past && reservation.status !== 'confirmada' && reservation.status !== 'en-espera') return null;
 
-    const late = store.isLateCancellation(reservation.id);
+    const late = isLateCancellation(session);
 
     const markAttendance = (attended: boolean) => {
-        store.markAttendance(reservation.id, attended);
-        sileo.success({
-            title: `${reservation.memberName} marcado como "${attended ? 'Asistió' : 'Faltó'}"`,
+        void markAttendanceMutation.mutateAsync({ id: reservation.id, attended }).then(() => {
+            sileo.success({
+                title: `${reservation.memberName} marcado como "${attended ? 'Asistió' : 'Faltó'}"`,
+            });
         });
     };
 
@@ -110,22 +114,18 @@ export function ReservationActions({ store, reservation }: ReservationActionsPro
                 confirmLabel="Cancelar reserva"
                 variant="destructive"
                 onConfirm={() => {
-                    store.cancelReservation(reservation.id);
-                    sileo.warning({
-                        title: late
-                            ? `Cancelación tardía: ${reservation.memberName} quedó como "Faltó"`
-                            : `Reserva de ${reservation.memberName} cancelada`,
+                    void cancelReservation.mutateAsync(reservation.id).then((result) => {
+                        sileo.warning({
+                            title: result.registeredAsNoShow
+                                ? `Cancelación tardía: ${reservation.memberName} quedó como "Faltó"`
+                                : `Reserva de ${reservation.memberName} cancelada`,
+                        });
                     });
                     setConfirmOpen(false);
                 }}
             />
 
-            <RescheduleDialog
-                open={rescheduleOpen}
-                onOpenChange={setRescheduleOpen}
-                store={store}
-                reservation={reservation}
-            />
+            <RescheduleDialog open={rescheduleOpen} onOpenChange={setRescheduleOpen} reservation={reservation} />
         </>
     );
 }

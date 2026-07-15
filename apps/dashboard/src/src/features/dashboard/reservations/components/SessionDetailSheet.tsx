@@ -12,40 +12,51 @@ import {
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { ArrowUpCircle, MoreHorizontal, Search, Trash2, Users } from 'lucide-react';
+import {
+    ArrowUpCircle,
+    CalendarClock,
+    CircleSlash,
+    MoreHorizontal,
+    Search,
+    Trash2,
+    Users,
+    XCircle,
+} from 'lucide-react';
 import { sileo } from 'sileo';
 
 import { ConfirmDialog } from '@/src/shared/components/confirm-dialog';
-import { sessionStartDate, type WaitlistEntry } from '../mock-reservations';
-import type { ReservationsStore } from '../use-reservations-mock';
+import {
+    useCancelSession,
+    usePromoteFromWaitlist,
+    useRemoveFromWaitlist,
+    useSession,
+    useSessionReservations,
+    useSessionWaitlist,
+} from '../hooks';
+import type { WaitlistEntry } from '../types';
+import { formatTime12h, isPastSession, sessionStartDate } from '../utils';
 import { ClassStatusBadge } from './ClassStatusBadge';
+import { MoveSessionDialog } from './MoveSessionDialog';
 import { ReservationActions } from './ReservationActions';
 
 interface SessionDetailSheetProps {
-    store: ReservationsStore;
     sessionId: string | null;
     onOpenChange: (open: boolean) => void;
 }
 
 /** Menú ⋯ de una entrada de lista de espera: promover o quitar (con confirmación). */
-function WaitlistEntryActions({
-    store,
-    entry,
-    hasRoom,
-}: {
-    store: ReservationsStore;
-    entry: WaitlistEntry;
-    hasRoom: boolean;
-}) {
+function WaitlistEntryActions({ entry, hasRoom }: { entry: WaitlistEntry; hasRoom: boolean }) {
     const [confirmOpen, setConfirmOpen] = useState(false);
+    const promote = usePromoteFromWaitlist();
+    const remove = useRemoveFromWaitlist();
 
     const handlePromote = () => {
-        const result = store.promoteFromWaitlist(entry.reservationId);
-        if (result.ok) {
-            sileo.success({ title: `${entry.memberName} promovido a la sesión` });
-        } else {
-            sileo.warning({ title: result.error ?? 'No se pudo promover' });
-        }
+        void promote
+            .mutateAsync(entry.reservationId)
+            .then(() => sileo.success({ title: `${entry.memberName} promovido a la sesión` }))
+            .catch((error: unknown) =>
+                sileo.warning({ title: error instanceof Error ? error.message : 'No se pudo promover' }),
+            );
     };
 
     return (
@@ -85,8 +96,9 @@ function WaitlistEntryActions({
                 confirmLabel="Quitar"
                 variant="destructive"
                 onConfirm={() => {
-                    store.removeFromWaitlist(entry.reservationId);
-                    sileo.warning({ title: `${entry.memberName} quitado de la lista de espera` });
+                    void remove
+                        .mutateAsync(entry.reservationId)
+                        .then(() => sileo.warning({ title: `${entry.memberName} quitado de la lista de espera` }));
                     setConfirmOpen(false);
                 }}
             />
@@ -94,27 +106,32 @@ function WaitlistEntryActions({
     );
 }
 
-export function SessionDetailSheet({ store, sessionId, onOpenChange }: SessionDetailSheetProps) {
+export function SessionDetailSheet({ sessionId, onOpenChange }: SessionDetailSheetProps) {
     const [query, setQuery] = useState('');
+    const [moveOpen, setMoveOpen] = useState(false);
+    const [cancelOpen, setCancelOpen] = useState(false);
 
     // Al abrir otra sesión, la búsqueda anterior no debe arrastrarse.
     useEffect(() => {
         setQuery('');
     }, [sessionId]);
 
-    const session = sessionId ? store.getOccupancy(sessionId) : undefined;
+    const { data: session } = useSession(sessionId);
+    const { data: allReservations = [] } = useSessionReservations(sessionId);
+    const { data: allWaitlist = [] } = useSessionWaitlist(sessionId);
+    const cancelSession = useCancelSession();
+
     const hasRoom = session ? session.booked < session.capacity : false;
+    const past = session ? isPastSession(session) : false;
+    const cancelled = session?.status === 'cancelada';
 
     const normalizedQuery = query.trim().toLowerCase();
     const matches = (name: string) => name.toLowerCase().includes(normalizedQuery);
-
-    const allReservations = sessionId ? store.getSessionReservations(sessionId) : [];
-    const allWaitlist = sessionId ? store.getWaitlist(sessionId) : [];
     const reservations = allReservations.filter((r) => matches(r.memberName));
     const waitlist = allWaitlist.filter((entry) => matches(entry.memberName));
 
     return (
-        <Sheet open={!!session} onOpenChange={onOpenChange}>
+        <Sheet open={!!sessionId} onOpenChange={onOpenChange}>
             <SheetContent className="w-full sm:max-w-md">
                 {session && (
                     <>
@@ -122,11 +139,43 @@ export function SessionDetailSheet({ store, sessionId, onOpenChange }: SessionDe
                             <SheetTitle>{session.className}</SheetTitle>
                             <SheetDescription className="capitalize">
                                 {format(sessionStartDate(session), "EEEE d 'de' MMMM", { locale: es })} ·{' '}
-                                {session.startTime} – {session.endTime} · {session.trainer}
+                                {formatTime12h(session.startTime)} – {formatTime12h(session.endTime)} ·{' '}
+                                {session.trainer}
                             </SheetDescription>
                         </SheetHeader>
 
                         <div className="flex min-h-0 flex-1 flex-col gap-4 px-4 pb-4">
+                            {/* Gestión de la sesión (solo futuras programadas) */}
+                            {cancelled ? (
+                                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+                                    <CircleSlash className="h-4 w-4 shrink-0" aria-hidden />
+                                    Sesión cancelada — sus reservas fueron canceladas.
+                                </div>
+                            ) : (
+                                !past && (
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1 border-border"
+                                            onClick={() => setMoveOpen(true)}
+                                        >
+                                            <CalendarClock className="mr-2 h-4 w-4" />
+                                            Mover sesión
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1 border-border text-destructive hover:text-destructive"
+                                            onClick={() => setCancelOpen(true)}
+                                        >
+                                            <XCircle className="mr-2 h-4 w-4" />
+                                            Cancelar sesión
+                                        </Button>
+                                    </div>
+                                )
+                            )}
+
                             {/* Ocupación */}
                             <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/30 p-3">
                                 <span className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -183,7 +232,7 @@ export function SessionDetailSheet({ store, sessionId, onOpenChange }: SessionDe
                                                 </span>
                                                 <span className="flex items-center gap-1">
                                                     <ClassStatusBadge status={reservation.status} />
-                                                    <ReservationActions store={store} reservation={reservation} />
+                                                    <ReservationActions reservation={reservation} session={session} />
                                                 </span>
                                             </div>
                                         ))
@@ -217,11 +266,7 @@ export function SessionDetailSheet({ store, sessionId, onOpenChange }: SessionDe
                                                                 {entry.memberName}
                                                             </span>
                                                         </span>
-                                                        <WaitlistEntryActions
-                                                            store={store}
-                                                            entry={entry}
-                                                            hasRoom={hasRoom}
-                                                        />
+                                                        <WaitlistEntryActions entry={entry} hasRoom={hasRoom} />
                                                     </div>
                                                 ))
                                             )}
@@ -230,6 +275,25 @@ export function SessionDetailSheet({ store, sessionId, onOpenChange }: SessionDe
                                 )}
                             </div>
                         </div>
+
+                        <MoveSessionDialog open={moveOpen} onOpenChange={setMoveOpen} session={session} />
+
+                        <ConfirmDialog
+                            open={cancelOpen}
+                            onOpenChange={setCancelOpen}
+                            title="Cancelar sesión"
+                            description={`Se cancelará esta sesión de ${session.className} y sus ${session.booked + session.waitlistCount} reservas activas. Los miembros serán notificados.`}
+                            confirmLabel="Cancelar sesión"
+                            variant="destructive"
+                            onConfirm={() => {
+                                void cancelSession.mutateAsync(session.id).then((result) => {
+                                    sileo.warning({
+                                        title: `Sesión cancelada — ${result.affectedReservations} reservas canceladas`,
+                                    });
+                                });
+                                setCancelOpen(false);
+                            }}
+                        />
                     </>
                 )}
             </SheetContent>
