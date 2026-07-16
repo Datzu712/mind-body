@@ -27,7 +27,9 @@ function fetchWithToken({
     return fetch(url, {
         ...options,
         headers: {
-            'Content-Type': 'application/json',
+            // Solo cuando hay body: Fastify rechaza application/json con body
+            // vacío (FST_ERR_CTP_EMPTY_JSON_BODY) en POSTs sin payload.
+            ...(options.body ? { 'Content-Type': 'application/json' } : {}),
             ...options.headers,
             Authorization: `Bearer ${accessToken}`,
         },

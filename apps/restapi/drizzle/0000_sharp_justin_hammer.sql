@@ -175,10 +175,10 @@ ALTER TABLE "app"."routines" ADD CONSTRAINT "routines_trainer_id_fkey" FOREIGN K
 ALTER TABLE "app"."staff" ADD CONSTRAINT "staff_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "app"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "app"."trainers" ADD CONSTRAINT "trainers_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "app"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "idx_daily_activity_member_date" ON "app"."daily_activity_summaries" USING btree ("member_id" uuid_ops,"date" date_ops);--> statement-breakpoint
-CREATE INDEX "idx_member_measurements_member_date" ON "app"."member_measurements" USING btree ("member_id" date_ops,"measured_at" date_ops);--> statement-breakpoint
-CREATE INDEX "idx_member_routines_member_status" ON "app"."member_routines" USING btree ("member_id" uuid_ops,"status" uuid_ops);--> statement-breakpoint
+CREATE INDEX "idx_member_measurements_member_date" ON "app"."member_measurements" USING btree ("member_id" uuid_ops,"measured_at" date_ops);--> statement-breakpoint
+CREATE INDEX "idx_member_routines_member_status" ON "app"."member_routines" USING btree ("member_id" uuid_ops,"status" enum_ops);--> statement-breakpoint
 CREATE INDEX "idx_members_status" ON "app"."members" USING btree ("status" enum_ops);--> statement-breakpoint
-CREATE INDEX "idx_memberships_member_status_dates" ON "app"."memberships" USING btree ("member_id" date_ops,"status" enum_ops,"start_date" enum_ops,"end_date" uuid_ops);--> statement-breakpoint
-CREATE INDEX "idx_routines_trainer_status" ON "app"."routines" USING btree ("trainer_id" uuid_ops,"status" uuid_ops);--> statement-breakpoint
+CREATE INDEX "idx_memberships_member_status_dates" ON "app"."memberships" USING btree ("member_id" uuid_ops,"status" enum_ops,"start_date" date_ops,"end_date" date_ops);--> statement-breakpoint
+CREATE INDEX "idx_routines_trainer_status" ON "app"."routines" USING btree ("trainer_id" uuid_ops,"status" enum_ops);--> statement-breakpoint
 CREATE INDEX "idx_trainers_status" ON "app"."trainers" USING btree ("status" enum_ops);--> statement-breakpoint
 CREATE INDEX "idx_users_keycloak_subject" ON "app"."users" USING btree ("keycloak_subject" uuid_ops);

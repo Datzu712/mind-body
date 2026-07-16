@@ -111,6 +111,11 @@ COPY --from=builder --chown=node:node /app/out/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/out/package.json ./package.json
 COPY --from=builder --chown=node:node /app/apps/restapi/dist ./dist
 
+# Drizzle migrations for the one-shot deploy job (`node dist/src/migrate.js`).
+# Run it as a job/init-container BEFORE starting API replicas; the API itself
+# never executes DDL at boot.
+COPY --from=builder --chown=node:node /app/apps/restapi/drizzle ./drizzle
+
 # The Chrome binary downloaded by Puppeteer.
 COPY --from=builder --chown=node:node ${PUPPETEER_CACHE_DIR} ${PUPPETEER_CACHE_DIR}
 
