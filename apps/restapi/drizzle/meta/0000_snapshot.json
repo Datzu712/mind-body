@@ -282,7 +282,7 @@
                             "isExpression": false,
                             "asc": true,
                             "nulls": "last",
-                            "opclass": "date_ops"
+                            "opclass": "uuid_ops"
                         },
                         {
                             "expression": "measured_at",
@@ -413,7 +413,7 @@
                             "isExpression": false,
                             "asc": true,
                             "nulls": "last",
-                            "opclass": "uuid_ops"
+                            "opclass": "enum_ops"
                         }
                     ],
                     "isUnique": false,
@@ -744,7 +744,7 @@
                             "isExpression": false,
                             "asc": true,
                             "nulls": "last",
-                            "opclass": "date_ops"
+                            "opclass": "uuid_ops"
                         },
                         {
                             "expression": "status",
@@ -758,14 +758,14 @@
                             "isExpression": false,
                             "asc": true,
                             "nulls": "last",
-                            "opclass": "enum_ops"
+                            "opclass": "date_ops"
                         },
                         {
                             "expression": "end_date",
                             "isExpression": false,
                             "asc": true,
                             "nulls": "last",
-                            "opclass": "uuid_ops"
+                            "opclass": "date_ops"
                         }
                     ],
                     "isUnique": false,
@@ -973,7 +973,7 @@
                             "isExpression": false,
                             "asc": true,
                             "nulls": "last",
-                            "opclass": "uuid_ops"
+                            "opclass": "enum_ops"
                         }
                     ],
                     "isUnique": false,

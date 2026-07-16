@@ -12,6 +12,12 @@ import {
     memberRoutinesInApp,
     memberMeasurementsInApp,
     dailyActivitySummariesInApp,
+    classSeriesInApp,
+    classSeriesWeekdaysInApp,
+    classSessionsInApp,
+    reservationsInApp,
+    reservationEventsInApp,
+    classScheduleEventsInApp,
 } from './schema';
 
 export const membersInAppRelations = relations(membersInApp, ({ one, many }) => ({
@@ -112,5 +118,69 @@ export const dailyActivitySummariesInAppRelations = relations(dailyActivitySumma
     membersInApp: one(membersInApp, {
         fields: [dailyActivitySummariesInApp.memberId],
         references: [membersInApp.id],
+    }),
+}));
+
+export const classSeriesInAppRelations = relations(classSeriesInApp, ({ one, many }) => ({
+    trainersInApp: one(trainersInApp, {
+        fields: [classSeriesInApp.trainerId],
+        references: [trainersInApp.id],
+    }),
+    weekdays: many(classSeriesWeekdaysInApp),
+    classSessionsInApps: many(classSessionsInApp),
+}));
+
+export const classSeriesWeekdaysInAppRelations = relations(classSeriesWeekdaysInApp, ({ one }) => ({
+    classSeriesInApp: one(classSeriesInApp, {
+        fields: [classSeriesWeekdaysInApp.classSeriesId],
+        references: [classSeriesInApp.id],
+    }),
+}));
+
+export const classSessionsInAppRelations = relations(classSessionsInApp, ({ one, many }) => ({
+    classSeriesInApp: one(classSeriesInApp, {
+        fields: [classSessionsInApp.classSeriesId],
+        references: [classSeriesInApp.id],
+    }),
+    trainersInApp: one(trainersInApp, {
+        fields: [classSessionsInApp.trainerId],
+        references: [trainersInApp.id],
+    }),
+    reservationsInApps: many(reservationsInApp),
+}));
+
+export const reservationsInAppRelations = relations(reservationsInApp, ({ one, many }) => ({
+    classSessionsInApp: one(classSessionsInApp, {
+        fields: [reservationsInApp.sessionId],
+        references: [classSessionsInApp.id],
+    }),
+    membersInApp: one(membersInApp, {
+        fields: [reservationsInApp.memberId],
+        references: [membersInApp.id],
+    }),
+    rescheduledFrom: one(reservationsInApp, {
+        fields: [reservationsInApp.rescheduledFromReservationId],
+        references: [reservationsInApp.id],
+        relationName: 'reservation_reschedule_link',
+    }),
+    rescheduledTo: many(reservationsInApp, { relationName: 'reservation_reschedule_link' }),
+    events: many(reservationEventsInApp),
+}));
+
+export const reservationEventsInAppRelations = relations(reservationEventsInApp, ({ one }) => ({
+    reservationsInApp: one(reservationsInApp, {
+        fields: [reservationEventsInApp.reservationId],
+        references: [reservationsInApp.id],
+    }),
+}));
+
+export const classScheduleEventsInAppRelations = relations(classScheduleEventsInApp, ({ one }) => ({
+    classSeriesInApp: one(classSeriesInApp, {
+        fields: [classScheduleEventsInApp.classSeriesId],
+        references: [classSeriesInApp.id],
+    }),
+    classSessionsInApp: one(classSessionsInApp, {
+        fields: [classScheduleEventsInApp.classSessionId],
+        references: [classSessionsInApp.id],
     }),
 }));

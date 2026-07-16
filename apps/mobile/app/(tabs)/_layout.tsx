@@ -67,6 +67,13 @@ export default function TabLayout() {
                 }}
             />
             <Tabs.Screen
+                name="reservations"
+                options={{
+                    title: 'Reservas',
+                    tabBarIcon: tabIcon('ticket-outline', 'ticket'),
+                }}
+            />
+            <Tabs.Screen
                 name="workouts"
                 options={{
                     title: 'Ejercicios',
