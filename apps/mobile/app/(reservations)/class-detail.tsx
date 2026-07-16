@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -8,8 +8,8 @@ import { FitColors as T } from '@/constants/theme';
 import { ReservationActionButton } from '@/components/reservations/ReservationActionButton';
 import { ReservationStateCard } from '@/components/reservations/ReservationStateCard';
 import { ReservationStatusBadge } from '@/components/reservations/ReservationStatusBadge';
-import { getClassById, hasNoSpots } from '@/components/reservations/mock-reservations';
 import { ScreenHeader } from '@/components/reservations/ScreenHeader';
+import { hasNoSpots, useBookSession, useSessionDetail } from '@/lib/api/reservations';
 
 const InfoRow = ({
     icon,
@@ -33,14 +33,49 @@ const InfoRow = ({
 
 export default function ClassDetailScreen() {
     const { id } = useLocalSearchParams<{ id?: string }>();
-    const gymClass = getClassById(id);
-    const noSpots = hasNoSpots(gymClass);
+    const sessionId = Array.isArray(id) ? id[0] : id;
 
-    const [reserved, setReserved] = useState(false);
-    const [waitlisted, setWaitlisted] = useState(false);
+    const { data: gymClass, isLoading, isError, refetch } = useSessionDetail(sessionId);
+    const book = useBookSession();
+    const [bookError, setBookError] = useState<string | null>(null);
 
     const goToReservations = () => router.push('/(reservations)/my-reservations');
-    const goToWaitlist = () => router.push('/(reservations)/waitlist');
+
+    const handleReserve = () => {
+        if (!sessionId) return;
+        setBookError(null);
+        book.mutate(sessionId, {
+            onError: (error) => setBookError(error instanceof Error ? error.message : 'No se pudo reservar'),
+        });
+    };
+
+    if (isLoading || !gymClass) {
+        return (
+            <SafeAreaView style={s.root} edges={['top']}>
+                <ScreenHeader title="Detalle de clase" />
+                {isError ? (
+                    <View style={[s.px, { marginTop: 24 }]}>
+                        <ReservationStateCard
+                            variant="sin-cupos"
+                            title="No pudimos cargar la clase"
+                            message="Revisa tu conexión e inténtalo de nuevo."
+                            actionLabel="Reintentar"
+                            onAction={() => void refetch()}
+                        />
+                    </View>
+                ) : (
+                    <View style={s.loading}>
+                        <ActivityIndicator color={T.yellow} />
+                    </View>
+                )}
+            </SafeAreaView>
+        );
+    }
+
+    const noSpots = hasNoSpots(gymClass);
+    const reserved = !!gymClass.viewer?.reservationId || book.isSuccess;
+    const hasConflict = !!gymClass.viewer?.hasConflict;
+    const room = [gymClass.room, gymClass.zone].filter(Boolean).join(' · ');
 
     return (
         <SafeAreaView style={s.root} edges={['top']}>
@@ -49,7 +84,7 @@ export default function ClassDetailScreen() {
                 {/* Title block */}
                 <View style={s.px}>
                     <View style={[s.catChip, { backgroundColor: gymClass.accent + '22' }]}>
-                        <Text style={[s.catText, { color: gymClass.accent }]}>{gymClass.category}</Text>
+                        <Text style={[s.catText, { color: gymClass.accent }]}>{gymClass.category ?? 'Clase'}</Text>
                     </View>
                     <Text style={s.name}>{gymClass.name}</Text>
                     <View style={s.trainerRow}>
@@ -61,17 +96,17 @@ export default function ClassDetailScreen() {
                 {/* Info card */}
                 <View style={[s.px, { marginTop: 16 }]}>
                     <View style={s.infoCard}>
-                        <InfoRow icon="calendar-outline" label="Fecha" value="Hoy, 9 jun 2025" />
+                        <InfoRow icon="calendar-outline" label="Fecha" value={gymClass.dateLabel} />
                         <InfoRow
                             icon="time-outline"
                             label="Horario"
                             value={`${gymClass.time} (${gymClass.durationMin} min)`}
                         />
-                        <InfoRow icon="location-outline" label="Sala" value={`${gymClass.room} · ${gymClass.zone}`} />
-                        <InfoRow icon="barbell-outline" label="Nivel" value={gymClass.level} />
+                        {room.length > 0 && <InfoRow icon="location-outline" label="Sala" value={room} />}
+                        {gymClass.level && <InfoRow icon="barbell-outline" label="Nivel" value={gymClass.level} />}
                         <InfoRow
                             icon="people-outline"
-                            label="Cupos"
+                            label="Cupos disponibles"
                             value={`${gymClass.spotsLeft} / ${gymClass.capacity}`}
                             valueColor={noSpots ? T.red : T.green}
                         />
@@ -79,64 +114,50 @@ export default function ClassDetailScreen() {
                 </View>
 
                 {/* Description */}
-                <View style={[s.px, { marginTop: 16 }]}>
-                    <Text style={s.secTitle}>DESCRIPCIÓN</Text>
-                    <Text style={s.desc}>{gymClass.description}</Text>
-                </View>
+                {gymClass.description.length > 0 && (
+                    <View style={[s.px, { marginTop: 16 }]}>
+                        <Text style={s.secTitle}>DESCRIPCIÓN</Text>
+                        <Text style={s.desc}>{gymClass.description}</Text>
+                    </View>
+                )}
 
                 {/* Actions + states */}
                 <View style={[s.px, { marginTop: 20, gap: 12 }]}>
                     {reserved ? (
                         <ReservationStateCard
                             variant="exito"
-                            title="¡Reserva confirmada!"
+                            title={book.isSuccess ? '¡Reserva confirmada!' : 'Ya tienes una reserva en esta clase'}
                             message={`${gymClass.name} · ${gymClass.time}`}
-                            detail={`${gymClass.room} · Hoy`}
+                            detail={`${gymClass.dateLabel}${room ? ` · ${room}` : ''}`}
                             actionLabel="Ver en Mis reservas"
                             onAction={goToReservations}
                         />
-                    ) : waitlisted ? (
-                        <ReservationStateCard
-                            variant="info"
-                            title="Estás en la lista de espera"
-                            message={`Te avisaremos si se libera un cupo en ${gymClass.name}.`}
-                            actionLabel="Ver lista de espera"
-                            onAction={goToWaitlist}
-                        />
                     ) : noSpots ? (
-                        <>
-                            <ReservationStateCard
-                                variant="sin-cupos"
-                                title="No hay cupos disponibles"
-                                message="Únete a la lista de espera y te avisaremos si se libera un lugar."
-                            />
-                            <ReservationActionButton
-                                label="Unirme a lista de espera"
-                                variant="primary"
-                                icon="people-outline"
-                                onPress={() => setWaitlisted(true)}
-                            />
-                        </>
+                        <ReservationStateCard
+                            variant="sin-cupos"
+                            title="No hay cupos disponibles"
+                            message="Esta sesión está llena. Revisa otros horarios de la misma clase."
+                        />
                     ) : (
                         <>
                             <ReservationActionButton
-                                label="Reservar mi cupo"
+                                label={book.isPending ? 'Reservando…' : 'Reservar mi cupo'}
                                 variant="primary"
                                 icon="checkmark"
-                                onPress={() => setReserved(true)}
+                                onPress={book.isPending ? undefined : handleReserve}
                             />
-                            <ReservationActionButton
-                                label="Unirme a lista de espera"
-                                variant="secondary"
-                                icon="people-outline"
-                                onPress={() => setWaitlisted(true)}
-                            />
-                            {gymClass.hasConflict && (
+                            {bookError && (
+                                <ReservationStateCard
+                                    variant="sin-cupos"
+                                    title="No se pudo reservar"
+                                    message={bookError}
+                                />
+                            )}
+                            {hasConflict && (
                                 <ReservationStateCard
                                     variant="conflicto"
                                     title="Tienes un conflicto de horario"
                                     message="Esta clase se cruza con otra reserva que ya tienes."
-                                    detail="Yoga Flow · Hoy 07:00 - 08:00"
                                     actionLabel="Ver mis reservas"
                                     onAction={goToReservations}
                                 />
@@ -145,7 +166,7 @@ export default function ClassDetailScreen() {
                     )}
 
                     {/* Availability recap (icon + text + color, not color alone) */}
-                    {!reserved && !waitlisted && (
+                    {!reserved && (
                         <View style={s.recap}>
                             <ReservationStatusBadge
                                 variant={noSpots ? 'sin-cupos' : 'disponible'}
@@ -163,6 +184,7 @@ const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: T.bg },
     scroll: { paddingBottom: 32, paddingTop: 8 },
     px: { paddingHorizontal: 20 },
+    loading: { paddingVertical: 48, alignItems: 'center' },
 
     catChip: { alignSelf: 'flex-start', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
     catText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.4, textTransform: 'uppercase' },

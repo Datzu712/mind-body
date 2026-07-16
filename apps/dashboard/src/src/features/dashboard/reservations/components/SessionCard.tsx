@@ -1,4 +1,3 @@
-import { Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SessionOccupancy } from '../types';
 
@@ -29,17 +28,12 @@ export function SessionCard({ session, onClick }: SessionCardProps) {
             <p className={cn('truncate text-xs font-semibold text-foreground', cancelled && 'line-through')}>
                 {session.className}
             </p>
-            <p className="truncate text-[11px] text-muted-foreground">{session.trainer}</p>
+            <p className="truncate text-[11px] text-muted-foreground">{session.trainerName}</p>
             {cancelled ? (
                 <p className="mt-1 text-[11px] font-medium text-muted-foreground">Cancelada</p>
             ) : (
                 <p className={cn('mt-1 text-[11px] font-medium', occupancyTone(session))}>
                     {session.booked}/{session.capacity}
-                    {session.waitlistCount > 0 && (
-                        <span className="ml-1 inline-flex items-center gap-0.5 text-warning">
-                            +{session.waitlistCount} <Clock className="h-3 w-3" aria-hidden />
-                        </span>
-                    )}
                 </p>
             )}
         </button>

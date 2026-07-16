@@ -31,7 +31,7 @@ interface ClassFormDialogProps {
 const emptyForm: ClassFormData = {
     name: '',
     description: '',
-    trainer: '',
+    trainerId: '',
     days: [],
     time: '08:00',
     durationMin: 60,
@@ -47,8 +47,7 @@ export function ClassFormDialog({ open, onOpenChange, item, onSubmit }: ClassFor
 
     useEffect(() => {
         if (item) {
-            const { id: _id, ...rest } = item;
-            setFormData(rest);
+            setFormData(item);
         } else {
             setFormData(emptyForm);
         }
@@ -68,7 +67,7 @@ export function ClassFormDialog({ open, onOpenChange, item, onSubmit }: ClassFor
             sileo.warning({ title: 'Seleccioná al menos un día' });
             return;
         }
-        if (!formData.trainer) {
+        if (!formData.trainerId) {
             sileo.warning({ title: 'Seleccioná un entrenador' });
             return;
         }
@@ -153,16 +152,16 @@ export function ClassFormDialog({ open, onOpenChange, item, onSubmit }: ClassFor
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="class-trainer">Entrenador</Label>
                             <Select
-                                value={formData.trainer}
-                                onValueChange={(value) => setFormData({ ...formData, trainer: value })}
+                                value={formData.trainerId}
+                                onValueChange={(value) => setFormData({ ...formData, trainerId: value })}
                             >
-                                <SelectTrigger id="class-trainer" className="bg-secondary/50 border-border">
+                                <SelectTrigger id="class-trainer" className="w-full bg-secondary/50 border-border">
                                     <SelectValue placeholder="Seleccionar entrenador" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-popover border-border">
                                     {trainers.map((trainer) => (
-                                        <SelectItem key={trainer} value={trainer}>
-                                            {trainer}
+                                        <SelectItem key={trainer.id} value={trainer.id}>
+                                            {trainer.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -232,7 +231,7 @@ export function ClassFormDialog({ open, onOpenChange, item, onSubmit }: ClassFor
                             value={formData.status}
                             onValueChange={(value) => setFormData({ ...formData, status: value as ClassStatus })}
                         >
-                            <SelectTrigger id="class-status" className="bg-secondary/50 border-border">
+                            <SelectTrigger id="class-status" className="w-full bg-secondary/50 border-border">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-popover border-border">

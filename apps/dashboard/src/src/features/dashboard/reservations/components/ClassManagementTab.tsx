@@ -42,7 +42,7 @@ export function ClassManagementTab() {
             classes.filter((cls) => {
                 const matchesSearch =
                     cls.name.toLowerCase().includes(search.toLowerCase()) ||
-                    cls.trainer.toLowerCase().includes(search.toLowerCase());
+                    cls.trainerName.toLowerCase().includes(search.toLowerCase());
                 const matchesStatus = statusFilter === 'all' || cls.status === statusFilter;
                 return matchesSearch && matchesStatus;
             }),
@@ -62,7 +62,19 @@ export function ClassManagementTab() {
     const handleEdit = async (data: ClassFormData) => {
         if (!editingClass) return { success: false, error: 'No hay clase seleccionada' };
         try {
-            const result = await updateClass.mutateAsync({ id: editingClass.id, dto: data });
+            const result = await updateClass.mutateAsync({
+                id: editingClass.id,
+                dto: data,
+                version: editingClass.version,
+            });
+            // El backend separa la transición de estado del update de datos.
+            if (data.status !== editingClass.status) {
+                await setClassStatus.mutateAsync({
+                    id: editingClass.id,
+                    status: data.status,
+                    version: result.classSeries.version,
+                });
+            }
             setEditingClass(null);
             sileo.success({ title: `Clase "${data.name}" actualizada` });
             if (result.affectedReservations > 0) {
@@ -78,23 +90,33 @@ export function ClassManagementTab() {
 
     const handleToggleStatus = (cls: GymClass) => {
         const next: ClassStatus = cls.status === 'inactive' ? 'active' : 'inactive';
-        void setClassStatus.mutateAsync({ id: cls.id, status: next }).then((result) => {
-            sileo.success({ title: next === 'inactive' ? `"${cls.name}" desactivada` : `"${cls.name}" activada` });
-            if (result.affectedReservations > 0) {
-                sileo.warning({ title: `${result.affectedReservations} reservas activas fueron canceladas` });
-            }
-        });
+        void setClassStatus
+            .mutateAsync({ id: cls.id, status: next, version: cls.version })
+            .then((result) => {
+                sileo.success({ title: next === 'inactive' ? `"${cls.name}" desactivada` : `"${cls.name}" activada` });
+                if (result.affectedReservations > 0) {
+                    sileo.warning({ title: `${result.affectedReservations} reservas activas fueron canceladas` });
+                }
+            })
+            .catch((error: unknown) => {
+                sileo.error({ title: error instanceof Error ? error.message : 'No se pudo cambiar el estado' });
+            });
     };
 
     const handleDelete = () => {
         const cls = confirmDialog.item;
         if (!cls) return;
-        void deleteClass.mutateAsync(cls.id).then((result) => {
-            sileo.success({ title: `Clase "${cls.name}" eliminada` });
-            if (result.affectedReservations > 0) {
-                sileo.warning({ title: `${result.affectedReservations} reservas activas fueron canceladas` });
-            }
-        });
+        void deleteClass
+            .mutateAsync({ id: cls.id, version: cls.version })
+            .then((result) => {
+                sileo.success({ title: `Clase "${cls.name}" eliminada` });
+                if (result.affectedReservations > 0) {
+                    sileo.warning({ title: `${result.affectedReservations} reservas activas fueron canceladas` });
+                }
+            })
+            .catch((error: unknown) => {
+                sileo.error({ title: error instanceof Error ? error.message : 'No se pudo eliminar la clase' });
+            });
         setConfirmDialog({ open: false, item: null });
     };
 
@@ -126,7 +148,7 @@ export function ClassManagementTab() {
                         value={statusFilter}
                         onValueChange={(value) => setStatusFilter(value as 'all' | ClassStatus)}
                     >
-                        <SelectTrigger className="bg-secondary/50 border-border sm:w-48">
+                        <SelectTrigger className="w-full bg-secondary/50 border-border sm:w-48">
                             <SelectValue placeholder="Estado" />
                         </SelectTrigger>
                         <SelectContent className="bg-popover border-border">
@@ -170,7 +192,7 @@ export function ClassManagementTab() {
                                     filteredClasses.map((cls) => (
                                         <TableRow key={cls.id} className="border-border">
                                             <TableCell className="font-medium text-foreground">{cls.name}</TableCell>
-                                            <TableCell className="text-muted-foreground">{cls.trainer}</TableCell>
+                                            <TableCell className="text-muted-foreground">{cls.trainerName}</TableCell>
                                             <TableCell className="text-muted-foreground whitespace-nowrap">
                                                 {formatScheduleLabel(cls)}
                                             </TableCell>

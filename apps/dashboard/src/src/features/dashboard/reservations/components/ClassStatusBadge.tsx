@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Clock, XCircle, CircleSlash, UserCheck, UserX, type LucideIcon } from 'lucide-react';
+import { CheckCircle2, XCircle, CircleSlash, UserCheck, UserX, type LucideIcon } from 'lucide-react';
 import type { ClassStatus, ReservationStatus } from '../types';
 
 /** Union of the reservation states and the class-management states. */
@@ -12,11 +12,6 @@ const config: Record<ClassBadgeStatus, { label: string; icon: LucideIcon; classN
         label: 'Confirmada',
         icon: CheckCircle2,
         className: 'bg-success/20 text-success hover:bg-success/30 border-success/30',
-    },
-    'en-espera': {
-        label: 'En espera',
-        icon: Clock,
-        className: 'bg-warning/20 text-warning hover:bg-warning/30 border-warning/30',
     },
     asistio: {
         label: 'Asistió',

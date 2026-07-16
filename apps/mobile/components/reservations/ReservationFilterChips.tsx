@@ -1,15 +1,14 @@
 import React from 'react';
 import { Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { FitColors as T } from '@/constants/theme';
-import type { FilterCategory } from './mock-reservations';
 
 type Props = {
-    categories: FilterCategory[];
-    active: FilterCategory;
-    onChange: (category: FilterCategory) => void;
+    categories: string[];
+    active: string;
+    onChange: (category: string) => void;
 };
 
-/** Horizontal, single-select filter chips. Active chip = yellow fill + dark text. */
+/** Horizontal, single-select filter chips. Selection stays quieter than the booking CTA. */
 export function ReservationFilterChips({ categories, active, onChange }: Props) {
     return (
         <ScrollView
@@ -47,9 +46,9 @@ const s = StyleSheet.create({
         justifyContent: 'center',
         borderWidth: 1,
     },
-    chipOn: { backgroundColor: T.yellow, borderColor: T.yellow },
+    chipOn: { backgroundColor: T.yellowDim, borderColor: T.yellowBdr },
     chipOff: { backgroundColor: T.card2, borderColor: T.border },
     label: { fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
-    labelOn: { color: T.bg },
+    labelOn: { color: T.yellow },
     labelOff: { color: T.muted },
 });

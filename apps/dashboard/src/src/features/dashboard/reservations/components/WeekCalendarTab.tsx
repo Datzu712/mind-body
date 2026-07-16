@@ -32,7 +32,7 @@ export function WeekCalendarTab() {
     const { data: trainers = [] } = useTrainers();
     const sessions = weekSessions
         .filter((s) => classFilter === 'all' || s.classId === classFilter)
-        .filter((s) => trainerFilter === 'all' || s.trainer === trainerFilter);
+        .filter((s) => trainerFilter === 'all' || s.trainerId === trainerFilter);
     // Franjas fijas de 7 a. m. a 8 p. m.; se agregan horas extra solo si hay
     // sesiones fuera de ese rango (p. ej. spinning de 6 a. m.).
     const BASE_HOURS = Array.from({ length: 14 }, (_, i) => i + 7);
@@ -86,7 +86,7 @@ export function WeekCalendarTab() {
 
                 <div className="flex flex-col gap-3 sm:flex-row">
                     <Select value={classFilter} onValueChange={setClassFilter}>
-                        <SelectTrigger className="bg-secondary/50 border-border sm:w-44">
+                        <SelectTrigger className="w-full bg-secondary/50 border-border sm:w-44">
                             <SelectValue placeholder="Clase" />
                         </SelectTrigger>
                         <SelectContent className="bg-popover border-border">
@@ -101,14 +101,14 @@ export function WeekCalendarTab() {
                         </SelectContent>
                     </Select>
                     <Select value={trainerFilter} onValueChange={setTrainerFilter}>
-                        <SelectTrigger className="bg-secondary/50 border-border sm:w-44">
+                        <SelectTrigger className="w-full bg-secondary/50 border-border sm:w-44">
                             <SelectValue placeholder="Entrenador" />
                         </SelectTrigger>
                         <SelectContent className="bg-popover border-border">
                             <SelectItem value="all">Todos los entrenadores</SelectItem>
                             {trainers.map((trainer) => (
-                                <SelectItem key={trainer} value={trainer}>
-                                    {trainer}
+                                <SelectItem key={trainer.id} value={trainer.id}>
+                                    {trainer.name}
                                 </SelectItem>
                             ))}
                         </SelectContent>
@@ -163,7 +163,8 @@ export function WeekCalendarTab() {
                                         {days.map((day) => {
                                             const dayKey = format(day, 'yyyy-MM-dd');
                                             const cell = sessions.filter(
-                                                (s) => s.date === dayKey && s.startTime.slice(0, 2) === time.slice(0, 2),
+                                                (s) =>
+                                                    s.date === dayKey && s.startTime.slice(0, 2) === time.slice(0, 2),
                                             );
                                             return (
                                                 <div
@@ -197,7 +198,10 @@ export function WeekCalendarTab() {
                                         style={{ gridRow: `${nowRow + 2} / ${nowRow + 3}` }}
                                         aria-hidden
                                     >
-                                        <div className="absolute inset-x-0 pl-[72px]" style={{ top: `${nowMinutePct}%` }}>
+                                        <div
+                                            className="absolute inset-x-0 pl-[72px]"
+                                            style={{ top: `${nowMinutePct}%` }}
+                                        >
                                             <div className="relative flex items-center">
                                                 <span className="absolute -left-1 h-2 w-2 rounded-full bg-primary" />
                                                 <span className="h-0.5 w-full bg-primary/70" />

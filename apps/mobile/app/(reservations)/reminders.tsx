@@ -6,11 +6,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { FitColors as T } from '@/constants/theme';
 import { ScreenHeader } from '@/components/reservations/ScreenHeader';
 import { ReminderToggleRow } from '@/components/reservations/ReminderToggleRow';
-import {
-    ANTICIPATION_OPTIONS,
-    DEFAULT_REMINDER_PREFS,
-    type ReminderAnticipation,
-} from '@/components/reservations/mock-reservations';
+
+// Preferencias locales de recordatorio (la entrega de notificaciones aún no
+// tiene backend; estas opciones se persistirán cuando exista ese servicio).
+type ReminderAnticipation = '15min' | '1h' | '24h';
+
+const DEFAULT_REMINDER_PREFS = { push: true, email: true, anticipation: '1h' as ReminderAnticipation };
+
+const ANTICIPATION_OPTIONS: { value: ReminderAnticipation; label: string }[] = [
+    { value: '15min', label: '15 min' },
+    { value: '1h', label: '1 hora' },
+    { value: '24h', label: '24 horas' },
+];
 
 export default function RemindersScreen() {
     const [push, setPush] = useState(DEFAULT_REMINDER_PREFS.push);

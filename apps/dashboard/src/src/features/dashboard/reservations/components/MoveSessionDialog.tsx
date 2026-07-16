@@ -40,12 +40,17 @@ export function MoveSessionDialog({ open, onOpenChange, session }: MoveSessionDi
     const unchanged = date === session.date && time === session.startTime;
 
     const handleConfirm = () => {
-        void moveSession.mutateAsync({ id: session.id, date, startTime: time }).then(() => {
-            sileo.success({
-                title: `Sesión movida al ${format(new Date(`${date}T00:00:00`), 'EEEE d MMM', { locale: es })}. Los miembros serán notificados.`,
+        void moveSession
+            .mutateAsync({ id: session.id, date, startTime: time, version: session.version })
+            .then(() => {
+                sileo.success({
+                    title: `Sesión movida al ${format(new Date(`${date}T00:00:00`), 'EEEE d MMM', { locale: es })}. Los miembros serán notificados.`,
+                });
+                onOpenChange(false);
+            })
+            .catch((error: unknown) => {
+                sileo.error({ title: error instanceof Error ? error.message : 'No se pudo mover la sesión' });
             });
-            onOpenChange(false);
-        });
     };
 
     return (

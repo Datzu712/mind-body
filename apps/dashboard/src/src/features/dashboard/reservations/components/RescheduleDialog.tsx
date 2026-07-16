@@ -54,7 +54,7 @@ export function RescheduleDialog({ open, onOpenChange, reservation }: Reschedule
                     </p>
                 ) : (
                     <Select value={targetId} onValueChange={setTargetId}>
-                        <SelectTrigger className="bg-secondary/50 border-border">
+                        <SelectTrigger className="w-full bg-secondary/50 border-border">
                             <SelectValue placeholder="Seleccionar nueva sesión" />
                         </SelectTrigger>
                         <SelectContent className="bg-popover border-border">

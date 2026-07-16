@@ -1,0 +1,25 @@
+/** Códigos de error estables del dominio clases/sesiones/reservas (sección 9.5 del plan). */
+export const DOMAIN_ERROR_CODES = [
+    'CLASS_NOT_FOUND',
+    'CLASS_ARCHIVED',
+    'SESSION_NOT_FOUND',
+    'SESSION_CANCELLED',
+    'SESSION_ALREADY_STARTED',
+    'SESSION_FULL',
+    'ALREADY_RESERVED',
+    'INVALID_RESERVATION_STATE',
+    'TARGET_CLASS_MISMATCH',
+    'TARGET_SESSION_FULL',
+    'TARGET_SAME_SESSION',
+    'LATE_CHANGE_WINDOW',
+    'CAPACITY_BELOW_OCCUPANCY',
+    'TRAINER_TIME_CONFLICT',
+    'MEMBER_PROFILE_REQUIRED',
+    'MEMBERSHIP_REQUIRED',
+    'RESERVATION_NOT_FOUND',
+    'TRAINER_NOT_FOUND',
+    'VERSION_CONFLICT',
+    'PRECONDITION_REQUIRED',
+] as const;
+
+export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

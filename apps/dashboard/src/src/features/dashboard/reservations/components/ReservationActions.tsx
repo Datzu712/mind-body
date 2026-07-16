@@ -37,8 +37,7 @@ export function ReservationActions({ reservation, session }: ReservationActionsP
 
     if (session.status === 'cancelada') return null;
     if (reservation.status === 'cancelada') return null;
-    if (past && reservation.status === 'en-espera') return null;
-    if (!past && reservation.status !== 'confirmada' && reservation.status !== 'en-espera') return null;
+    if (!past && reservation.status !== 'confirmada') return null;
 
     const late = isLateCancellation(session);
 
