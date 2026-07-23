@@ -13,6 +13,7 @@ export interface RoutineExercise {
     displayOrder: number;
     sets: number | null;
     reps: string | null;
+    restSeconds: number;
     notes?: string | null;
     exerciseName?: string | null;
     exercise?: Exercise;
@@ -67,11 +68,21 @@ export interface RoutineVersion {
 }
 
 export interface RoutineFormExercise {
+    routineExerciseId?: string;
     exerciseId: string;
     displayOrder: number;
     sets: number | null;
     reps: string | null;
+    restSeconds: number;
     notes?: string;
+}
+
+export interface RoutineAttachmentMock {
+    id: string;
+    name: string;
+    size: number;
+    type: string;
+    url: string;
 }
 
 export interface RoutineFormData {
@@ -79,4 +90,5 @@ export interface RoutineFormData {
     objective?: string;
     exercises: RoutineFormExercise[];
     changeReason?: string;
+    mockAttachments?: RoutineAttachmentMock[];
 }

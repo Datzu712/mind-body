@@ -286,6 +286,7 @@ export const routineExercisesInApp = app.table(
         displayOrder: integer('display_order').notNull(),
         sets: integer(),
         reps: varchar({ length: 40 }),
+        restSeconds: integer('rest_seconds').default(60).notNull(),
         notes: text(),
     },
     (table) => [
@@ -302,6 +303,7 @@ export const routineExercisesInApp = app.table(
         unique('uq_routine_exercise_order').on(table.displayOrder, table.routineId),
         check('routine_exercises_display_order_check', sql`display_order > 0`),
         check('routine_exercises_sets_check', sql`sets > 0`),
+        check('routine_exercises_rest_seconds_check', sql`rest_seconds >= 0 AND rest_seconds <= 600`),
     ],
 );
 

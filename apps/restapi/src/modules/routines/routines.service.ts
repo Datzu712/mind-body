@@ -564,6 +564,7 @@ export class RoutinesService {
     async createRoutine(userId: string, dto: CreateRoutineDto) {
         const trainer = await this.getTrainerOrThrow(userId);
         await this.guardDuplicateName(trainer.id, dto.name);
+        this.guardValidExerciseOrder(dto.exercises);
 
         return this.drizzle.db.transaction(async (tx) => {
             const [routine] = await tx
@@ -585,6 +586,7 @@ export class RoutinesService {
                     displayOrder: e.displayOrder,
                     sets: e.sets ?? null,
                     reps: e.reps ?? null,
+                    restSeconds: e.restSeconds,
                     notes: e.notes ?? null,
                 })),
             );
@@ -606,6 +608,7 @@ export class RoutinesService {
         const trainer = await this.getTrainerOrThrow(userId);
         await this.findOwnedRoutine(trainer.id, routineId);
         await this.guardDuplicateName(trainer.id, dto.name, routineId);
+        this.guardValidExerciseOrder(dto.exercises);
 
         return this.drizzle.db.transaction(async (tx) => {
             await tx
@@ -627,18 +630,32 @@ export class RoutinesService {
                               ),
                           );
             const referencedIds = new Set(referenced.map((r) => r.routineExerciseId));
-            const existingByExerciseId = new Map(existing.map((e) => [e.exerciseId, e]));
+            const existingById = new Map(existing.map((e) => [e.id, e]));
+
+            await Promise.all(
+                existing.map((e, index) =>
+                    tx
+                        .update(RoutineExercises)
+                        .set({ displayOrder: 100000 + index })
+                        .where(eq(RoutineExercises.id, e.id)),
+                ),
+            );
 
             const keptIds = new Set<string>();
             for (const e of dto.exercises) {
-                const current = existingByExerciseId.get(e.exerciseId);
+                const current = e.routineExerciseId ? existingById.get(e.routineExerciseId) : undefined;
                 if (current) {
+                    if (current.exerciseId !== e.exerciseId && referencedIds.has(current.id)) {
+                        throw new ConflictException('No se puede sustituir un ejercicio con sesiones registradas');
+                    }
                     await tx
                         .update(RoutineExercises)
                         .set({
+                            exerciseId: e.exerciseId,
                             displayOrder: e.displayOrder,
                             sets: e.sets ?? null,
                             reps: e.reps ?? null,
+                            restSeconds: e.restSeconds,
                             notes: e.notes ?? null,
                         })
                         .where(eq(RoutineExercises.id, current.id));
@@ -652,6 +669,7 @@ export class RoutinesService {
                             displayOrder: e.displayOrder,
                             sets: e.sets ?? null,
                             reps: e.reps ?? null,
+                            restSeconds: e.restSeconds,
                             notes: e.notes ?? null,
                         })
                         .returning();
@@ -660,7 +678,10 @@ export class RoutinesService {
             }
 
             for (const e of existing) {
-                if (!keptIds.has(e.id) && !referencedIds.has(e.id)) {
+                if (!keptIds.has(e.id) && referencedIds.has(e.id)) {
+                    throw new ConflictException('No se puede eliminar un ejercicio con sesiones registradas');
+                }
+                if (!keptIds.has(e.id)) {
                     await tx.delete(RoutineExercises).where(eq(RoutineExercises.id, e.id));
                 }
             }
@@ -895,8 +916,20 @@ export class RoutinesService {
                 sets: e.sets ?? null,
                 reps: e.reps ?? null,
                 notes: e.notes ?? null,
+                rest_seconds: e.restSeconds,
             })),
         };
+    }
+
+    private guardValidExerciseOrder(exercises: Array<{ displayOrder: number }>) {
+        const sorted = exercises.map((e) => e.displayOrder).sort((a, b) => a - b);
+        const isValid = sorted.every((order, index) => order === index + 1);
+        if (!isValid) {
+            throw new UnprocessableEntityException({
+                code: 'INVALID_DISPLAY_ORDER',
+                message: 'El orden de ejercicios debe ser consecutivo desde 1',
+            });
+        }
     }
 
     private async findRoutineWithExercises(tx: typeof this.drizzle.db, routineId: string) {

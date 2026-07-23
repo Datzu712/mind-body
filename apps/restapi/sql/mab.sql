@@ -191,6 +191,7 @@ CREATE TABLE IF NOT EXISTS app.routine_exercises (
     display_order INTEGER NOT NULL CHECK (display_order > 0),
     sets INTEGER CHECK (sets > 0),
     reps VARCHAR(40),
+    rest_seconds INTEGER NOT NULL DEFAULT 60 CHECK (rest_seconds >= 0 AND rest_seconds <= 600),
     notes TEXT,
     CONSTRAINT uq_routine_exercise_order UNIQUE (routine_id, display_order)
 );
@@ -399,3 +400,8 @@ CREATE TABLE IF NOT EXISTS app.class_schedule_events (
 );
 CREATE INDEX IF NOT EXISTS idx_class_schedule_events_series_occurred ON app.class_schedule_events(class_series_id, occurred_at);
 CREATE INDEX IF NOT EXISTS idx_class_schedule_events_session_occurred ON app.class_schedule_events(class_session_id, occurred_at);
+
+CREATE INDEX IF NOT EXISTS idx_training_sessions_member_routine_status ON app.training_sessions(member_routine_id, status);
+CREATE INDEX IF NOT EXISTS idx_exercise_logs_session_id ON app.exercise_logs(session_id);
+CREATE INDEX IF NOT EXISTS idx_routine_versions_routine_id ON app.routine_versions(routine_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON app.notifications(user_id, read);

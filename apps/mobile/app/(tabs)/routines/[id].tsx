@@ -8,6 +8,7 @@ import {
     TextInput,
     ActivityIndicator,
     Switch,
+    Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,7 @@ import {
 } from '@/hooks/use-training';
 import { useIsTrainer } from '@/hooks/use-is-trainer';
 import type { RoutineExercise, TrainingSession } from '@/lib/api/types/training';
+import { getMockRoutineMaterials } from '@/lib/mock-routine-materials';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -185,6 +187,9 @@ function ExerciseRow({
                     {ex.reps ? `${ex.reps} reps` : ''}
                 </Text>
             ) : null}
+            <Text style={s.exerciseTarget}>
+                Descanso: {ex.restSeconds === 0 ? 'Sin descanso' : `${ex.restSeconds ?? 60} s`}
+            </Text>
             {ex.notes ? <Text style={s.exerciseNotes}>{ex.notes}</Text> : null}
 
             <View style={s.inputsRow}>
@@ -307,6 +312,7 @@ export default function RoutineDetailScreen() {
         if (!sessions || !routine) return [];
         return sessions.filter((s) => s.memberRoutineId === routine.memberRoutineId);
     }, [sessions, routine]);
+    const materials = useMemo(() => (routine ? getMockRoutineMaterials(routine.name) : []), [routine?.name]);
 
     const editable = Boolean(activeSession && activeSession.status === 'PENDING');
 
@@ -463,6 +469,43 @@ export default function RoutineDetailScreen() {
                     )}
                 </View>
 
+                {/* Support material */}
+                <View style={s.secHead}>
+                    <Text style={s.secTitle}>MATERIAL DE APOYO</Text>
+                </View>
+                <View style={[s.px, { gap: 10, marginBottom: 24 }]}>
+                    {materials.length === 0 ? (
+                        <EmptyState
+                            icon="document-attach-outline"
+                            title="Sin material"
+                            message="Esta rutina no tiene archivos de apoyo disponibles."
+                        />
+                    ) : (
+                        materials.map((material) => (
+                            <TouchableOpacity
+                                key={material.id}
+                                style={s.materialCard}
+                                activeOpacity={0.85}
+                                onPress={async () => {
+                                    if (await Linking.canOpenURL(material.url)) {
+                                        await Linking.openURL(material.url);
+                                    }
+                                }}
+                            >
+                                <View style={s.materialIcon}>
+                                    <Ionicons name="download-outline" size={18} color={T.yellow} />
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={s.materialTitle}>{material.title}</Text>
+                                    <Text style={s.materialMeta}>
+                                        {material.type} · {material.size}
+                                    </Text>
+                                </View>
+                            </TouchableOpacity>
+                        ))
+                    )}
+                </View>
+
                 {/* History */}
                 <View style={s.secHead}>
                     <Text style={s.secTitle}>HISTORIAL</Text>
@@ -592,6 +635,28 @@ const s = StyleSheet.create({
     exerciseName: { fontSize: 15, fontWeight: '800', color: T.white, flex: 1, flexShrink: 1 },
     exerciseTarget: { fontSize: 12, color: T.yellow, fontWeight: '700' },
     exerciseNotes: { fontSize: 11, color: T.muted, lineHeight: 16 },
+    materialCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        backgroundColor: T.card,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: T.border,
+        padding: 14,
+    },
+    materialIcon: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        backgroundColor: T.yellowDim,
+        borderWidth: 1,
+        borderColor: T.yellowBdr,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    materialTitle: { fontSize: 14, fontWeight: '800', color: T.white },
+    materialMeta: { fontSize: 11, fontWeight: '700', color: T.muted, marginTop: 2 },
     inputsRow: { flexDirection: 'row', gap: 10 },
     inputWrap: { flex: 1, gap: 6 },
     inputLabel: { fontSize: 9, color: T.muted, fontWeight: '800', letterSpacing: 0.5 },

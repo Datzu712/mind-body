@@ -3,6 +3,7 @@ import { apiFetch } from '@/lib/api';
 import type { Exercise, Routine, RoutineFormData, RoutineMember, TrainingSession } from './types';
 import type { UserBase, PaginatedResponse } from '@/src/features/dashboard/users/types';
 import { notificationKeys } from '@/src/features/dashboard/hooks/use-notifications';
+import { sanitizeRoutinePayload, setRoutineMockAttachments } from './mock-attachments';
 
 export const routineKeys = {
     all: ['routines'] as const,
@@ -73,9 +74,10 @@ export function useCreateRoutine() {
         mutationFn: async (data: RoutineFormData) =>
             apiFetch<Routine>('/api/v1/routines', {
                 method: 'POST',
-                body: JSON.stringify(data),
+                body: JSON.stringify(sanitizeRoutinePayload(data)),
             }),
-        onSuccess: () => {
+        onSuccess: (routine, data) => {
+            setRoutineMockAttachments(routine.id, data.mockAttachments ?? []);
             void queryClient.invalidateQueries({ queryKey: routineKeys.all });
         },
     });
@@ -87,9 +89,10 @@ export function useUpdateRoutine(id: string) {
         mutationFn: async (data: RoutineFormData) =>
             apiFetch<Routine>(`/api/v1/routines/${id}`, {
                 method: 'PUT',
-                body: JSON.stringify(data),
+                body: JSON.stringify(sanitizeRoutinePayload(data)),
             }),
-        onSuccess: () => {
+        onSuccess: (_routine, data) => {
+            setRoutineMockAttachments(id, data.mockAttachments ?? []);
             void queryClient.invalidateQueries({ queryKey: routineKeys.detail(id) });
             void queryClient.invalidateQueries({ queryKey: routineKeys.versions(id) });
             void queryClient.invalidateQueries({ queryKey: routineKeys.all });
