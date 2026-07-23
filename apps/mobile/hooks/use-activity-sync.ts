@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
 import { initialize, readRecords, aggregateRecord, getGrantedPermissions } from 'react-native-health-connect';
 import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
@@ -8,7 +9,6 @@ import { useApiClient } from '@/lib/api/client';
 import { upsertDailyActivity } from '@/lib/api/activity';
 import { ACTIVITY_QUERY_KEY } from '@/hooks/use-health-data';
 import { dayKey, startOfDay, endOfDay } from '@/lib/date-utils';
-import { storage } from '@/lib/storage';
 
 const SYNC_KEY = 'last_hc_sync';
 const SYNC_INTERVAL = 12 * 60 * 60 * 1000; // 12h (temporal: evita re-sync hasta la PoC)
@@ -75,7 +75,7 @@ async function syncToday(api: (path: string, options?: RequestInit) => Promise<R
         source: 'HEALTH_CONNECT',
     });
 
-    await storage.setItemAsync(SYNC_KEY, String(Date.now()));
+    await SecureStore.setItemAsync(SYNC_KEY, String(Date.now()));
     return true;
 }
 
@@ -90,7 +90,7 @@ export function useActivitySync() {
         ran.current = true;
 
         (async () => {
-            const last = await storage.getItemAsync(SYNC_KEY);
+            const last = await SecureStore.getItemAsync(SYNC_KEY);
             if (last && Date.now() - parseInt(last) < SYNC_INTERVAL) return;
 
             try {
@@ -113,7 +113,7 @@ export function useManualSync() {
     const [lastSyncAt, setLastSyncAt] = useState<number | null>(null);
 
     useEffect(() => {
-        storage.getItemAsync(SYNC_KEY).then((v) => {
+        SecureStore.getItemAsync(SYNC_KEY).then((v) => {
             if (v) setLastSyncAt(parseInt(v));
         });
     }, []);

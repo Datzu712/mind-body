@@ -1,5 +1,13 @@
 import React from 'react';
-import { Text, StyleSheet, TouchableOpacity, ActivityIndicator, View } from 'react-native';
+import {
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    ActivityIndicator,
+    View,
+    type StyleProp,
+    type ViewStyle,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FitColors as T } from '@/constants/theme';
 
@@ -16,6 +24,7 @@ type Props = {
     loading?: boolean;
     /** Shrink to content instead of filling the row. */
     compact?: boolean;
+    style?: StyleProp<ViewStyle>;
 };
 
 function resolve(variant: ButtonVariant): { bg: string; fg: string; border: string } {
@@ -44,6 +53,7 @@ export function ReservationActionButton({
     disabled,
     loading,
     compact,
+    style,
 }: Props) {
     const c = resolve(variant);
     return (
@@ -58,6 +68,7 @@ export function ReservationActionButton({
                 s.btn,
                 { backgroundColor: c.bg, borderColor: c.border },
                 compact && s.compact,
+                style,
                 (disabled || loading) && s.disabled,
             ]}
         >

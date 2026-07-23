@@ -233,80 +233,169 @@ CREATE INDEX IF NOT EXISTS idx_members_status ON app.members(status);
 CREATE INDEX IF NOT EXISTS idx_trainers_status ON app.trainers(status);
 CREATE INDEX IF NOT EXISTS idx_memberships_member_status_dates ON app.memberships(member_id, status, start_date, end_date);
 CREATE INDEX IF NOT EXISTS idx_routines_trainer_status ON app.routines(trainer_id, status);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_routines_trainer_name_active ON app.routines(trainer_id, name) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_member_routines_member_status ON app.member_routines(member_id, status);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_member_routines_active ON app.member_routines(member_id, routine_id) WHERE status = 'ACTIVE' AND deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_member_measurements_member_date ON app.member_measurements(member_id, measured_at DESC);
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Clases, sesiones y reservas (2026-07-15)
+--
+-- ⚠️ Este archivo es documentación espejo. La FUENTE DE EJECUCIÓN son las
+-- migraciones Drizzle (apps/restapi/drizzle/*); esta sección refleja
+-- 0002_bright_northstar.sql. Nota: 0001_slow_havok.sql movió birth_date de
+-- members a users y eliminó member_measurements.created_by_user_id (las
+-- secciones antiguas de arriba no se reescribieron).
+-- ═══════════════════════════════════════════════════════════════════════════
 
--- ENT (entrenamientos): sesiones, logs, versiones y notificaciones
-DO $$ BEGIN CREATE TYPE app.training_session_status AS ENUM ('PENDING', 'CONFIRMED', 'VALIDATED', 'EXPIRED');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+CREATE EXTENSION IF NOT EXISTS btree_gist;
 
-DO $$ BEGIN CREATE TYPE app.notification_type AS ENUM ('ROUTINE_ASSIGNED', 'ROUTINE_UPDATED', 'SESSION_VALIDATED');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+CREATE TYPE app.class_session_status AS ENUM ('SCHEDULED', 'CANCELLED');
+CREATE TYPE app.class_session_cancel_reason AS ENUM ('MANUAL', 'SERIES_INACTIVE', 'SERIES_ARCHIVED', 'SCHEDULE_REMOVED');
+CREATE TYPE app.reservation_status AS ENUM ('CONFIRMED', 'WAITLISTED', 'ATTENDED', 'NO_SHOW', 'CANCELLED');
+CREATE TYPE app.reservation_reason AS ENUM ('MEMBER_BOOKED', 'MEMBER_JOINED_WAITLIST', 'WAITLIST_PROMOTED', 'MEMBER_CANCELLED', 'ADMIN_CANCELLED', 'LATE_CANCELLATION', 'SESSION_CANCELLED', 'SERIES_CHANGED', 'WAITLIST_REMOVED', 'WAITLIST_EXPIRED', 'RESCHEDULED', 'ATTENDANCE');
+CREATE TYPE app.class_level AS ENUM ('LOW', 'MEDIUM', 'HIGH');
 
-CREATE TABLE IF NOT EXISTS app.training_sessions (
+-- Serie semanal (plantilla/recurrencia). No es reservable por sí misma.
+CREATE TABLE IF NOT EXISTS app.class_series (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
-    member_routine_id UUID NOT NULL REFERENCES app.member_routines(id),
-    date DATE NOT NULL DEFAULT CURRENT_DATE,
-    status app.training_session_status NOT NULL DEFAULT 'PENDING',
-    confirmed_at TIMESTAMPTZ,
-    confirmed_by UUID REFERENCES app.users(id),
-    validated_by_trainer_id UUID REFERENCES app.trainers(id),
-    validated_at TIMESTAMPTZ,
-    notes TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE TRIGGER trg_training_sessions_updated_at
-BEFORE UPDATE ON app.training_sessions
-FOR EACH ROW EXECUTE FUNCTION app.set_updated_at();
-
-CREATE TABLE IF NOT EXISTS app.exercise_logs (
-    id UUID PRIMARY KEY DEFAULT uuidv7(),
-    session_id UUID NOT NULL REFERENCES app.training_sessions(id) ON DELETE CASCADE,
-    routine_exercise_id UUID NOT NULL REFERENCES app.routine_exercises(id),
-    target_sets INTEGER,
-    target_reps VARCHAR(40),
-    target_weight_kg NUMERIC(5,2),
-    completed_sets INTEGER,
-    completed_reps_log TEXT,
-    weight_kg_actual NUMERIC(5,2),
-    notes TEXT,
-    completed BOOLEAN NOT NULL DEFAULT false,
+    trainer_id UUID NOT NULL REFERENCES app.trainers(id),
+    name VARCHAR(120) NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    local_start_time TIME NOT NULL,           -- hora local (BUSINESS_TIME_ZONE)
+    duration_minutes SMALLINT NOT NULL CHECK (duration_minutes BETWEEN 1 AND 1440),
+    capacity INTEGER NOT NULL CHECK (capacity BETWEEN 1 AND 500),
+    allow_waitlist BOOLEAN NOT NULL DEFAULT false,
+    starts_on DATE NOT NULL,                  -- fecha local desde la que se materializa
+    category VARCHAR(80),
+    level app.class_level,
+    room VARCHAR(120),
+    zone VARCHAR(120),
+    status app.record_status NOT NULL DEFAULT 'ACTIVE',
+    created_by_user_id UUID NOT NULL REFERENCES app.users(id),
+    updated_by_user_id UUID NOT NULL REFERENCES app.users(id),
+    version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),  -- If-Match optimista
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT uq_exercise_logs_session_routine_exercise UNIQUE (session_id, routine_exercise_id)
+    CONSTRAINT chk_class_series_archived_deleted_at CHECK ((status = 'ARCHIVED') = (deleted_at IS NOT NULL))
+);
+CREATE INDEX IF NOT EXISTS idx_class_series_status ON app.class_series(status);
+CREATE INDEX IF NOT EXISTS idx_class_series_trainer_status ON app.class_series(trainer_id, status);
+
+-- Días ISO (lunes=1 … domingo=7) de la recurrencia; la PK impide duplicados.
+CREATE TABLE IF NOT EXISTS app.class_series_weekdays (
+    class_series_id UUID NOT NULL REFERENCES app.class_series(id) ON DELETE RESTRICT,
+    iso_weekday SMALLINT NOT NULL CHECK (iso_weekday BETWEEN 1 AND 7),
+    PRIMARY KEY (class_series_id, iso_weekday)
 );
 
-CREATE TRIGGER trg_exercise_logs_updated_at
-BEFORE UPDATE ON app.exercise_logs
-FOR EACH ROW EXECUTE FUNCTION app.set_updated_at();
-
-CREATE TABLE IF NOT EXISTS app.routine_versions (
+-- Ocurrencia materializada: fila propia, movible/cancelable individualmente.
+CREATE TABLE IF NOT EXISTS app.class_sessions (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
-    routine_id UUID NOT NULL REFERENCES app.routines(id) ON DELETE CASCADE,
-    version_number INTEGER NOT NULL,
-    snapshot JSONB NOT NULL,
-    changed_by UUID REFERENCES app.trainers(id),
-    change_reason TEXT,
+    class_series_id UUID NOT NULL REFERENCES app.class_series(id),
+    origin_date DATE NOT NULL,                -- clave local de la ocurrencia, inmutable
+    starts_at TIMESTAMPTZ NOT NULL,
+    ends_at TIMESTAMPTZ NOT NULL,
+    class_name VARCHAR(120) NOT NULL,         -- snapshots de la serie
+    description TEXT NOT NULL,
+    trainer_id UUID NOT NULL REFERENCES app.trainers(id),
+    capacity INTEGER NOT NULL CHECK (capacity BETWEEN 1 AND 500),
+    allow_waitlist BOOLEAN NOT NULL,
+    category VARCHAR(80),
+    level app.class_level,
+    room VARCHAR(120),
+    zone VARCHAR(120),
+    status app.class_session_status NOT NULL DEFAULT 'SCHEDULED',
+    schedule_overridden BOOLEAN NOT NULL DEFAULT false,  -- movida a mano: la serie no la pisa
+    source_series_version INTEGER NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+    cancel_reason app.class_session_cancel_reason,
+    cancelled_at TIMESTAMPTZ,
+    cancelled_by_user_id UUID REFERENCES app.users(id), -- NULL = sistema
+    updated_by_user_id UUID REFERENCES app.users(id),   -- NULL = materialización
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT uq_routine_versions_routine_version UNIQUE (routine_id, version_number)
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT class_sessions_series_origin_key UNIQUE (class_series_id, origin_date),
+    CONSTRAINT class_sessions_time_range_check CHECK (ends_at > starts_at),
+    CONSTRAINT chk_class_sessions_cancel_coherence CHECK (
+        (status = 'SCHEDULED' AND cancel_reason IS NULL AND cancelled_at IS NULL)
+        OR (status = 'CANCELLED' AND cancel_reason IS NOT NULL AND cancelled_at IS NOT NULL)
+    ),
+    -- Un entrenador no imparte dos sesiones programadas solapadas (SQLSTATE 23P01 → 409)
+    CONSTRAINT excl_class_sessions_trainer_overlap
+        EXCLUDE USING gist (trainer_id WITH =, tstzrange(starts_at, ends_at, '[)') WITH &&)
+        WHERE (status = 'SCHEDULED')
 );
+CREATE INDEX IF NOT EXISTS idx_class_sessions_starts_status ON app.class_sessions(starts_at, status);
+CREATE INDEX IF NOT EXISTS idx_class_sessions_series_starts ON app.class_sessions(class_series_id, starts_at);
+CREATE INDEX IF NOT EXISTS idx_class_sessions_trainer_starts ON app.class_sessions(trainer_id, starts_at);
 
-CREATE TABLE IF NOT EXISTS app.notifications (
+-- Reserva/espera. La ocupación SIEMPRE se deriva de acá (no hay contadores).
+-- booked = CONFIRMED|ATTENDED|NO_SHOW; waitlist = WAITLISTED (posición FIFO derivada).
+CREATE TABLE IF NOT EXISTS app.reservations (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
-    user_id UUID NOT NULL REFERENCES app.users(id) ON DELETE CASCADE,
-    type app.notification_type NOT NULL,
-    title VARCHAR(200) NOT NULL,
-    body TEXT,
-    payload JSONB,
-    read BOOLEAN NOT NULL DEFAULT false,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    session_id UUID NOT NULL REFERENCES app.class_sessions(id),
+    member_id UUID NOT NULL REFERENCES app.members(id),
+    status app.reservation_status NOT NULL,
+    status_reason app.reservation_reason NOT NULL,
+    waitlisted_at TIMESTAMPTZ,
+    confirmed_at TIMESTAMPTZ,
+    cancelled_at TIMESTAMPTZ,
+    attendance_marked_at TIMESTAMPTZ,
+    rescheduled_from_reservation_id UUID REFERENCES app.reservations(id), -- solo en la reserva destino
+    created_by_user_id UUID NOT NULL REFERENCES app.users(id),
+    updated_by_user_id UUID REFERENCES app.users(id),   -- NULL = transición del sistema
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT chk_reservations_not_self_reschedule CHECK (rescheduled_from_reservation_id IS NULL OR rescheduled_from_reservation_id <> id),
+    CONSTRAINT chk_reservations_status_timestamps CHECK (
+        (status = 'WAITLISTED' AND waitlisted_at IS NOT NULL AND cancelled_at IS NULL)
+        OR (status = 'CONFIRMED' AND confirmed_at IS NOT NULL AND cancelled_at IS NULL)
+        OR (status = 'ATTENDED' AND confirmed_at IS NOT NULL AND attendance_marked_at IS NOT NULL)
+        OR (status = 'NO_SHOW' AND confirmed_at IS NOT NULL AND (attendance_marked_at IS NOT NULL OR status_reason = 'LATE_CANCELLATION'))
+        OR (status = 'CANCELLED' AND cancelled_at IS NOT NULL)
+    ),
+    CONSTRAINT chk_reservations_status_reason CHECK (
+        (status = 'CONFIRMED' AND status_reason IN ('MEMBER_BOOKED', 'WAITLIST_PROMOTED', 'RESCHEDULED'))
+        OR (status = 'WAITLISTED' AND status_reason = 'MEMBER_JOINED_WAITLIST')
+        OR (status = 'ATTENDED' AND status_reason = 'ATTENDANCE')
+        OR (status = 'NO_SHOW' AND status_reason IN ('LATE_CANCELLATION', 'ATTENDANCE'))
+        OR (status = 'CANCELLED' AND status_reason IN ('MEMBER_CANCELLED', 'ADMIN_CANCELLED', 'SESSION_CANCELLED', 'SERIES_CHANGED', 'WAITLIST_REMOVED', 'WAITLIST_EXPIRED', 'RESCHEDULED'))
+    )
 );
+CREATE INDEX IF NOT EXISTS idx_reservations_session_status_fifo ON app.reservations(session_id, status, waitlisted_at, id);
+CREATE INDEX IF NOT EXISTS idx_reservations_member_created ON app.reservations(member_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_reservations_member_status_session ON app.reservations(member_id, status, session_id);
+-- nunca dos reservas vigentes del mismo miembro en la misma sesión
+CREATE UNIQUE INDEX IF NOT EXISTS uq_reservations_active_member_session ON app.reservations(session_id, member_id) WHERE status <> 'CANCELLED';
+-- una reserva origen produce a lo sumo un destino
+CREATE UNIQUE INDEX IF NOT EXISTS uq_reservations_reschedule_source ON app.reservations(rescheduled_from_reservation_id) WHERE rescheduled_from_reservation_id IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_training_sessions_member_routine_status ON app.training_sessions(member_routine_id, status);
-CREATE INDEX IF NOT EXISTS idx_exercise_logs_session_id ON app.exercise_logs(session_id);
-CREATE INDEX IF NOT EXISTS idx_routine_versions_routine_id ON app.routine_versions(routine_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON app.notifications(user_id, read);
+-- Auditoría append-only de reservas (un evento por transición, misma transacción).
+CREATE TABLE IF NOT EXISTS app.reservation_events (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    reservation_id UUID NOT NULL REFERENCES app.reservations(id),
+    actor_user_id UUID REFERENCES app.users(id),        -- NULL = sistema
+    from_status app.reservation_status,                 -- NULL en el evento de creación
+    to_status app.reservation_status NOT NULL,
+    reason app.reservation_reason NOT NULL,
+    from_session_id UUID REFERENCES app.class_sessions(id),
+    to_session_id UUID REFERENCES app.class_sessions(id),
+    metadata JSONB NOT NULL DEFAULT '{}',
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_reservation_events_reservation_occurred ON app.reservation_events(reservation_id, occurred_at);
+
+-- Auditoría append-only de series/sesiones.
+CREATE TABLE IF NOT EXISTS app.class_schedule_events (
+    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    class_series_id UUID REFERENCES app.class_series(id),
+    class_session_id UUID REFERENCES app.class_sessions(id),
+    event_type VARCHAR(80) NOT NULL, -- CREATED|UPDATED|STATUS_CHANGED|ARCHIVED|MATERIALIZED|MOVED|CANCELLED|RECONCILED
+    actor_user_id UUID REFERENCES app.users(id),        -- NULL = sistema
+    before_state JSONB,
+    after_state JSONB,
+    reason TEXT,
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT chk_class_schedule_events_target CHECK (num_nonnulls(class_series_id, class_session_id) = 1)
+);
+CREATE INDEX IF NOT EXISTS idx_class_schedule_events_series_occurred ON app.class_schedule_events(class_series_id, occurred_at);
+CREATE INDEX IF NOT EXISTS idx_class_schedule_events_session_occurred ON app.class_schedule_events(class_session_id, occurred_at);

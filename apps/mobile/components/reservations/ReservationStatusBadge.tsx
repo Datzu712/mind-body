@@ -9,6 +9,8 @@ type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 export type BadgeVariant =
     | 'confirmada'
     | 'reprogramada'
+    | 'asistida'
+    | 'no-asistio'
     | 'cancelacion-tardia'
     | 'cancelada'
     | 'pocos-cupos'
@@ -18,6 +20,8 @@ export type BadgeVariant =
 const CONFIG: Record<BadgeVariant, { label: string; color: string; icon: IoniconName }> = {
     confirmada: { label: 'Confirmada', color: T.green, icon: 'checkmark-circle' },
     reprogramada: { label: 'Reprogramada', color: T.blue, icon: 'sync' },
+    asistida: { label: 'Asistida', color: T.green, icon: 'checkmark-done-circle' },
+    'no-asistio': { label: 'No asistió', color: T.red, icon: 'close-circle' },
     'cancelacion-tardia': { label: 'Cancelación tardía', color: T.red, icon: 'alert-circle' },
     cancelada: { label: 'Cancelada', color: T.muted, icon: 'close-circle' },
     'pocos-cupos': { label: 'Pocos cupos', color: T.orange, icon: 'warning' },

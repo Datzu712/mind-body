@@ -9,9 +9,9 @@ import {
     IdCard,
     ClipboardCheck,
     CalendarDays,
+    Dumbbell,
     Settings,
     BookOpen,
-    Dumbbell,
     LogOut,
     type LucideIcon,
 } from 'lucide-react';
@@ -43,6 +43,16 @@ const mainNavItems: { title: string; href: string; icon: LucideIcon; exact?: boo
         title: 'Usuarios',
         href: '/dashboard/users',
         icon: Users,
+    },
+    {
+        title: 'Clases',
+        href: '/dashboard/classes',
+        icon: Dumbbell,
+    },
+    {
+        title: 'Reservas',
+        href: '/dashboard/reservations',
+        icon: CalendarDays,
     },
 ];
 
@@ -81,19 +91,9 @@ const adminNavItems: { title: string; href: string; icon: LucideIcon; exact?: bo
         icon: UsersRound,
     },
     {
-        title: 'Agenda y clases',
-        href: '/dashboard/classes',
-        icon: CalendarDays,
-    },
-    {
         title: 'Catálogo',
         href: '/dashboard/catalog',
         icon: BookOpen,
-    },
-    {
-        title: 'Rutinas',
-        href: '/dashboard/routines',
-        icon: Dumbbell,
     },
     {
         title: 'Configuración',

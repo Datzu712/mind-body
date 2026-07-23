@@ -16,7 +16,7 @@ export default function ReservationsLayout() {
             <Stack.Screen name="class-detail" />
             <Stack.Screen name="my-reservations" />
             <Stack.Screen name="reminders" />
-            <Stack.Screen name="waitlist" />
+            <Stack.Screen name="reschedule" />
         </Stack>
     );
 }

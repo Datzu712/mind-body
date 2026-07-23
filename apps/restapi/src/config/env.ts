@@ -1,5 +1,5 @@
 import { plainToInstance } from 'class-transformer';
-import { IsEnum, IsNotEmpty, IsNumber, IsString, Max, Min, validateSync } from 'class-validator';
+import { IsEnum, IsIn, IsNotEmpty, IsNumber, IsString, Max, Min, validateSync } from 'class-validator';
 
 export enum NodeEnv {
     Development = 'development',
@@ -78,6 +78,17 @@ class EnvironmentVariables {
     @Min(1000)
     @Max(30000)
     GENERAL_HEALTH_TTL_MS: number = 5_000;
+
+    // IANA time zone of the gym. class_series.local_start_time and origin dates
+    // are local to this zone; the DB stores timestamptz instants.
+    @IsIn(Intl.supportedValuesOf('timeZone'))
+    BUSINESS_TIME_ZONE: string = 'America/Costa_Rica';
+
+    // Rolling horizon (weeks ahead) the session materializer keeps populated.
+    @IsNumber()
+    @Min(1)
+    @Max(52)
+    SESSION_MATERIALIZATION_WEEKS_AHEAD: number = 8;
 }
 
 export type IEnvironmentVariables = EnvironmentVariables;

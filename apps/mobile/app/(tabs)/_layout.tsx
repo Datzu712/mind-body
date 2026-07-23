@@ -7,7 +7,6 @@ import { HapticTab } from '@/components/haptic-tab';
 import { FitColors as T } from '@/constants/theme';
 import { useProfile } from '@/hooks/use-profile';
 import { useActivitySync } from '@/hooks/use-activity-sync';
-import { useNotifications } from '@/hooks/use-training';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -26,9 +25,6 @@ export default function TabLayout() {
 
     useProfile(); // prefetch on dashboard entry
     useActivitySync(); // sync HC → backend (throttled, max once per 30 min)
-
-    const { data: notifications } = useNotifications();
-    const unreadCount = notifications?.filter((n) => !n.read).length ?? 0;
 
     return (
         <Tabs
@@ -68,8 +64,6 @@ export default function TabLayout() {
                 options={{
                     title: 'Rutinas',
                     tabBarIcon: tabIcon('calendar-outline', 'calendar'),
-                    tabBarBadge: unreadCount > 0 ? String(unreadCount) : undefined,
-                    tabBarBadgeStyle: { backgroundColor: T.red, color: T.white, fontSize: 10, fontWeight: '800' },
                 }}
             />
             <Tabs.Screen

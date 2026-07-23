@@ -5,9 +5,21 @@ import { UsersModule } from './users/users.module';
 import { ActivityModule } from './activity/activity.module';
 import { MeasurementsModule } from './measurements/measurements.module';
 import { TseModule } from './tse/tse.module';
-import { RoutinesModule } from './routines/routines.module';
+import { ClassesModule } from './classes/classes.module';
+import { ClassSessionsModule } from './class-sessions/class-sessions.module';
+import { ReservationsModule } from './reservations/reservations.module';
 
 @Module({
-    imports: [HealthModule, AuthModule, UsersModule, ActivityModule, MeasurementsModule, TseModule, RoutinesModule],
+    imports: [
+        HealthModule,
+        AuthModule,
+        UsersModule,
+        ActivityModule,
+        MeasurementsModule,
+        TseModule,
+        ClassesModule,
+        ClassSessionsModule,
+        ReservationsModule,
+    ],
 })
 export class V1Module {}
