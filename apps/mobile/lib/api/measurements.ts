@@ -53,3 +53,17 @@ export async function getMeasurementSummary(apiFetch: ApiFetch): Promise<Measure
         totalRecords: raw.totalRecords,
     };
 }
+
+export type UpdateMeasurementPayload = Omit<CreateMeasurementPayload, 'measuredAt'>;
+
+export async function updateMeasurement(
+    apiFetch: ApiFetch,
+    id: string,
+    payload: UpdateMeasurementPayload,
+): Promise<Measurement> {
+    const res = await apiFetch(`/measurements/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+    });
+    return parseMeasurement(await res.json());
+}

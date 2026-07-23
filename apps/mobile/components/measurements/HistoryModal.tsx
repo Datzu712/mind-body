@@ -5,9 +5,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { FitColors as T } from '@/constants/theme';
 import { useMeasurements } from '@/hooks/use-measurements';
 import type { Measurement } from '@/lib/api/types/measurement';
-import { METRICS, formatDate } from './constants';
+import { METRICS, formatDate, isEditableWithin7Days } from './constants';
 
-function MeasurementRow({ item, isFirst, prev }: { item: Measurement; isFirst: boolean; prev?: Measurement }) {
+function MeasurementRow({
+    item,
+    isFirst,
+    prev,
+    onEdit,
+}: {
+    item: Measurement;
+    isFirst: boolean;
+    prev?: Measurement;
+    onEdit: (item: Measurement) => void;
+}) {
     const [expanded, setExpanded] = useState(false);
     const mainVal = item.weightKg != null ? `${item.weightKg} kg` : '—';
 
@@ -65,6 +75,12 @@ function MeasurementRow({ item, isFirst, prev }: { item: Measurement; isFirst: b
                                 <Text style={s.notes}>{item.notes}</Text>
                             </View>
                         )}
+                        {isEditableWithin7Days(item.measuredAt) && (
+                            <Pressable style={s.editBtn} onPress={() => onEdit(item)} hitSlop={8}>
+                                <Ionicons name="pencil-outline" size={14} color={T.yellow} />
+                                <Text style={s.editBtnText}>Editar</Text>
+                            </Pressable>
+                        )}
                     </View>
                 )}
             </Pressable>
@@ -72,7 +88,15 @@ function MeasurementRow({ item, isFirst, prev }: { item: Measurement; isFirst: b
     );
 }
 
-export function HistoryModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function HistoryModal({
+    visible,
+    onClose,
+    onEdit,
+}: {
+    visible: boolean;
+    onClose: () => void;
+    onEdit: (item: Measurement) => void;
+}) {
     const { data: measurements } = useMeasurements();
 
     return (
@@ -95,6 +119,7 @@ export function HistoryModal({ visible, onClose }: { visible: boolean; onClose: 
                                 item={item}
                                 isFirst={index === 0}
                                 prev={index > 0 ? measurements[index - 1] : undefined}
+                                onEdit={onEdit}
                             />
                         )}
                         contentContainerStyle={s.list}
@@ -177,4 +202,7 @@ const s = StyleSheet.create({
     detailVal: { fontSize: 13, fontWeight: '700', color: T.white },
     notesWrap: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 4 },
     notes: { flex: 1, fontSize: 11, color: T.muted, fontStyle: 'italic' },
+
+    editBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-end', marginTop: 10 },
+    editBtnText: { fontSize: 13, fontWeight: '700', color: T.yellow },
 });

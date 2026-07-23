@@ -55,3 +55,10 @@ export function deltaIcon(value: number | null, key: MetricKey): keyof typeof Io
     if (key === 'heightCm') return 'remove-outline';
     return value < 0 ? 'arrow-down' : 'arrow-up';
 }
+
+export function isEditableWithin7Days(iso: string): boolean {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 7);
+    cutoff.setHours(0, 0, 0, 0);
+    return toDate(iso) >= cutoff;
+}

@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, desc, eq, gte, lte, sql, asc } from 'drizzle-orm';
 
 import { DrizzleService } from '@/infra/database/pg/drizzle.service';
 import { memberMeasurementsInApp as Measurements, membersInApp as Members } from '@/infra/database/pg/schemas/schema';
 import type { CreateMeasurementDto } from './dto/create-measurement.dto';
+import type { UpdateMeasurementDto } from './dto/update-measurement.dto';
 
 @Injectable()
 export class MeasurementsService {
@@ -33,6 +34,41 @@ export class MeasurementsService {
                 waistCm: dto.waistCm != null ? String(dto.waistCm) : null,
                 notes: dto.notes ?? null,
             })
+            .returning();
+
+        return row!;
+    }
+
+    async update(userId: string, id: string, dto: UpdateMeasurementDto) {
+        const memberId = await this.getMemberId(userId);
+
+        const [measurement] = await this.drizzle.db
+            .select()
+            .from(Measurements)
+            .where(and(eq(Measurements.id, id), eq(Measurements.memberId, memberId)));
+
+        if (!measurement) throw new NotFoundException('Measurement not found');
+
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 7);
+        cutoff.setHours(0, 0, 0, 0);
+        if (new Date(`${measurement.measuredAt}T00:00:00`) < cutoff) {
+            throw new ForbiddenException('No se pueden editar mediciones de más de 7 días');
+        }
+
+        const updates: Partial<typeof Measurements.$inferInsert> = {};
+        if (dto.weightKg !== undefined) updates.weightKg = String(dto.weightKg);
+        if (dto.heightCm !== undefined) updates.heightCm = String(dto.heightCm);
+        if (dto.bodyFatPercentage !== undefined) updates.bodyFatPercentage = String(dto.bodyFatPercentage);
+        if (dto.waistCm !== undefined) updates.waistCm = String(dto.waistCm);
+        if (dto.notes !== undefined) updates.notes = dto.notes;
+
+        if (Object.keys(updates).length === 0) return measurement;
+
+        const [row] = await this.drizzle.db
+            .update(Measurements)
+            .set(updates)
+            .where(eq(Measurements.id, measurement.id))
             .returning();
 
         return row!;

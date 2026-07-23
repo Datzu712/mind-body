@@ -11,10 +11,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Plus, Search, MoreHorizontal, Edit, Power, Trash2 } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Edit, Power, Trash2, History } from 'lucide-react';
 import { sileo } from 'sileo';
 
 import { ConfirmDialog } from '@/src/shared/components/confirm-dialog';
+import { ClassHistoryDialog } from '../../classes/components/ClassHistoryDialog';
+import type { ManagedClass } from '../../classes/mock-classes';
 import { useCreateClass, useDeleteClass, useGymClasses, useSetClassStatus, useUpdateClass } from '../hooks';
 import type { ClassFormData, ClassStatus, GymClass } from '../types';
 import { formatScheduleLabel } from '../utils';
@@ -32,6 +34,7 @@ export function ClassManagementTab() {
     const [statusFilter, setStatusFilter] = useState<'all' | ClassStatus>('all');
     const [formOpen, setFormOpen] = useState(false);
     const [editingClass, setEditingClass] = useState<GymClass | null>(null);
+    const [historyClass, setHistoryClass] = useState<ManagedClass | null>(null);
     const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; item: GymClass | null }>({
         open: false,
         item: null,
@@ -123,6 +126,24 @@ export function ClassManagementTab() {
     const openEditForm = (cls: GymClass) => {
         setEditingClass(cls);
         setFormOpen(true);
+    };
+
+    const openHistory = (cls: GymClass) => {
+        setHistoryClass({
+            id: cls.id,
+            name: cls.name,
+            description: cls.description,
+            trainer: cls.trainerName,
+            day: cls.days[0] ?? 'Lunes',
+            time: cls.time,
+            durationMin: cls.durationMin,
+            capacity: cls.capacity,
+            booked: 0,
+            waitlistCount: 0,
+            allowWaitlist: cls.allowWaitlist,
+            status: cls.status,
+            activeReservations: 0,
+        });
     };
 
     const handleFormClose = (open: boolean) => {
@@ -232,6 +253,13 @@ export function ClassManagementTab() {
                                                         </DropdownMenuItem>
                                                         <DropdownMenuItem
                                                             className="cursor-pointer"
+                                                            onClick={() => openHistory(cls)}
+                                                        >
+                                                            <History className="mr-2 h-4 w-4" />
+                                                            Ver historial
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            className="cursor-pointer"
                                                             onClick={() => handleToggleStatus(cls)}
                                                         >
                                                             <Power className="mr-2 h-4 w-4" />
@@ -267,6 +295,14 @@ export function ClassManagementTab() {
                 onOpenChange={handleFormClose}
                 item={editingClass}
                 onSubmit={editingClass ? handleEdit : handleCreate}
+            />
+
+            <ClassHistoryDialog
+                open={!!historyClass}
+                onOpenChange={(open) => {
+                    if (!open) setHistoryClass(null);
+                }}
+                item={historyClass}
             />
 
             {/* Confirmación de borrado */}

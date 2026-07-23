@@ -3,7 +3,8 @@ import { View, Text, ScrollView, StyleSheet, Pressable, Modal, TextInput, Keyboa
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { FitColors as T } from '@/constants/theme';
-import { useMeasurementSummary, useCreateMeasurement } from '@/hooks/use-measurements';
+import { useMeasurementSummary, useCreateMeasurement, useUpdateMeasurement } from '@/hooks/use-measurements';
+import type { Measurement } from '@/lib/api/types/measurement';
 import { METRICS, type MetricKey } from './constants';
 
 // ── Stepper with long-press repeat ───────────────────────────────────────────
@@ -39,14 +40,17 @@ export function NewMeasurementModal({
     visible,
     onClose,
     onSaved,
+    editingMeasurement = null,
 }: {
     visible: boolean;
     onClose: () => void;
     onSaved: () => void;
+    editingMeasurement?: Measurement | null;
 }) {
     const { data: summary } = useMeasurementSummary();
     const latest = summary?.latest;
     const { mutateAsync: saveMeasurement } = useCreateMeasurement();
+    const { mutateAsync: updateMeasurement } = useUpdateMeasurement();
 
     const [weight, setWeight] = useState('');
     const [height, setHeight] = useState('');
@@ -56,24 +60,39 @@ export function NewMeasurementModal({
     const [prefilled, setPrefilled] = useState(false);
 
     React.useEffect(() => {
-        if (visible && latest && !prefilled) {
-            setWeight(latest.weightKg != null ? String(latest.weightKg) : '');
-            setHeight(latest.heightCm != null ? String(latest.heightCm) : '');
-            setBodyFat(latest.bodyFatPercentage != null ? String(latest.bodyFatPercentage) : '');
-            setWaist(latest.waistCm != null ? String(latest.waistCm) : '');
+        if (visible && !prefilled) {
+            if (editingMeasurement) {
+                setWeight(editingMeasurement.weightKg != null ? String(editingMeasurement.weightKg) : '');
+                setHeight(editingMeasurement.heightCm != null ? String(editingMeasurement.heightCm) : '');
+                setBodyFat(
+                    editingMeasurement.bodyFatPercentage != null ? String(editingMeasurement.bodyFatPercentage) : '',
+                );
+                setWaist(editingMeasurement.waistCm != null ? String(editingMeasurement.waistCm) : '');
+                setNotes(editingMeasurement.notes ?? '');
+            } else if (latest) {
+                setWeight(latest.weightKg != null ? String(latest.weightKg) : '');
+                setHeight(latest.heightCm != null ? String(latest.heightCm) : '');
+                setBodyFat(latest.bodyFatPercentage != null ? String(latest.bodyFatPercentage) : '');
+                setWaist(latest.waistCm != null ? String(latest.waistCm) : '');
+            }
             setPrefilled(true);
         }
         if (!visible) setPrefilled(false);
-    }, [visible, latest, prefilled]);
+    }, [visible, latest, prefilled, editingMeasurement]);
 
     const handleSave = async () => {
-        await saveMeasurement({
+        const payload = {
             weightKg: weight ? parseFloat(weight) : undefined,
             heightCm: height ? parseFloat(height) : undefined,
             bodyFatPercentage: bodyFat ? parseFloat(bodyFat) : undefined,
             waistCm: waist ? parseFloat(waist) : undefined,
             notes: notes || undefined,
-        });
+        };
+        if (editingMeasurement) {
+            await updateMeasurement({ id: editingMeasurement.id, payload });
+        } else {
+            await saveMeasurement(payload);
+        }
         onSaved();
     };
 
@@ -99,7 +118,7 @@ export function NewMeasurementModal({
                         <Pressable onPress={onClose} hitSlop={12}>
                             <Text style={s.cancel}>Cancelar</Text>
                         </Pressable>
-                        <Text style={s.title}>Nueva medición</Text>
+                        <Text style={s.title}>{editingMeasurement ? 'Editar medición' : 'Nueva medición'}</Text>
                         <Pressable onPress={handleSave} hitSlop={12} disabled={!hasAnyValue}>
                             <Text style={[s.save, !hasAnyValue && { opacity: 0.3 }]}>Guardar</Text>
                         </Pressable>

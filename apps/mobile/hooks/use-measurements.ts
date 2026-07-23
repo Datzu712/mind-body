@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useApiClient } from '@/lib/api/client';
-import { getMeasurements, getMeasurementSummary, createMeasurement } from '@/lib/api/measurements';
-import type { CreateMeasurementPayload } from '@/lib/api/measurements';
+import { getMeasurements, getMeasurementSummary, createMeasurement, updateMeasurement } from '@/lib/api/measurements';
+import type { CreateMeasurementPayload, UpdateMeasurementPayload } from '@/lib/api/measurements';
 
 export const MEASUREMENTS_QUERY_KEY = ['measurements'] as const;
 export const MEASUREMENTS_SUMMARY_KEY = ['measurements', 'summary'] as const;
@@ -33,6 +33,20 @@ export function useCreateMeasurement() {
 
     return useMutation({
         mutationFn: (payload: CreateMeasurementPayload) => createMeasurement(api, payload),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: MEASUREMENTS_QUERY_KEY });
+            qc.invalidateQueries({ queryKey: MEASUREMENTS_SUMMARY_KEY });
+        },
+    });
+}
+
+export function useUpdateMeasurement() {
+    const api = useApiClient();
+    const qc = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, payload }: { id: string; payload: UpdateMeasurementPayload }) =>
+            updateMeasurement(api, id, payload),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: MEASUREMENTS_QUERY_KEY });
             qc.invalidateQueries({ queryKey: MEASUREMENTS_SUMMARY_KEY });

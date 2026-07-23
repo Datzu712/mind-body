@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Stack } from 'expo-router';
@@ -9,16 +9,34 @@ import { ComparisonCard } from '@/components/measurements/ComparisonCard';
 import { ChartSection } from '@/components/measurements/ChartSection';
 import { HistoryModal } from '@/components/measurements/HistoryModal';
 import { NewMeasurementModal } from '@/components/measurements/NewMeasurementModal';
+import type { Measurement } from '@/lib/api/types/measurement';
 
 export default function MeasurementsScreen() {
     const [historyVisible, setHistoryVisible] = useState(false);
     const [formVisible, setFormVisible] = useState(false);
+    const [editingMeasurement, setEditingMeasurement] = useState<Measurement | null>(null);
     const [toast, setToast] = useState(false);
+    const [toastMsg, setToastMsg] = useState('Medición registrada');
+    const wasEditingRef = useRef(false);
     const { data: measurements } = useMeasurements();
     const hasData = measurements && measurements.length > 0;
 
+    const handleEdit = useCallback((m: Measurement) => {
+        wasEditingRef.current = true;
+        setEditingMeasurement(m);
+        setHistoryVisible(false);
+        setFormVisible(true);
+    }, []);
+
     const handleSaved = useCallback(() => {
+        const wasEditing = wasEditingRef.current;
+        wasEditingRef.current = false;
         setFormVisible(false);
+        setEditingMeasurement(null);
+        setToastMsg(wasEditing ? 'Medición actualizada' : 'Medición registrada');
+        if (wasEditing) {
+            setHistoryVisible(true);
+        }
         setToast(true);
         setTimeout(() => setToast(false), 2200);
     }, []);
@@ -56,17 +74,21 @@ export default function MeasurementsScreen() {
                     </Pressable>
                 )}
 
-                <HistoryModal visible={historyVisible} onClose={() => setHistoryVisible(false)} />
+                <HistoryModal visible={historyVisible} onClose={() => setHistoryVisible(false)} onEdit={handleEdit} />
                 <NewMeasurementModal
                     visible={formVisible}
-                    onClose={() => setFormVisible(false)}
+                    onClose={() => {
+                        setFormVisible(false);
+                        setEditingMeasurement(null);
+                    }}
                     onSaved={handleSaved}
+                    editingMeasurement={editingMeasurement}
                 />
 
                 {toast && (
                     <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(300)} style={s.toast}>
                         <Ionicons name="checkmark-circle" size={20} color={T.green} />
-                        <Text style={s.toastText}>Medición registrada</Text>
+                        <Text style={s.toastText}>{toastMsg}</Text>
                     </Animated.View>
                 )}
             </View>
