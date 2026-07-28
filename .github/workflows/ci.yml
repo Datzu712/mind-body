@@ -86,7 +86,8 @@ jobs:
         # y con ella todas las pruebas de autorización a nivel de servicio.
         services:
             postgres:
-                image: postgres:16
+                # 18: las migraciones usan uuidv7(), nativo desde esa versión.
+                image: postgres:18
                 env:
                     POSTGRES_PASSWORD: postgres
                 ports:
