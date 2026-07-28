@@ -109,7 +109,7 @@ export class AuthController {
         const payload = decodeJwt(accessToken);
         const realmRoles = extractRealmRoles(payload);
 
-        const hasAllowedRole = realmRoles.some((role) => DASHBOARD_ROLES.includes(role));
+        const hasAllowedRole = DASHBOARD_ROLES.some((allowed) => realmRoles.includes(allowed));
 
         if (!hasAllowedRole) {
             this.logger.warn(`User ${payload.sub} denied dashboard access — roles: ${realmRoles.join(', ')}`);

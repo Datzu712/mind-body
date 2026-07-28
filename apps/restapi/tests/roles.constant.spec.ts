@@ -1,12 +1,37 @@
 import { describe, expect, it } from 'vitest';
 import type { JWTPayload } from 'jose';
 
-import { canAssignProfileType, extractRealmRoles } from '../src/common/constant/roles.constant';
-import type { AppRole } from '../src/common/constant/roles.constant';
+import {
+    APP_ROLES,
+    DASHBOARD_ROLES,
+    MANAGEMENT_ROLES,
+    Role,
+    extractRealmRoles,
+} from '../src/common/constant/roles.constant';
 
 function makePayload(roles: string[]): JWTPayload {
     return { realm_access: { roles } } as JWTPayload;
 }
+
+describe('catálogo de roles', () => {
+    it('Role expone exactamente los roles de la app, con clave = valor', () => {
+        expect(Object.values(Role).sort()).toEqual([...APP_ROLES].sort());
+        for (const role of APP_ROLES) {
+            expect(Role[role]).toBe(role);
+        }
+    });
+
+    it('DASHBOARD_ROLES es APP_ROLES sin MEMBER (exclusivo de mobile)', () => {
+        expect([...DASHBOARD_ROLES].sort()).toEqual([...APP_ROLES].filter((r) => r !== Role.MEMBER).sort());
+    });
+
+    it('MANAGEMENT_ROLES (ADMIN/STAFF) es subconjunto de DASHBOARD_ROLES', () => {
+        expect([...MANAGEMENT_ROLES].sort()).toEqual([Role.ADMIN, Role.STAFF].sort());
+        for (const role of MANAGEMENT_ROLES) {
+            expect(DASHBOARD_ROLES).toContain(role);
+        }
+    });
+});
 
 describe('extractRealmRoles', () => {
     it('keeps only known app roles', () => {
@@ -31,40 +56,4 @@ describe('extractRealmRoles', () => {
         expect(() => extractRealmRoles(malformedPayload)).not.toThrow();
         expect(extractRealmRoles(malformedPayload)).toEqual([]);
     });
-});
-
-describe('canAssignProfileType — TRAINER may do everything ADMIN/STAFF can except add a MEMBER', () => {
-    const allowedForMember: Array<[string, AppRole[]]> = [
-        ['ADMIN alone', ['ADMIN']],
-        ['STAFF alone', ['STAFF']],
-        ['ADMIN + TRAINER (has ADMIN)', ['ADMIN', 'TRAINER']],
-        ['STAFF + TRAINER (has STAFF)', ['STAFF', 'TRAINER']],
-    ];
-
-    it.each(allowedForMember)('allows creating a MEMBER profile for %s', (_label, roles) => {
-        expect(canAssignProfileType(roles, 'MEMBER')).toBe(true);
-    });
-
-    const blockedForMember: Array<[string, AppRole[]]> = [
-        ['TRAINER alone', ['TRAINER']],
-        ['no roles', []],
-    ];
-
-    it.each(blockedForMember)('blocks creating a MEMBER profile for %s', (_label, roles) => {
-        expect(canAssignProfileType(roles, 'MEMBER')).toBe(false);
-    });
-
-    const nonMemberProfileTypes: Array<'TRAINER' | 'STAFF'> = ['TRAINER', 'STAFF'];
-    const anyRoleSet: Array<[string, AppRole[]]> = [
-        ['ADMIN', ['ADMIN']],
-        ['STAFF', ['STAFF']],
-        ['TRAINER', ['TRAINER']],
-        ['no roles', []],
-    ];
-
-    for (const profileType of nonMemberProfileTypes) {
-        it.each(anyRoleSet)(`never blocks assigning a ${profileType} profile, even for %s`, (_label, roles) => {
-            expect(canAssignProfileType(roles, profileType)).toBe(true);
-        });
-    }
 });

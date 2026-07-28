@@ -4,9 +4,24 @@ export const APP_ROLES = ['ADMIN', 'TRAINER', 'STAFF', 'MEMBER'] as const;
 
 export type AppRole = (typeof APP_ROLES)[number];
 
-// Roles allowed to authenticate into the admin dashboard (mobile-only MEMBER excluded).
-// readonly: this is spread into @Roles(...) on every dashboard controller — must not be mutated in place.
-export const DASHBOARD_ROLES: readonly AppRole[] = ['ADMIN', 'TRAINER', 'STAFF'];
+// Referencia nominal de un rol suelto: `Role.ADMIN` en vez de la cadena 'ADMIN'.
+export const Role = {
+    ADMIN: 'ADMIN',
+    TRAINER: 'TRAINER',
+    STAFF: 'STAFF',
+    MEMBER: 'MEMBER',
+} as const satisfies Record<string, AppRole>;
+
+// Dashboard = todos los roles menos MEMBER (exclusivo de mobile).
+export const DASHBOARD_ROLES = [Role.ADMIN, Role.TRAINER, Role.STAFF] as const;
+
+// ADMIN y STAFF son equivalentes hoy: son los roles de gestión del gimnasio
+// (usuarios y perfiles, clases, sesiones, roster y asistencia).
+export const MANAGEMENT_ROLES = [Role.ADMIN, Role.STAFF] as const;
+
+// El dueño de una reserva es MEMBER; cuál de los dos es el actor lo resuelve el
+// service, que es el único que puede comparar con el miembro de la reserva.
+export const OWNER_OR_MANAGEMENT_ROLES = [Role.MEMBER, ...MANAGEMENT_ROLES] as const;
 
 function isAppRole(name: string): name is AppRole {
     return (APP_ROLES as readonly string[]).includes(name);
@@ -26,11 +41,4 @@ export function extractRealmRoles(payload: JWTPayload): AppRole[] {
     if (!Array.isArray(rawRoles)) return [];
 
     return rawRoles.filter(isAppRole);
-}
-
-// ADMIN and STAFF are equivalent everywhere. TRAINER shares every dashboard
-// permission except adding/attaching a MEMBER profile — that stays ADMIN/STAFF-only.
-export function canAssignProfileType(roles: AppRole[], profileType: 'MEMBER' | 'TRAINER' | 'STAFF'): boolean {
-    if (profileType !== 'MEMBER') return true;
-    return roles.includes('ADMIN') || roles.includes('STAFF');
 }
