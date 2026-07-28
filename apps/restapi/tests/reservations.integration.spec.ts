@@ -29,12 +29,21 @@ import type { TypedConfigService } from '@/config/typed-config.service';
 import { ClockService } from '@/common/clock/clock.service';
 import { SessionMaterializerService } from '@/modules/classes/session-materializer.service';
 import { ClassesService } from '@/modules/classes/classes.service';
+import { ClassSessionsService } from '@/modules/class-sessions/class-sessions.service';
 import { ReservationsService } from '@/modules/reservations/reservations.service';
 import { DomainHttpException } from '@/common/domain/domain-http.exception';
+import type { Actor } from '@/common/auth/actor';
 
 const BASE_URL = process.env['DATABASE_URL'];
 const SCRATCH_DB = 'mab_reservations_int_test';
 const runIf = BASE_URL ? describe : describe.skip;
+
+// En local se salta sin ruido, pero en CI un "skipped" se lee como "passed" y
+// aquí viven las pruebas de autorización a nivel de servicio: si falta la BD,
+// que truene.
+if (!BASE_URL && process.env['CI']) {
+    throw new Error('DATABASE_URL es obligatorio en CI: la suite de integración de reservas no puede saltarse.');
+}
 
 const fakeConfig = {
     getOrThrow: (key: string) =>
@@ -46,6 +55,13 @@ function scratchUrl(baseUrl: string): string {
     url.pathname = `/${SCRATCH_DB}`;
     return url.toString();
 }
+
+/** Los services autorizan con los roles del token, no con la presencia de un perfil. */
+const memberActor = (userId: string): Actor => ({ userId, roles: ['MEMBER'] });
+const managementActor = (userId: string): Actor => ({ userId, roles: ['ADMIN'] });
+const trainerActor = (userId: string): Actor => ({ userId, roles: ['TRAINER'] });
+// Combinación que produce el propio flujo del producto (perfil TRAINER + MEMBER).
+const trainerMemberActor = (userId: string): Actor => ({ userId, roles: ['TRAINER', 'MEMBER'] });
 
 async function expectDomainError<T>(work: Promise<T>, code: string): Promise<void> {
     try {
@@ -63,10 +79,12 @@ runIf('reservations backend (PostgreSQL real)', () => {
     let clock: ClockService;
     let materializer: SessionMaterializerService;
     let classes: ClassesService;
+    let sessions: ClassSessionsService;
     let reservations: ReservationsService;
 
     let adminUserId: string;
     let trainerId: string;
+    let trainerUserId: string;
     let sessionHourOffset = 24; // separa sesiones seed para no chocar con la exclusión GiST
 
     const db = () => drizzleService.db;
@@ -154,6 +172,7 @@ runIf('reservations backend (PostgreSQL real)', () => {
         clock = new ClockService(fakeConfig);
         materializer = new SessionMaterializerService(drizzleService, clock, fakeConfig);
         classes = new ClassesService(drizzleService, clock, materializer);
+        sessions = new ClassSessionsService(drizzleService, clock);
         reservations = new ReservationsService(drizzleService, clock);
 
         const [adminUser] = await db()
@@ -165,6 +184,7 @@ runIf('reservations backend (PostgreSQL real)', () => {
             .insert(usersInApp)
             .values({ keycloakSubject: crypto.randomUUID(), fullName: 'Trainer Test', status: 'ACTIVE' })
             .returning();
+        trainerUserId = trainerUser!.id;
         const [trainer] = await db()
             .insert(trainersInApp)
             .values({ userId: trainerUser!.id, status: 'ACTIVE' })
@@ -264,12 +284,12 @@ runIf('reservations backend (PostgreSQL real)', () => {
         const member = await seedMember('Late Canceller');
 
         const booking = await reservations.book(session.id, member.userId);
-        const result = await reservations.cancel(booking.result.reservation.id, undefined, member.userId);
+        const result = await reservations.cancel(booking.result.reservation.id, undefined, memberActor(member.userId));
         expect(result.registeredAsNoShow).toBe(true);
         expect(result.reservation.status).toBe('NO_SHOW');
         expect(result.reservation.statusReason).toBe('LATE_CANCELLATION');
 
-        const repeat = await reservations.cancel(booking.result.reservation.id, undefined, member.userId);
+        const repeat = await reservations.cancel(booking.result.reservation.id, undefined, memberActor(member.userId));
         expect(repeat.changed).toBe(false);
         expect(repeat.registeredAsNoShow).toBe(true);
     });
@@ -280,7 +300,7 @@ runIf('reservations backend (PostgreSQL real)', () => {
         const member = await seedMember('OnTime Canceller');
 
         const booking = await reservations.book(onTime.id, member.userId);
-        const result = await reservations.cancel(booking.result.reservation.id, undefined, member.userId);
+        const result = await reservations.cancel(booking.result.reservation.id, undefined, memberActor(member.userId));
         expect(result.registeredAsNoShow).toBe(false);
         expect(result.reservation.status).toBe('CANCELLED');
         expect(result.reservation.statusReason).toBe('MEMBER_CANCELLED');
@@ -291,7 +311,7 @@ runIf('reservations backend (PostgreSQL real)', () => {
         const override = await reservations.cancel(
             booking2.result.reservation.id,
             { reason: 'ADMIN_OVERRIDE', note: 'lesión reportada' },
-            adminUserId,
+            managementActor(adminUserId),
         );
         expect(override.registeredAsNoShow).toBe(false);
         expect(override.reservation.statusReason).toBe('ADMIN_CANCELLED');
@@ -299,15 +319,21 @@ runIf('reservations backend (PostgreSQL real)', () => {
 
     it('reprogramación atómica enlazada + recuperación de retry', async () => {
         const seriesId = await seedSeries();
+        // Separadas >24h entre sí: (class_series_id, origin_date) es UNIQUE, y con
+        // 80h/90h las dos caían en la misma fecha local según la hora de la corrida.
         const origin = await seedSession(seriesId, { inHours: 50, capacity: 3 });
         const target = await seedSession(seriesId, { inHours: 80, capacity: 3 });
-        const other = await seedSession(seriesId, { inHours: 90, capacity: 3 });
+        const other = await seedSession(seriesId, { inHours: 110, capacity: 3 });
         const member = await seedMember('Rescheduler');
 
         const booking = await reservations.book(origin.id, member.userId);
         const originId = booking.result.reservation.id;
 
-        const moved = await reservations.reschedule(originId, { targetSessionId: target.id }, member.userId);
+        const moved = await reservations.reschedule(
+            originId,
+            { targetSessionId: target.id },
+            memberActor(member.userId),
+        );
         expect(moved.changed).toBe(true);
         expect(moved.reservation.status).toBe('CONFIRMED');
         expect(moved.reservation.statusReason).toBe('RESCHEDULED');
@@ -315,20 +341,149 @@ runIf('reservations backend (PostgreSQL real)', () => {
         expect(moved.reservation.session.id).toBe(target.id);
 
         // Retry idéntico recupera el mismo destino sin duplicar.
-        const retry = await reservations.reschedule(originId, { targetSessionId: target.id }, member.userId);
+        const retry = await reservations.reschedule(
+            originId,
+            { targetSessionId: target.id },
+            memberActor(member.userId),
+        );
         expect(retry.changed).toBe(false);
         expect(retry.reservation.id).toBe(moved.reservation.id);
 
         // Retry hacia OTRO destino no reescribe la historia.
         await expectDomainError(
-            reservations.reschedule(originId, { targetSessionId: other.id }, member.userId),
+            reservations.reschedule(originId, { targetSessionId: other.id }, memberActor(member.userId)),
             'INVALID_RESERVATION_STATE',
         );
 
         // Reprogramar hacia la misma sesión responde TARGET_SAME_SESSION.
         await expectDomainError(
-            reservations.reschedule(moved.reservation.id, { targetSessionId: target.id }, member.userId),
+            reservations.reschedule(moved.reservation.id, { targetSessionId: target.id }, memberActor(member.userId)),
             'TARGET_SAME_SESSION',
+        );
+    });
+
+    it('ownership por roles del token: miembro ajeno y TRAINER no pueden; gestión exige intención', async () => {
+        const seriesId = await seedSeries();
+        const session = await seedSession(seriesId, { inHours: 70, capacity: 3 });
+        const owner = await seedMember('Owner Rights');
+        const stranger = await seedMember('Stranger Rights');
+
+        const booking = await reservations.book(session.id, owner.userId);
+        const reservationId = booking.result.reservation.id;
+
+        // Miembro ajeno: 403 con el mismo código que un 404 para no filtrar la reserva.
+        await expectDomainError(
+            reservations.cancel(reservationId, undefined, memberActor(stranger.userId)),
+            'RESERVATION_NOT_FOUND',
+        );
+        await expectDomainError(
+            reservations.rescheduleOptions(reservationId, memberActor(stranger.userId)),
+            'RESERVATION_NOT_FOUND',
+        );
+
+        // TRAINER: sin perfil de miembro, antes se le trataba como staff.
+        await expectDomainError(
+            reservations.cancel(
+                reservationId,
+                { reason: 'ADMIN_OVERRIDE', note: 'intento del entrenador' },
+                trainerActor(trainerUserId),
+            ),
+            'RESERVATION_NOT_FOUND',
+        );
+
+        // Gestión sobre reserva ajena: sigue exigiendo body con intención explícita.
+        await expect(reservations.cancel(reservationId, undefined, managementActor(adminUserId))).rejects.toThrow(
+            /exige body/,
+        );
+
+        const cancelled = await reservations.cancel(
+            reservationId,
+            { reason: 'ADMIN_OVERRIDE', note: 'gestión' },
+            managementActor(adminUserId),
+        );
+        expect(cancelled.changed).toBe(true);
+        expect(cancelled.reservation.statusReason).toBe('ADMIN_CANCELLED');
+    });
+
+    it('roster: el TRAINER solo lee el de sus propias sesiones', async () => {
+        const seriesId = await seedSeries();
+        const session = await seedSession(seriesId, { inHours: 76, capacity: 3 });
+        const member = await seedMember('Roster Member');
+        await reservations.book(session.id, member.userId);
+
+        const [otherUser] = await db()
+            .insert(usersInApp)
+            .values({ keycloakSubject: crypto.randomUUID(), fullName: 'Otro Entrenador', status: 'ACTIVE' })
+            .returning();
+        await db().insert(trainersInApp).values({ userId: otherUser!.id, status: 'ACTIVE' });
+
+        // Dueño de la sesión y gestión: ven el roster completo.
+        expect(await reservations.roster(session.id, trainerActor(trainerUserId))).toHaveLength(1);
+        expect(await reservations.roster(session.id, managementActor(adminUserId))).toHaveLength(1);
+
+        // Entrenador ajeno a la sesión: 403 disfrazado de 404.
+        await expectDomainError(reservations.roster(session.id, trainerActor(otherUser!.id)), 'SESSION_NOT_FOUND');
+
+        // El rol MEMBER no exime del recorte en el roster (solo en el catálogo).
+        await expectDomainError(
+            reservations.roster(session.id, trainerMemberActor(otherUser!.id)),
+            'SESSION_NOT_FOUND',
+        );
+
+        // Rol TRAINER sin perfil de entrenador en el dominio.
+        await expectDomainError(reservations.roster(session.id, trainerActor(member.userId)), 'TRAINER_NOT_FOUND');
+    });
+
+    it('lectura de clases y sesiones recortada al entrenador', async () => {
+        const seriesId = await seedSeries();
+        const session = await seedSession(seriesId, { inHours: 82, capacity: 3 });
+
+        const [otherUser] = await db()
+            .insert(usersInApp)
+            .values({ keycloakSubject: crypto.randomUUID(), fullName: 'Entrenador Sin Clases', status: 'ACTIVE' })
+            .returning();
+        await db().insert(trainersInApp).values({ userId: otherUser!.id, status: 'ACTIVE' });
+
+        const ownView = await classes.list({}, trainerActor(trainerUserId));
+        expect(ownView.length).toBeGreaterThan(0);
+        expect(ownView.every((series) => series.trainerId === trainerId)).toBe(true);
+        expect(await classes.list({}, trainerActor(otherUser!.id))).toHaveLength(0);
+
+        // El rol MEMBER tampoco abre las series ajenas.
+        expect(await classes.list({}, trainerMemberActor(otherUser!.id))).toHaveLength(0);
+
+        // La serie ajena no se puede abrir en detalle.
+        await expectDomainError(classes.detail(seriesId, trainerActor(otherUser!.id)), 'CLASS_NOT_FOUND');
+        expect((await classes.detail(seriesId, trainerActor(trainerUserId))).id).toBe(seriesId);
+
+        const range = {
+            from: DateTime.now().setZone('America/Costa_Rica').toISODate()!,
+            to: DateTime.now().plus({ days: 7 }).setZone('America/Costa_Rica').toISODate()!,
+        };
+
+        // `mine=true` es la agenda propia: filtro explícito, no permiso.
+        const agenda = await sessions.list({ ...range, mine: true }, trainerActor(trainerUserId));
+        expect(agenda.length).toBeGreaterThan(0);
+        expect(agenda.every((s) => s.trainerId === trainerId)).toBe(true);
+        expect(await sessions.list({ ...range, mine: true }, trainerActor(otherUser!.id))).toHaveLength(0);
+
+        // Sin el filtro, el catálogo es el mismo para cualquier rol: es la agenda
+        // del gimnasio que mobile ya muestra a los miembros.
+        const member = await seedMember('Catalog Browser');
+        for (const viewer of [
+            memberActor(member.userId),
+            trainerActor(otherUser!.id),
+            trainerMemberActor(otherUser!.id),
+            managementActor(adminUserId),
+        ]) {
+            expect((await sessions.list(range, viewer)).some((s) => s.id === session.id)).toBe(true);
+            expect((await sessions.detail(session.id, viewer)).id).toBe(session.id);
+        }
+
+        // `mine=true` sin perfil de entrenador no devuelve el catálogo entero.
+        await expectDomainError(
+            sessions.list({ ...range, mine: true }, memberActor(member.userId)),
+            'TRAINER_NOT_FOUND',
         );
     });
 
