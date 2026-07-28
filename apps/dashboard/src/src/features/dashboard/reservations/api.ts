@@ -205,8 +205,10 @@ export async function deleteClass(id: string, version: number): Promise<{ affect
 
 // ── Sesiones ────────────────────────────────────────────────────────────────
 
-export async function fetchSessions(from: string, to: string): Promise<SessionOccupancy[]> {
-    const rows = await apiFetch<ApiSession[]>(`/api/v1/class-sessions?from=${from}&to=${to}&includeCancelled=true`);
+export async function fetchSessions(from: string, to: string, mine = false): Promise<SessionOccupancy[]> {
+    const rows = await apiFetch<ApiSession[]>(
+        `/api/v1/class-sessions?from=${from}&to=${to}&includeCancelled=true${mine ? '&mine=true' : ''}`,
+    );
     return rows.map(toSession);
 }
 

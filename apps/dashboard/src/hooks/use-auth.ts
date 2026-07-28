@@ -12,9 +12,10 @@ export interface AuthUser {
 
 export const AUTH_QUERY_KEY = ['auth', 'me'] as const;
 
-// Trainers can do everything ADMIN/STAFF can except add a MEMBER — single source
-// of truth for that check so it can't drift between the different creation flows.
-export function canManageMembers(roles: string[] | undefined): boolean {
+// ADMIN y STAFF son los roles de gestión del gimnasio; el TRAINER solo
+// consulta. Fuente única de la verdad en el dashboard para que no se
+// desincronice de `MANAGEMENT_ROLES` en la API (@Roles en los controllers).
+export function isManagementRole(roles: string[] | undefined): boolean {
     return roles?.some((r) => r === 'ADMIN' || r === 'STAFF') ?? false;
 }
 

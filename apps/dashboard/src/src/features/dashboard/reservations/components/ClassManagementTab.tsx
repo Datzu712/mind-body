@@ -14,6 +14,7 @@ import {
 import { Plus, Search, MoreHorizontal, Edit, Power, Trash2 } from 'lucide-react';
 import { sileo } from 'sileo';
 
+import { useAuth, isManagementRole } from '@/hooks/use-auth';
 import { ConfirmDialog } from '@/src/shared/components/confirm-dialog';
 import { useCreateClass, useDeleteClass, useGymClasses, useSetClassStatus, useUpdateClass } from '../hooks';
 import type { ClassFormData, ClassStatus, GymClass } from '../types';
@@ -22,6 +23,10 @@ import { ClassStatusBadge } from './ClassStatusBadge';
 import { ClassFormDialog } from './ClassFormDialog';
 
 export function ClassManagementTab() {
+    // Crear, editar, cambiar estado y eliminar clases es ADMIN/STAFF en la API;
+    // el TRAINER solo consulta el listado.
+    const { user: authUser } = useAuth();
+    const canManage = isManagementRole(authUser?.roles);
     const { data: classes = [] } = useGymClasses();
     const createClass = useCreateClass();
     const updateClass = useUpdateClass();
@@ -158,10 +163,12 @@ export function ClassManagementTab() {
                         </SelectContent>
                     </Select>
                 </div>
-                <Button onClick={() => setFormOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nueva clase
-                </Button>
+                {canManage && (
+                    <Button onClick={() => setFormOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Nueva clase
+                    </Button>
+                )}
             </div>
 
             {/* Tabla de series */}
@@ -208,45 +215,49 @@ export function ClassManagementTab() {
                                                 <ClassStatusBadge status={cls.status} />
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8"
-                                                            aria-label={`Acciones para ${cls.name}`}
+                                                {canManage && (
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8"
+                                                                aria-label={`Acciones para ${cls.name}`}
+                                                            >
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent
+                                                            align="end"
+                                                            className="w-auto min-w-44 whitespace-nowrap bg-popover border-border"
                                                         >
-                                                            <MoreHorizontal className="h-4 w-4" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent
-                                                        align="end"
-                                                        className="w-auto min-w-44 whitespace-nowrap bg-popover border-border"
-                                                    >
-                                                        <DropdownMenuItem
-                                                            className="cursor-pointer"
-                                                            onClick={() => openEditForm(cls)}
-                                                        >
-                                                            <Edit className="mr-2 h-4 w-4" />
-                                                            Editar
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem
-                                                            className="cursor-pointer"
-                                                            onClick={() => handleToggleStatus(cls)}
-                                                        >
-                                                            <Power className="mr-2 h-4 w-4" />
-                                                            {cls.status === 'inactive' ? 'Activar' : 'Desactivar'}
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuSeparator className="bg-border" />
-                                                        <DropdownMenuItem
-                                                            className="cursor-pointer text-destructive focus:text-destructive"
-                                                            onClick={() => setConfirmDialog({ open: true, item: cls })}
-                                                        >
-                                                            <Trash2 className="mr-2 h-4 w-4" />
-                                                            Eliminar
-                                                        </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                                            <DropdownMenuItem
+                                                                className="cursor-pointer"
+                                                                onClick={() => openEditForm(cls)}
+                                                            >
+                                                                <Edit className="mr-2 h-4 w-4" />
+                                                                Editar
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem
+                                                                className="cursor-pointer"
+                                                                onClick={() => handleToggleStatus(cls)}
+                                                            >
+                                                                <Power className="mr-2 h-4 w-4" />
+                                                                {cls.status === 'inactive' ? 'Activar' : 'Desactivar'}
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator className="bg-border" />
+                                                            <DropdownMenuItem
+                                                                className="cursor-pointer text-destructive focus:text-destructive"
+                                                                onClick={() =>
+                                                                    setConfirmDialog({ open: true, item: cls })
+                                                                }
+                                                            >
+                                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                                Eliminar
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))

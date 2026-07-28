@@ -12,6 +12,7 @@ import type { UserBase, ProfileType } from '@/src/features/dashboard/users/types
 import { Button } from '@/components/ui/button';
 import { SlidersHorizontal, Plus } from 'lucide-react';
 import { useUsers, type UsersFilters as ApiFilters } from '@/src/features/dashboard/users/hooks';
+import { useAuth, isManagementRole } from '@/hooks/use-auth';
 import type { UsersFilters } from '@/src/features/dashboard/users/components/users-filter-sheet';
 
 const ALL_PROFILE_TYPES: ProfileType[] = ['MEMBER', 'TRAINER', 'STAFF'];
@@ -44,6 +45,9 @@ function toApiFilters(f: UsersFilters): ApiFilters {
 
 function UsersPage() {
     const navigate = useNavigate();
+    // Crear usuarios y perfiles es ADMIN/STAFF en la API; el TRAINER solo consulta.
+    const { user: authUser } = useAuth();
+    const canManage = isManagementRole(authUser?.roles);
     const [sheetOpen, setSheetOpen] = useState(false);
     const [createModalOpen, setCreateModalOpen] = useState(false);
     const [profileModalUser, setProfileModalUser] = useState<{ user: UserBase; type: ProfileType } | null>(null);
@@ -85,8 +89,8 @@ function UsersPage() {
     }, []);
 
     const columns = useMemo(
-        () => createUsersColumns(handleNavigate, handleCreateProfile),
-        [handleNavigate, handleCreateProfile],
+        () => createUsersColumns(handleNavigate, handleCreateProfile, canManage),
+        [handleNavigate, handleCreateProfile, canManage],
     );
 
     const table = useReactTable({
@@ -124,10 +128,12 @@ function UsersPage() {
                                     </span>
                                 )}
                             </Button>
-                            <Button onClick={() => setCreateModalOpen(true)}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Nuevo usuario
-                            </Button>
+                            {canManage && (
+                                <Button onClick={() => setCreateModalOpen(true)}>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Nuevo usuario
+                                </Button>
+                            )}
                         </div>
                     }
                     className="mb-6"
@@ -159,7 +165,7 @@ function UsersPage() {
                     filters={filters}
                     onApply={handleApplyFilters}
                 />
-                <CreateUserModal open={createModalOpen} onOpenChange={setCreateModalOpen} />
+                {canManage && <CreateUserModal open={createModalOpen} onOpenChange={setCreateModalOpen} />}
                 {profileModalUser && (
                     <CreateProfileModal
                         key={`${profileModalUser.user.id}-${profileModalUser.type}`}

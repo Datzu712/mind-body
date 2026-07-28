@@ -30,9 +30,17 @@ import {
     SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, isManagementRole } from '@/hooks/use-auth';
 
-const mainNavItems: { title: string; href: string; icon: LucideIcon; exact?: boolean }[] = [
+// `management`: toda acción de la pantalla es ADMIN/STAFF en la API, así que al
+// TRAINER no se le ofrece la entrada (cada request respondería 403).
+const mainNavItems: {
+    title: string;
+    href: string;
+    icon: LucideIcon;
+    exact?: boolean;
+    management?: boolean;
+}[] = [
     {
         title: 'Dashboard',
         href: '/dashboard',
@@ -48,6 +56,7 @@ const mainNavItems: { title: string; href: string; icon: LucideIcon; exact?: boo
         title: 'Clases',
         href: '/dashboard/classes',
         icon: Dumbbell,
+        management: true,
     },
     {
         title: 'Reservas',
@@ -142,24 +151,26 @@ export function AppSidebar() {
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {mainNavItems.map((item) => (
-                                <SidebarMenuItem key={item.href}>
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={
-                                            item.exact
-                                                ? pathname === item.href
-                                                : pathname === item.href || pathname.startsWith(item.href + '/')
-                                        }
-                                        tooltip={item.title}
-                                    >
-                                        <Link to={item.href}>
-                                            <item.icon className="h-4 w-4" />
-                                            <span>{item.title}</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
+                            {mainNavItems
+                                .filter((item) => !item.management || isManagementRole(user?.roles))
+                                .map((item) => (
+                                    <SidebarMenuItem key={item.href}>
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={
+                                                item.exact
+                                                    ? pathname === item.href
+                                                    : pathname === item.href || pathname.startsWith(item.href + '/')
+                                            }
+                                            tooltip={item.title}
+                                        >
+                                            <Link to={item.href}>
+                                                <item.icon className="h-4 w-4" />
+                                                <span>{item.title}</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                ))}
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
