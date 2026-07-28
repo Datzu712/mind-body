@@ -37,6 +37,19 @@ export class MeasurementsService {
     }
 
     /**
+     * Los timestamptz salen del driver con el texto crudo de Postgres
+     * (`2026-07-28 22:06:11.646084+00`), que Hermes no parsea con `new Date()`.
+     * Toda salida del módulo pasa por acá, igual que en sesiones y reservas.
+     */
+    private toDto<T extends { createdAt: string; updatedAt: string }>(row: T): T {
+        return {
+            ...row,
+            createdAt: this.clock.toLocal(row.createdAt).toISO()!,
+            updatedAt: this.clock.toLocal(row.updatedAt).toISO()!,
+        };
+    }
+
+    /**
      * Mapeo único de valores digitados a columnas, compartido por crear y corregir:
      * agregar una métrica se hace en un solo lugar y no puede quedar a medias.
      */
@@ -62,7 +75,7 @@ export class MeasurementsService {
             })
             .returning();
 
-        return row!;
+        return this.toDto(row!);
     }
 
     /**
@@ -100,7 +113,7 @@ export class MeasurementsService {
             .where(and(eq(Measurements.id, measurementId), eq(Measurements.memberId, memberId)))
             .returning();
 
-        return row!;
+        return this.toDto(row!);
     }
 
     async findAll(userId: string, from?: string, to?: string) {
@@ -110,11 +123,13 @@ export class MeasurementsService {
         if (from) conditions.push(gte(Measurements.measuredAt, from));
         if (to) conditions.push(lte(Measurements.measuredAt, to));
 
-        return this.drizzle.db
+        const rows = await this.drizzle.db
             .select()
             .from(Measurements)
             .where(and(...conditions))
             .orderBy(desc(Measurements.measuredAt));
+
+        return rows.map((row) => this.toDto(row));
     }
 
     async getSummary(userId: string) {
@@ -142,8 +157,8 @@ export class MeasurementsService {
             a != null && b != null ? +(parseFloat(b) - parseFloat(a)).toFixed(2) : null;
 
         return {
-            first,
-            latest,
+            first: this.toDto(first),
+            latest: this.toDto(latest),
             variations: {
                 weightKg: delta(first.weightKg, latest.weightKg),
                 heightCm: delta(first.heightCm, latest.heightCm),
