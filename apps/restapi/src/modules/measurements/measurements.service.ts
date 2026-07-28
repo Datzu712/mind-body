@@ -1,13 +1,30 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { and, desc, eq, gte, lte, sql, asc } from 'drizzle-orm';
 
+import { ClockService } from '@/common/clock/clock.service';
+import { DomainHttpException } from '@/common/domain/domain-http.exception';
 import { DrizzleService } from '@/infra/database/pg/drizzle.service';
 import { memberMeasurementsInApp as Measurements, membersInApp as Members } from '@/infra/database/pg/schemas/schema';
 import type { CreateMeasurementDto } from './dto/create-measurement.dto';
+import type { MeasurementValuesDto } from './dto/measurement-values.dto';
+import { assertEditable } from './measurement-edit-policy';
+
+/**
+ * Las columnas `numeric` viajan como string en drizzle.
+ *
+ * El `!= null` es deliberado y no se puede cambiar por `!== undefined`: si el
+ * cliente manda un `null` explícito, `@IsOptional()` de class-validator saltea
+ * el resto de los validadores y ese null llega hasta acá. `String(null)` daría
+ * `"null"`, que Postgres rechaza como numeric y sale como 500.
+ */
+const toNumeric = (value: number | null | undefined): string | null => (value != null ? String(value) : null);
 
 @Injectable()
 export class MeasurementsService {
-    constructor(private readonly drizzle: DrizzleService) {}
+    constructor(
+        private readonly drizzle: DrizzleService,
+        private readonly clock: ClockService,
+    ) {}
 
     private async getMemberId(userId: string): Promise<string> {
         const [member] = await this.drizzle.db
@@ -19,6 +36,20 @@ export class MeasurementsService {
         return member.id;
     }
 
+    /**
+     * Mapeo único de valores digitados a columnas, compartido por crear y corregir:
+     * agregar una métrica se hace en un solo lugar y no puede quedar a medias.
+     */
+    private toColumns(dto: MeasurementValuesDto) {
+        return {
+            weightKg: toNumeric(dto.weightKg),
+            heightCm: toNumeric(dto.heightCm),
+            bodyFatPercentage: toNumeric(dto.bodyFatPercentage),
+            waistCm: toNumeric(dto.waistCm),
+            notes: dto.notes ?? null,
+        };
+    }
+
     async create(userId: string, dto: CreateMeasurementDto) {
         const memberId = await this.getMemberId(userId);
 
@@ -27,12 +58,46 @@ export class MeasurementsService {
             .values({
                 memberId,
                 measuredAt: dto.measuredAt ?? sql`CURRENT_DATE`,
-                weightKg: dto.weightKg != null ? String(dto.weightKg) : null,
-                heightCm: dto.heightCm != null ? String(dto.heightCm) : null,
-                bodyFatPercentage: dto.bodyFatPercentage != null ? String(dto.bodyFatPercentage) : null,
-                waistCm: dto.waistCm != null ? String(dto.waistCm) : null,
-                notes: dto.notes ?? null,
+                ...this.toColumns(dto),
             })
+            .returning();
+
+        return row!;
+    }
+
+    /**
+     * Corrige los valores de una medición propia. Reemplazo total: un campo
+     * ausente en el body borra el valor guardado.
+     */
+    async update(userId: string, measurementId: string, dto: MeasurementValuesDto) {
+        const memberId = await this.getMemberId(userId);
+
+        // El memberId va en el WHERE y no en una comparación posterior: una medición
+        // ajena responde igual que una inexistente, así que no queda un oráculo para
+        // averiguar qué ids existen.
+        const [existing] = await this.drizzle.db
+            .select({ createdAt: Measurements.createdAt })
+            .from(Measurements)
+            .where(and(eq(Measurements.id, measurementId), eq(Measurements.memberId, memberId)));
+
+        if (!existing) {
+            throw new DomainHttpException(
+                404,
+                'MEASUREMENT_NOT_FOUND',
+                'La medición no existe o no pertenece al usuario.',
+                { measurementId },
+            );
+        }
+
+        // Sin lock ni transacción a propósito: `createdAt` es inmutable y no hay
+        // borrado de mediciones, así que entre el SELECT y el UPDATE nada puede
+        // cambiar el resultado de la regla. El UPDATE repite el filtro por memberId.
+        assertEditable(this.clock.toLocal(existing.createdAt), this.clock.now());
+
+        const [row] = await this.drizzle.db
+            .update(Measurements)
+            .set({ ...this.toColumns(dto), updatedAt: sql`now()` })
+            .where(and(eq(Measurements.id, measurementId), eq(Measurements.memberId, memberId)))
             .returning();
 
         return row!;
