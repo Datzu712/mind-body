@@ -16,7 +16,8 @@ to any member they open.
 ### Decisions (confirmed with user)
 
 1. **Read‑only.** No creating/editing measurements from the dashboard in this version.
-   Backend exposes only `GET` endpoints.
+   The `users/:id/measurements` endpoints this spec adds are `GET` only. (The
+   member‑scoped self endpoints under `/measurements` do accept writes, for mobile.)
 2. **One tab with stacked sub‑sections** (not separate tabs, not inner sub‑tabs): a single
    "Progreso" tab containing a Measurements section followed by an Activity section.
 3. **Scope = equivalent to mobile:** metric evolution chart with period selector,
@@ -64,8 +65,9 @@ GET /api/v1/users/:id/activity/daily/range?from=...&to=...          -> DailyActi
 member profile / `memberId`. Returns `404`/empty if the user has no member profile.
 
 > Placement note: nesting under `users/:id/...` keeps these reads beside the existing
-> `GET /users/:id` and inherits its dashboard authorization. The member‑scoped self
-> endpoints (`GET /measurements`, `GET /activity/daily/range`) stay untouched for mobile.
+> `GET /users/:id` and inherits its dashboard authorization. This spec does not touch
+> the member‑scoped self endpoints (`GET /measurements`, `GET /activity/daily/range`)
+> that mobile uses.
 
 ### Dashboard (`apps/dashboard/src/src/features/dashboard/users/`)
 
