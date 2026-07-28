@@ -22,6 +22,13 @@
             "when": 1784146641088,
             "tag": "0002_bright_northstar",
             "breakpoints": true
+        },
+        {
+            "idx": 3,
+            "version": "7",
+            "when": 1785266056318,
+            "tag": "0003_open_celestials",
+            "breakpoints": true
         }
     ]
 }
