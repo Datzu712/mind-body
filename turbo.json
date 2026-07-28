@@ -15,7 +15,8 @@
         },
         "test": {
             "inputs": ["src/**", "tests/**", "vitest.config.ts"],
-            "outputs": []
+            "outputs": [],
+            "env": ["DATABASE_URL"]
         },
         "dev": {
             "cache": false,
