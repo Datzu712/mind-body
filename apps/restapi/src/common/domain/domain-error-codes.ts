@@ -1,4 +1,4 @@
-/** Códigos de error estables del dominio clases/sesiones/reservas (sección 9.5 del plan). */
+/** Códigos de error estables del dominio (clases/sesiones/reservas, sección 9.5 del plan; mediciones). */
 export const DOMAIN_ERROR_CODES = [
     'CLASS_NOT_FOUND',
     'CLASS_ARCHIVED',
@@ -20,6 +20,8 @@ export const DOMAIN_ERROR_CODES = [
     'TRAINER_NOT_FOUND',
     'VERSION_CONFLICT',
     'PRECONDITION_REQUIRED',
+    'MEASUREMENT_NOT_FOUND',
+    'MEASUREMENT_EDIT_WINDOW_EXPIRED',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

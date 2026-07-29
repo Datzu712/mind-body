@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, FlatList, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { FitColors as T } from '@/constants/theme';
 import { useMeasurements } from '@/hooks/use-measurements';
 import type { Measurement } from '@/lib/api/types/measurement';
-import { METRICS, formatDate, isEditableWithin7Days } from './constants';
+import { EditMeasurementForm } from './EditMeasurementForm';
+import { MEASUREMENT_EDIT_WINDOW_DAYS, METRICS, formatDate, isEditable, wasEdited } from './constants';
 
 function MeasurementRow({
     item,
@@ -16,10 +17,11 @@ function MeasurementRow({
     item: Measurement;
     isFirst: boolean;
     prev?: Measurement;
-    onEdit: (item: Measurement) => void;
+    onEdit: () => void;
 }) {
     const [expanded, setExpanded] = useState(false);
     const mainVal = item.weightKg != null ? `${item.weightKg} kg` : '—';
+    const editable = isEditable(item);
 
     const weightDiff =
         prev && item.weightKg != null && prev.weightKg != null ? +(prev.weightKg - item.weightKg).toFixed(1) : null;
@@ -35,7 +37,10 @@ function MeasurementRow({
                 <View style={s.rowTop}>
                     <View style={s.rowLeft}>
                         <Text style={[s.rowDate, isFirst && s.rowDateFirst]}>{formatDate(item.measuredAt)}</Text>
-                        {isFirst && <Text style={s.rowBadge}>Más reciente</Text>}
+                        <View style={s.rowTags}>
+                            {isFirst && <Text style={s.rowBadge}>Más reciente</Text>}
+                            {wasEdited(item) && <Text style={s.rowEdited}>Corregida</Text>}
+                        </View>
                     </View>
                     <View style={s.rowRight}>
                         <Text style={s.rowPreview}>{mainVal}</Text>
@@ -75,11 +80,17 @@ function MeasurementRow({
                                 <Text style={s.notes}>{item.notes}</Text>
                             </View>
                         )}
-                        {isEditableWithin7Days(item.measuredAt) && (
-                            <Pressable style={s.editBtn} onPress={() => onEdit(item)} hitSlop={8}>
-                                <Ionicons name="pencil-outline" size={14} color={T.yellow} />
-                                <Text style={s.editBtnText}>Editar</Text>
+
+                        {editable ? (
+                            <Pressable style={s.editBtn} onPress={onEdit} hitSlop={8}>
+                                <Ionicons name="pencil" size={13} color={T.yellow} />
+                                <Text style={s.editBtnText}>Corregir valores</Text>
                             </Pressable>
+                        ) : (
+                            // Se explica la regla en vez de esconder el botón sin motivo visible.
+                            <Text style={s.editHint}>
+                                Solo se puede corregir durante los primeros {MEASUREMENT_EDIT_WINDOW_DAYS} días.
+                            </Text>
                         )}
                     </View>
                 )}
@@ -88,50 +99,79 @@ function MeasurementRow({
     );
 }
 
+/**
+ * Historial y corrección comparten este `Modal`: al elegir una fila se cambia el
+ * contenido en lugar de abrir un segundo `Modal` encima, que en iOS falla al
+ * presentarse sobre otro ya presentado.
+ *
+ * `onSaved` cierra el modal desde la pantalla, porque el toast de confirmación
+ * vive detrás de él.
+ */
 export function HistoryModal({
     visible,
     onClose,
-    onEdit,
+    onSaved,
 }: {
     visible: boolean;
     onClose: () => void;
-    onEdit: (item: Measurement) => void;
+    onSaved: () => void;
 }) {
     const { data: measurements } = useMeasurements();
+    const [editing, setEditing] = useState<Measurement | null>(null);
+
+    // El modal queda montado al cerrarse; sin esto reabriría en el form.
+    const handleClose = useCallback(() => {
+        setEditing(null);
+        onClose();
+    }, [onClose]);
+
+    const handleSaved = useCallback(() => {
+        setEditing(null);
+        onSaved();
+    }, [onSaved]);
 
     return (
-        <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={onClose}>
-            <SafeAreaView style={s.modalRoot} edges={['top']}>
-                <View style={s.header}>
-                    <View />
-                    <Text style={s.headerTitle}>Historial completo</Text>
-                    <Pressable onPress={onClose} hitSlop={12}>
-                        <Ionicons name="close" size={22} color={T.muted} />
-                    </Pressable>
-                </View>
-
-                {measurements && measurements.length > 0 ? (
-                    <FlatList
-                        data={measurements}
-                        keyExtractor={(m) => m.id}
-                        renderItem={({ item, index }) => (
-                            <MeasurementRow
-                                item={item}
-                                isFirst={index === 0}
-                                prev={index > 0 ? measurements[index - 1] : undefined}
-                                onEdit={onEdit}
-                            />
-                        )}
-                        contentContainerStyle={s.list}
-                        showsVerticalScrollIndicator={false}
-                    />
-                ) : (
-                    <View style={s.empty}>
-                        <Ionicons name="body-outline" size={48} color={T.muted} />
-                        <Text style={s.emptyTitle}>Sin mediciones</Text>
+        <Modal visible={visible} animationType="slide" statusBarTranslucent onRequestClose={handleClose}>
+            {editing ? (
+                <EditMeasurementForm
+                    key={editing.id}
+                    measurement={editing}
+                    onClose={() => setEditing(null)}
+                    onSaved={handleSaved}
+                />
+            ) : (
+                <SafeAreaView style={s.modalRoot} edges={['top']}>
+                    <View style={s.header}>
+                        <View />
+                        <Text style={s.headerTitle}>Historial completo</Text>
+                        <Pressable onPress={handleClose} hitSlop={12}>
+                            <Ionicons name="close" size={22} color={T.muted} />
+                        </Pressable>
                     </View>
-                )}
-            </SafeAreaView>
+
+                    {measurements && measurements.length > 0 ? (
+                        <FlatList
+                            data={measurements}
+                            keyExtractor={(m) => m.id}
+                            renderItem={({ item, index }) => (
+                                <MeasurementRow
+                                    item={item}
+                                    isFirst={index === 0}
+                                    prev={index > 0 ? measurements[index - 1] : undefined}
+                                    onEdit={() => setEditing(item)}
+                                />
+                            )}
+                            contentContainerStyle={s.list}
+                            showsVerticalScrollIndicator={false}
+                        />
+                    ) : (
+                        <View style={s.empty}>
+                            <Ionicons name="body-outline" size={48} color={T.muted} />
+                            <Text style={s.emptyTitle}>Sin mediciones</Text>
+                        </View>
+                    )}
+                </SafeAreaView>
+            )}
         </Modal>
     );
 }
@@ -176,7 +216,9 @@ const s = StyleSheet.create({
     rowRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     rowDate: { fontSize: 13, fontWeight: '700', color: T.white },
     rowDateFirst: { color: T.yellow },
+    rowTags: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     rowBadge: { fontSize: 9, fontWeight: '700', color: T.yellow, letterSpacing: 0.3, marginTop: 1 },
+    rowEdited: { fontSize: 9, fontWeight: '700', color: T.muted, letterSpacing: 0.3, marginTop: 1 },
     rowPreview: { fontSize: 13, fontWeight: '600', color: T.muted },
     trend: {
         flexDirection: 'row',
@@ -203,6 +245,19 @@ const s = StyleSheet.create({
     notesWrap: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 4 },
     notes: { flex: 1, fontSize: 11, color: T.muted, fontStyle: 'italic' },
 
-    editBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-end', marginTop: 10 },
-    editBtnText: { fontSize: 13, fontWeight: '700', color: T.yellow },
+    // Acción de corregir
+    editBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        marginTop: 4,
+        paddingVertical: 9,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: T.yellowBdr,
+        backgroundColor: T.yellow + '14',
+    },
+    editBtnText: { fontSize: 12, fontWeight: '700', color: T.yellow },
+    editHint: { fontSize: 10, color: T.muted, marginTop: 4, textAlign: 'center' },
 });

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { Stack } from 'expo-router';
@@ -9,37 +9,29 @@ import { ComparisonCard } from '@/components/measurements/ComparisonCard';
 import { ChartSection } from '@/components/measurements/ChartSection';
 import { HistoryModal } from '@/components/measurements/HistoryModal';
 import { NewMeasurementModal } from '@/components/measurements/NewMeasurementModal';
-import type { Measurement } from '@/lib/api/types/measurement';
 
 export default function MeasurementsScreen() {
     const [historyVisible, setHistoryVisible] = useState(false);
     const [formVisible, setFormVisible] = useState(false);
-    const [editingMeasurement, setEditingMeasurement] = useState<Measurement | null>(null);
-    const [toast, setToast] = useState(false);
-    const [toastMsg, setToastMsg] = useState('Medición registrada');
-    const wasEditingRef = useRef(false);
+    const [toast, setToast] = useState<string | null>(null);
     const { data: measurements } = useMeasurements();
     const hasData = measurements && measurements.length > 0;
 
-    const handleEdit = useCallback((m: Measurement) => {
-        wasEditingRef.current = true;
-        setEditingMeasurement(m);
-        setHistoryVisible(false);
-        setFormVisible(true);
+    const showToast = useCallback((message: string) => {
+        setToast(message);
+        setTimeout(() => setToast(null), 2200);
     }, []);
 
-    const handleSaved = useCallback(() => {
-        const wasEditing = wasEditingRef.current;
-        wasEditingRef.current = false;
+    const handleCreated = useCallback(() => {
         setFormVisible(false);
-        setEditingMeasurement(null);
-        setToastMsg(wasEditing ? 'Medición actualizada' : 'Medición registrada');
-        if (wasEditing) {
-            setHistoryVisible(true);
-        }
-        setToast(true);
-        setTimeout(() => setToast(false), 2200);
-    }, []);
+        showToast('Medición registrada');
+    }, [showToast]);
+
+    // El historial se cierra al corregir: el toast va detrás del modal.
+    const handleCorrected = useCallback(() => {
+        setHistoryVisible(false);
+        showToast('Medición corregida');
+    }, [showToast]);
 
     return (
         <>
@@ -74,21 +66,18 @@ export default function MeasurementsScreen() {
                     </Pressable>
                 )}
 
-                <HistoryModal visible={historyVisible} onClose={() => setHistoryVisible(false)} onEdit={handleEdit} />
-                <NewMeasurementModal
-                    visible={formVisible}
-                    onClose={() => {
-                        setFormVisible(false);
-                        setEditingMeasurement(null);
-                    }}
-                    onSaved={handleSaved}
-                    editingMeasurement={editingMeasurement}
+                <HistoryModal
+                    visible={historyVisible}
+                    onClose={() => setHistoryVisible(false)}
+                    onSaved={handleCorrected}
                 />
+                {/* Montado solo mientras está abierto: nunca hay dos Modal vivos a la vez. */}
+                {formVisible && <NewMeasurementModal onClose={() => setFormVisible(false)} onSaved={handleCreated} />}
 
                 {toast && (
                     <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(300)} style={s.toast}>
                         <Ionicons name="checkmark-circle" size={20} color={T.green} />
-                        <Text style={s.toastText}>{toastMsg}</Text>
+                        <Text style={s.toastText}>{toast}</Text>
                     </Animated.View>
                 )}
             </View>
