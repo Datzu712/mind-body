@@ -2,16 +2,8 @@ import { Link, useLocation } from '@tanstack/react-router';
 import {
     LayoutDashboard,
     Users,
-    UserSearch,
-    UserRound,
-    UsersRound,
-    UserPlus,
-    IdCard,
-    ClipboardCheck,
     CalendarDays,
     Dumbbell,
-    Settings,
-    BookOpen,
     LogOut,
     type LucideIcon,
 } from 'lucide-react';
@@ -53,52 +45,6 @@ const mainNavItems: { title: string; href: string; icon: LucideIcon; exact?: boo
         title: 'Reservas',
         href: '/dashboard/reservations',
         icon: CalendarDays,
-    },
-];
-
-const adminNavItems: { title: string; href: string; icon: LucideIcon; exact?: boolean }[] = [
-    {
-        title: 'Miembros',
-        href: '/dashboard/members',
-        icon: UserSearch,
-        exact: true,
-    },
-    {
-        title: 'Registrar miembro',
-        href: '/dashboard/members/new',
-        icon: UserPlus,
-    },
-    {
-        title: 'Mi perfil',
-        href: '/dashboard/profile',
-        icon: UserRound,
-        exact: true,
-    },
-    {
-        title: 'Membresías',
-        href: '/dashboard/memberships',
-        icon: IdCard,
-        exact: true,
-    },
-    {
-        title: 'Aprobación de membresías',
-        href: '/dashboard/memberships/approval',
-        icon: ClipboardCheck,
-    },
-    {
-        title: 'Mis miembros',
-        href: '/dashboard/trainer/members',
-        icon: UsersRound,
-    },
-    {
-        title: 'Catálogo',
-        href: '/dashboard/catalog',
-        icon: BookOpen,
-    },
-    {
-        title: 'Configuración',
-        href: '/dashboard/settings',
-        icon: Settings,
     },
 ];
 
@@ -150,33 +96,6 @@ export function AppSidebar() {
                                             item.exact
                                                 ? pathname === item.href
                                                 : pathname === item.href || pathname.startsWith(item.href + '/')
-                                        }
-                                        tooltip={item.title}
-                                    >
-                                        <Link to={item.href}>
-                                            <item.icon className="h-4 w-4" />
-                                            <span>{item.title}</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
-
-                <SidebarGroup>
-                    <SidebarGroupLabel className="text-muted-foreground/70 uppercase text-xs tracking-wider">
-                        Administración
-                    </SidebarGroupLabel>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            {adminNavItems.map((item) => (
-                                <SidebarMenuItem key={item.href}>
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={
-                                            pathname === item.href ||
-                                            (!item.exact && pathname.startsWith(item.href + '/'))
                                         }
                                         tooltip={item.title}
                                     >

@@ -205,7 +205,7 @@ export class RoutinesService {
             const [updated] = await this.drizzle.db
                 .update(ExerciseLogs)
                 .set({
-                    weightKgActual: dto.weightKgActual ?? existing.weightKgActual,
+                    weightKgActual: dto.weightKgActual !== undefined ? dto.weightKgActual.toString() : existing.weightKgActual,
                     completedRepsLog: dto.completedRepsLog ?? existing.completedRepsLog,
                     completedSets: dto.completedSets ?? existing.completedSets,
                     notes: dto.notes ?? existing.notes,
@@ -225,7 +225,7 @@ export class RoutinesService {
                 targetSets: re?.sets ?? null,
                 targetReps: re?.reps ?? null,
                 targetWeightKg: null,
-                weightKgActual: dto.weightKgActual ?? null,
+                weightKgActual: dto.weightKgActual !== undefined ? dto.weightKgActual.toString() : null,
                 completedRepsLog: dto.completedRepsLog ?? null,
                 completedSets: dto.completedSets ?? null,
                 notes: dto.notes ?? null,

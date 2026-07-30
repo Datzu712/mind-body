@@ -788,3 +788,83 @@ export const classScheduleEventsInApp = app.table(
         check('chk_class_schedule_events_target', sql`num_nonnulls(class_series_id, class_session_id) = 1`),
     ],
 );
+
+export const notificationTypeInApp = app.enum('notification_type', ['ROUTINE_ASSIGNED', 'ROUTINE_UPDATED', 'SESSION_VALIDATED']);
+export const trainingSessionStatusInApp = app.enum('training_session_status', ['PENDING', 'CONFIRMED', 'VALIDATED', 'EXPIRED']);
+
+export const trainingSessionsInApp = app.table(
+    'training_sessions',
+    {
+        id: uuid('id').default(sql`uuidv7()`).primaryKey().notNull(),
+        memberRoutineId: uuid('member_routine_id').notNull().references(() => memberRoutinesInApp.id),
+        date: date('date', { mode: 'string' }).defaultNow().notNull(),
+        status: trainingSessionStatusInApp('status').default('PENDING').notNull(),
+        confirmedAt: timestamp('confirmed_at', { withTimezone: true, mode: 'string' }),
+        confirmedBy: uuid('confirmed_by').references(() => usersInApp.id),
+        validatedByTrainerId: uuid('validated_by_trainer_id').references(() => trainersInApp.id),
+        validatedAt: timestamp('validated_at', { withTimezone: true, mode: 'string' }),
+        notes: text('notes'),
+        createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    },
+    (table) => [
+        index('idx_training_sessions_member_routine_status').using('btree', table.memberRoutineId, table.status)
+    ]
+);
+
+export const exerciseLogsInApp = app.table(
+    'exercise_logs',
+    {
+        id: uuid('id').default(sql`uuidv7()`).primaryKey().notNull(),
+        sessionId: uuid('session_id').notNull().references(() => trainingSessionsInApp.id, { onDelete: 'cascade' }),
+        routineExerciseId: uuid('routine_exercise_id').notNull().references(() => routineExercisesInApp.id),
+        targetSets: integer('target_sets'),
+        targetReps: varchar('target_reps', { length: 40 }),
+        targetWeightKg: numeric('target_weight_kg', { precision: 5, scale: 2 }),
+        completedSets: integer('completed_sets'),
+        completedRepsLog: text('completed_reps_log'),
+        weightKgActual: numeric('weight_kg_actual', { precision: 5, scale: 2 }),
+        notes: text('notes'),
+        completed: boolean('completed').default(false).notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+        updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    },
+    (table) => [
+        unique('uq_exercise_logs_session_routine_exercise').on(table.sessionId, table.routineExerciseId),
+        index('idx_exercise_logs_session_id').using('btree', table.sessionId)
+    ]
+);
+
+export const notificationsInApp = app.table(
+    'notifications',
+    {
+        id: uuid('id').default(sql`uuidv7()`).primaryKey().notNull(),
+        userId: uuid('user_id').notNull().references(() => usersInApp.id, { onDelete: 'cascade' }),
+        type: notificationTypeInApp('type').notNull(),
+        title: varchar('title', { length: 200 }).notNull(),
+        body: text('body'),
+        payload: jsonb('payload'),
+        read: boolean('read').default(false).notNull(),
+        createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    },
+    (table) => [
+        index('idx_notifications_user_read').using('btree', table.userId, table.read)
+    ]
+);
+
+export const routineVersionsInApp = app.table(
+    'routine_versions',
+    {
+        id: uuid('id').default(sql`uuidv7()`).primaryKey().notNull(),
+        routineId: uuid('routine_id').notNull().references(() => routinesInApp.id, { onDelete: 'cascade' }),
+        versionNumber: integer('version_number').notNull(),
+        snapshot: jsonb('snapshot').notNull(),
+        changedBy: uuid('changed_by').references(() => trainersInApp.id),
+        changeReason: text('change_reason'),
+        createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    },
+    (table) => [
+        unique('uq_routine_versions_routine_version').on(table.routineId, table.versionNumber),
+        index('idx_routine_versions_routine_id').using('btree', table.routineId)
+    ]
+);
