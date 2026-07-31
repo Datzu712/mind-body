@@ -45,19 +45,13 @@ import { NodeEnv } from '@/config/env';
                                       },
                                   ]
                                 : [
+                                      // stdout only: the container runs as a non-root user with a
+                                      // read-only /app, and Docker's json-file driver already
+                                      // captures and rotates stdout.
                                       {
                                           target: 'pino/file',
                                           level: 'info',
                                           options: { destination: 1 }, // stdout
-                                      },
-                                      {
-                                          target: 'pino/file',
-                                          level: 'info',
-                                          options: {
-                                              destination: 'logs/app.log',
-                                              mkdir: true,
-                                              sync: false,
-                                          },
                                       },
                                   ],
                     },
