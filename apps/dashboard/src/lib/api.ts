@@ -1,10 +1,15 @@
+// In dev the paths stay relative so the Vite proxy handles /api (cookies stay
+// first-party). In production builds there is no proxy: every call is prefixed
+// with the API origin (e.g. https://restapi-mab.meddyg.com), scheme included.
+const API_BASE = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL ?? '') : '';
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     const headers: HeadersInit = { ...init?.headers };
     if (init?.body) {
         (headers as Record<string, string>)['Content-Type'] = 'application/json';
     }
 
-    const res = await fetch(path, {
+    const res = await fetch(`${API_BASE}${path}`, {
         ...init,
         credentials: 'include',
         headers,
@@ -51,5 +56,5 @@ export class ApiError extends Error {
 }
 
 export function getLoginUrl(redirect = '/dashboard'): string {
-    return `/api/v1/auth/login?redirect=${encodeURIComponent(redirect)}`;
+    return `${API_BASE}/api/v1/auth/login?redirect=${encodeURIComponent(redirect)}`;
 }
