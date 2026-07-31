@@ -1,5 +1,6 @@
 import { FitColors as T } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -134,13 +135,35 @@ export default function HomeScreen() {
                     </View>
                 </View>
             </ScrollView>
+
+            {/* FAB — Coach IA */}
+            <TouchableOpacity style={s.coachFab} onPress={() => router.push('/(coach)')} activeOpacity={0.85}>
+                <Ionicons name="sparkles" size={24} color={T.bg} />
+            </TouchableOpacity>
         </SafeAreaView>
     );
 }
 
 const s = StyleSheet.create({
     root: { flex: 1, backgroundColor: T.bg },
-    scroll: { paddingBottom: 28 },
+    scroll: { paddingBottom: 88 },
+
+    coachFab: {
+        position: 'absolute',
+        right: 20,
+        bottom: 24,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: T.yellow,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: T.yellow,
+        shadowOpacity: 0.35,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 8,
+    },
     px: { paddingHorizontal: 20 },
 
     header: {

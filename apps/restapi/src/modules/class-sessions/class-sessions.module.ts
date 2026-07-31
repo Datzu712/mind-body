@@ -8,5 +8,6 @@ import { ClassSessionsService } from './class-sessions.service';
     imports: [ClockModule],
     controllers: [ClassSessionsController],
     providers: [ClassSessionsService],
+    exports: [ClassSessionsService],
 })
 export class ClassSessionsModule {}

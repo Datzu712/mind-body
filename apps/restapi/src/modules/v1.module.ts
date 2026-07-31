@@ -8,6 +8,7 @@ import { TseModule } from './tse/tse.module';
 import { ClassesModule } from './classes/classes.module';
 import { ClassSessionsModule } from './class-sessions/class-sessions.module';
 import { ReservationsModule } from './reservations/reservations.module';
+import { AgentModule } from './agent/agent.module';
 
 @Module({
     imports: [
@@ -20,6 +21,7 @@ import { ReservationsModule } from './reservations/reservations.module';
         ClassesModule,
         ClassSessionsModule,
         ReservationsModule,
+        AgentModule,
     ],
 })
 export class V1Module {}
