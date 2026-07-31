@@ -67,6 +67,11 @@ class EnvironmentVariables {
     @IsNotEmpty()
     DASHBOARD_URL!: string;
 
+    // Public URL of THIS API, used as the OIDC redirect_uri host. Empty means
+    // the dashboard proxies /api (dev setup) and DASHBOARD_URL is used instead.
+    @IsString()
+    API_PUBLIC_URL: string = '';
+
     // Absolute/relative path to the TSE Padrón Nacional file (PADRON_COMPLETO.txt).
     // Used as a fallback when the live TSE scrape is unavailable. The file is operator-
     // downloaded (see .env.example); PadronService refuses to boot if it is missing.

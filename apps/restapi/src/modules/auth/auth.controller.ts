@@ -35,6 +35,7 @@ interface JwtPayload {
 export class AuthController {
     private readonly logger = new Logger(AuthController.name);
     private readonly dashboardUrl: string;
+    private readonly callbackBaseUrl: string;
     private readonly isProduction: boolean;
 
     constructor(
@@ -42,6 +43,10 @@ export class AuthController {
         private readonly configService: TypedConfigService,
     ) {
         this.dashboardUrl = this.configService.getOrThrow('DASHBOARD_URL');
+        // With a static dashboard (Cloudflare Pages) there is no /api proxy, so
+        // the OIDC callback must land on the API's own public URL; in dev the
+        // Vite proxy makes DASHBOARD_URL work for both.
+        this.callbackBaseUrl = this.configService.get('API_PUBLIC_URL') || this.dashboardUrl;
         this.isProduction = this.configService.get('NODE_ENV') === NodeEnv.Production;
     }
 
@@ -66,9 +71,8 @@ export class AuthController {
             path: '/api/v1/auth',
         });
 
-        // Callback goes through the dashboard's proxy so cookies stay on the same domain
         const authUrl = this.oidcService.buildAuthorizationUrl({
-            redirectUri: `${this.dashboardUrl}/api/v1/auth/callback`,
+            redirectUri: `${this.callbackBaseUrl}/api/v1/auth/callback`,
             state,
             codeChallenge: await codeChallenge,
         });
@@ -96,8 +100,8 @@ export class AuthController {
         // Clear the temporary state cookie
         reply.clearCookie('oauth_state', { path: '/api/v1/auth' });
 
-        // Reconstruct the callback URL using DASHBOARD_URL (must match the redirect_uri sent to KC)
-        const callbackUrl = new URL(`${this.dashboardUrl}${request.url}`);
+        // Reconstruct the callback URL (must match the redirect_uri sent to KC)
+        const callbackUrl = new URL(`${this.callbackBaseUrl}${request.url}`);
 
         const tokens = await this.oidcService.exchangeCode(callbackUrl, {
             expectedState: stateCookie.state,
