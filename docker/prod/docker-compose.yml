@@ -64,14 +64,21 @@ services:
         # Chrome (Puppeteer/TSE) crashes with Docker's default 64MB /dev/shm.
         shm_size: '1gb'
         # Extra runtime vars the explicit environment block doesn't cover
-        # (OPENAI_API_KEY, PADRON_PATH, ...) are read from ./.env.
+        # (OPENAI_API_KEY, ...) are read from ./.env.
         env_file:
             - ./.env
         # Postgres and Keycloak live on the host; host.docker.internal resolves
         # to the host's gateway IP from inside the container.
         extra_hosts:
             - 'host.docker.internal:host-gateway'
+        volumes:
+            # Operator-downloaded TSE padrón file; PadronService refuses to
+            # boot without it. PADRON_FILE is the path on the HOST.
+            - '${PADRON_FILE:?PADRON_FILE is required}:/data/PADRON_COMPLETO.txt:ro'
         environment:
+            # Container-side path of the padrón mount above.
+            PADRON_PATH: /data/PADRON_COMPLETO.txt
+
             # Postgres on the host (e.g. postgresql://mab:<pass>@host.docker.internal:5432/mab).
             # The host's postgres must listen on the docker bridge and allow it in pg_hba.conf.
             DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
