@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 
 import { FitColors as T } from '@/constants/theme';
 import { MessageBubble } from '@/components/chat/message-bubble';
@@ -85,13 +86,18 @@ export default function CoachScreen() {
     );
 
     return (
-        <SafeAreaView style={s.root} edges={['top']}>
+        <SafeAreaView style={s.root} edges={['top', 'bottom']}>
             <KeyboardAvoidingView style={s.flex} behavior="padding">
                 {/* Header */}
                 <View style={s.header}>
-                    <View>
-                        <Text style={s.eyebrow}>ASISTENTE</Text>
-                        <Text style={s.title}>COACH IA</Text>
+                    <View style={s.headerLeft}>
+                        <TouchableOpacity style={s.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+                            <Ionicons name="chevron-back" size={22} color={T.white} />
+                        </TouchableOpacity>
+                        <View>
+                            <Text style={s.eyebrow}>ASISTENTE</Text>
+                            <Text style={s.title}>COACH IA</Text>
+                        </View>
                     </View>
                     <View style={s.headerIconWrap}>
                         <Ionicons name="sparkles" size={22} color={T.yellow} />
@@ -180,6 +186,21 @@ const s = StyleSheet.create({
         paddingBottom: 14,
         borderBottomWidth: 1,
         borderBottomColor: T.border,
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    backBtn: {
+        width: 38,
+        height: 38,
+        borderRadius: 12,
+        backgroundColor: T.card,
+        borderWidth: 1,
+        borderColor: T.border,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     eyebrow: {
         fontSize: 11,

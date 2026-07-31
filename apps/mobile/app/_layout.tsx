@@ -79,6 +79,7 @@ function RootNavigator() {
                 <Stack.Screen name="(reservations)" options={{ headerShown: false }} />
                 <Stack.Screen name="(settings)" options={{ headerShown: false }} />
                 <Stack.Screen name="(measurements)" options={{ headerShown: false }} />
+                <Stack.Screen name="(coach)" options={{ headerShown: false }} />
                 <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
             </Stack.Protected>
         </Stack>
