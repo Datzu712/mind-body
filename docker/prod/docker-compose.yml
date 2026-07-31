@@ -149,6 +149,10 @@ services:
         logging: *logging
         # Chrome (Puppeteer/TSE) crashes with Docker's default 64MB /dev/shm.
         shm_size: '1gb'
+        # Extra runtime vars the explicit environment block doesn't cover
+        # (OPENAI_API_KEY, PADRON_PATH, ...) are read from ./.env.
+        env_file:
+            - ./.env
         environment:
             # Internal service-to-service connection strings (db network).
             DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}
