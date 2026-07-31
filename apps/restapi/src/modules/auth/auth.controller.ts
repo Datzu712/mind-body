@@ -11,12 +11,6 @@ import { NodeEnv } from '@/config/env';
 
 const ALLOWED_ROLES = ['ADMIN', 'TRAINER', 'STAFF'];
 
-const COOKIE_OPTS_BASE = {
-    httpOnly: true,
-    sameSite: 'lax' as const,
-    path: '/',
-};
-
 interface OAuthStateCookie {
     codeVerifier: string;
     state: string;
@@ -37,6 +31,12 @@ export class AuthController {
     private readonly dashboardUrl: string;
     private readonly callbackBaseUrl: string;
     private readonly isProduction: boolean;
+    private readonly cookieOpts: {
+        httpOnly: boolean;
+        path: string;
+        sameSite: 'none' | 'lax';
+        secure: boolean;
+    };
 
     constructor(
         private readonly oidcService: OidcService,
@@ -48,6 +48,15 @@ export class AuthController {
         // Vite proxy makes DASHBOARD_URL work for both.
         this.callbackBaseUrl = this.configService.get('API_PUBLIC_URL') || this.dashboardUrl;
         this.isProduction = this.configService.get('NODE_ENV') === NodeEnv.Production;
+        // SameSite=None (mandatory with Secure) so the static dashboard hosted
+        // on another site (Cloudflare Pages) can send the session cookies
+        // cross-site. Dev runs over http behind the Vite proxy → Lax.
+        this.cookieOpts = {
+            httpOnly: true,
+            path: '/',
+            sameSite: this.isProduction ? ('none' as const) : ('lax' as const),
+            secure: this.isProduction,
+        };
     }
 
     @Public()
@@ -65,8 +74,7 @@ export class AuthController {
         };
 
         reply.setCookie('oauth_state', Buffer.from(JSON.stringify(stateCookie)).toString('base64'), {
-            ...COOKIE_OPTS_BASE,
-            secure: this.isProduction,
+            ...this.cookieOpts,
             maxAge: 300, // 5 minutes — enough for the auth flow
             path: '/api/v1/auth',
         });
@@ -135,15 +143,12 @@ export class AuthController {
 
         // Set auth cookies
         reply.setCookie('access_token', accessToken, {
-            ...COOKIE_OPTS_BASE,
-            secure: this.isProduction,
+            ...this.cookieOpts,
             maxAge: 15 * 60, // 15 minutes
         });
 
         reply.setCookie('refresh_token', refreshToken, {
-            ...COOKIE_OPTS_BASE,
-            secure: this.isProduction,
-            sameSite: 'strict',
+            ...this.cookieOpts,
             maxAge: 24 * 60 * 60, // 1 day
             path: '/api/v1/auth',
         });
