@@ -1,20 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import {
-    LayoutDashboard,
-    Users,
-    UserSearch,
-    UserRound,
-    UsersRound,
-    UserPlus,
-    IdCard,
-    ClipboardCheck,
-    CalendarDays,
-    Dumbbell,
-    Settings,
-    BookOpen,
-    LogOut,
-    type LucideIcon,
-} from 'lucide-react';
+import { LayoutDashboard, Users, CalendarDays, Dumbbell, LogOut, type LucideIcon } from 'lucide-react';
 
 import {
     Sidebar,
@@ -56,52 +41,6 @@ const mainNavItems: { title: string; href: string; icon: LucideIcon; exact?: boo
     },
 ];
 
-const adminNavItems: { title: string; href: string; icon: LucideIcon; exact?: boolean }[] = [
-    {
-        title: 'Miembros',
-        href: '/dashboard/members',
-        icon: UserSearch,
-        exact: true,
-    },
-    {
-        title: 'Registrar miembro',
-        href: '/dashboard/members/new',
-        icon: UserPlus,
-    },
-    {
-        title: 'Mi perfil',
-        href: '/dashboard/profile',
-        icon: UserRound,
-        exact: true,
-    },
-    {
-        title: 'Membresías',
-        href: '/dashboard/memberships',
-        icon: IdCard,
-        exact: true,
-    },
-    {
-        title: 'Aprobación de membresías',
-        href: '/dashboard/memberships/approval',
-        icon: ClipboardCheck,
-    },
-    {
-        title: 'Mis miembros',
-        href: '/dashboard/trainer/members',
-        icon: UsersRound,
-    },
-    {
-        title: 'Catálogo',
-        href: '/dashboard/catalog',
-        icon: BookOpen,
-    },
-    {
-        title: 'Configuración',
-        href: '/dashboard/settings',
-        icon: Settings,
-    },
-];
-
 function getInitials(name: string): string {
     return name
         .split(' ')
@@ -111,7 +50,9 @@ function getInitials(name: string): string {
         .toUpperCase();
 }
 
+// Orden de precedencia: un usuario con ADMIN y STAFF se muestra como Admin.
 function getRoleLabel(roles: string[]): string {
+    if (roles.includes('ADMIN')) return 'Admin';
     if (roles.includes('STAFF')) return 'Staff';
     if (roles.includes('TRAINER')) return 'Entrenador';
     return 'Usuario';
@@ -163,53 +104,34 @@ export function AppSidebar() {
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
-
-                <SidebarGroup>
-                    <SidebarGroupLabel className="text-muted-foreground/70 uppercase text-xs tracking-wider">
-                        Administración
-                    </SidebarGroupLabel>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            {adminNavItems.map((item) => (
-                                <SidebarMenuItem key={item.href}>
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={
-                                            pathname === item.href ||
-                                            (!item.exact && pathname.startsWith(item.href + '/'))
-                                        }
-                                        tooltip={item.title}
-                                    >
-                                        <Link to={item.href}>
-                                            <item.icon className="h-4 w-4" />
-                                            <span>{item.title}</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
             </SidebarContent>
 
             <SidebarFooter className="p-2">
                 <SidebarSeparator className="mb-2" />
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" className="w-full" tooltip={user?.fullName ?? 'Perfil'}>
-                            <Avatar className="h-8 w-8 shrink-0">
-                                <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                                    {user ? getInitials(user.fullName) : '??'}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="flex min-w-0 flex-1 flex-col items-start group-data-[collapsible=icon]:hidden">
-                                <span className="w-full truncate text-sm font-medium">
-                                    {user?.fullName ?? 'Cargando...'}
-                                </span>
-                                <span className="w-full truncate text-xs text-muted-foreground">
-                                    {user ? getRoleLabel(user.roles) : ''}
-                                </span>
-                            </div>
+                        <SidebarMenuButton
+                            asChild
+                            size="lg"
+                            isActive={pathname === '/dashboard/profile'}
+                            className="w-full"
+                            tooltip={user?.fullName ?? 'Perfil'}
+                        >
+                            <Link to="/dashboard/profile">
+                                <Avatar className="h-8 w-8 shrink-0">
+                                    <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                                        {user ? getInitials(user.fullName) : '??'}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="flex min-w-0 flex-1 flex-col items-start group-data-[collapsible=icon]:hidden">
+                                    <span className="w-full truncate text-sm font-medium">
+                                        {user?.fullName ?? 'Cargando...'}
+                                    </span>
+                                    <span className="w-full truncate text-xs text-muted-foreground">
+                                        {user ? getRoleLabel(user.roles) : ''}
+                                    </span>
+                                </div>
+                            </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
