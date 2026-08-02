@@ -1,17 +1,5 @@
 import { useNavigate } from '@tanstack/react-router';
-import {
-    LayoutDashboard,
-    Users,
-    UserSearch,
-    UserPlus,
-    UserRound,
-    IdCard,
-    ClipboardCheck,
-    UsersRound,
-    BookOpen,
-    Settings,
-    type LucideIcon,
-} from 'lucide-react';
+import { LayoutDashboard, Users, Dumbbell, CalendarDays, UserRound, type LucideIcon } from 'lucide-react';
 
 import {
     Command,
@@ -24,31 +12,18 @@ import {
 } from '@/components/ui/command';
 
 interface NavItem {
-    group: 'Principal' | 'Administración';
     title: string;
     href: string;
     icon: LucideIcon;
 }
 
 const navItems: NavItem[] = [
-    { group: 'Principal', title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { group: 'Principal', title: 'Usuarios', href: '/dashboard/users', icon: Users },
-    { group: 'Administración', title: 'Miembros', href: '/dashboard/members', icon: UserSearch },
-    { group: 'Administración', title: 'Registrar miembro', href: '/dashboard/members/new', icon: UserPlus },
-    { group: 'Administración', title: 'Mi perfil', href: '/dashboard/profile', icon: UserRound },
-    { group: 'Administración', title: 'Membresías', href: '/dashboard/memberships', icon: IdCard },
-    {
-        group: 'Administración',
-        title: 'Aprobación de membresías',
-        href: '/dashboard/memberships/approval',
-        icon: ClipboardCheck,
-    },
-    { group: 'Administración', title: 'Mis miembros', href: '/dashboard/trainer/members', icon: UsersRound },
-    { group: 'Administración', title: 'Catálogo', href: '/dashboard/catalog', icon: BookOpen },
-    { group: 'Administración', title: 'Configuración', href: '/dashboard/settings', icon: Settings },
+    { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { title: 'Usuarios', href: '/dashboard/users', icon: Users },
+    { title: 'Clases', href: '/dashboard/classes', icon: Dumbbell },
+    { title: 'Reservas', href: '/dashboard/reservations', icon: CalendarDays },
+    { title: 'Mi perfil', href: '/dashboard/profile', icon: UserRound },
 ];
-
-const groups: NavItem['group'][] = ['Principal', 'Administración'];
 
 interface CommandPaletteProps {
     open: boolean;
@@ -74,18 +49,14 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                 <CommandInput placeholder="Buscar páginas y acciones..." />
                 <CommandList>
                     <CommandEmpty>Sin resultados.</CommandEmpty>
-                    {groups.map((group) => (
-                        <CommandGroup key={group} heading={group}>
-                            {navItems
-                                .filter((item) => item.group === group)
-                                .map((item) => (
-                                    <CommandItem key={item.href} value={item.title} onSelect={() => go(item.href)}>
-                                        <item.icon />
-                                        <span>{item.title}</span>
-                                    </CommandItem>
-                                ))}
-                        </CommandGroup>
-                    ))}
+                    <CommandGroup heading="Principal">
+                        {navItems.map((item) => (
+                            <CommandItem key={item.href} value={item.title} onSelect={() => go(item.href)}>
+                                <item.icon />
+                                <span>{item.title}</span>
+                            </CommandItem>
+                        ))}
+                    </CommandGroup>
                 </CommandList>
             </Command>
         </CommandDialog>

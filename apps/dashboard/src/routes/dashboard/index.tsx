@@ -2,7 +2,6 @@ import { createFileRoute } from '@tanstack/react-router';
 import { DashboardHeader } from '@/src/features/dashboard/components/dashboard-header';
 import { PageHeader } from '@/src/shared/components/page-header';
 import { KPICard } from '@/src/shared/components/kpi-card';
-import { QuickActions } from '@/src/features/dashboard/components/quick-actions';
 import { ActivityFeed } from '@/src/features/dashboard/components/activity-feed';
 import {
     RevenueChart,
@@ -47,9 +46,8 @@ function DashboardPage() {
                     <MembershipDistributionChart />
                 </div>
 
-                {/* Quick Actions & Activity */}
-                <div className="grid gap-6 lg:grid-cols-2">
-                    <QuickActions />
+                {/* Actividad reciente */}
+                <div className="grid gap-6">
                     <ActivityFeed />
                 </div>
             </div>
