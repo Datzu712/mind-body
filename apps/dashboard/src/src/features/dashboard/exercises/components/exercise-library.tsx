@@ -1,9 +1,10 @@
-import { useState, type ReactNode } from 'react';
-import { ChevronLeft, ChevronRight, Search, SearchX, X } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { ChevronLeft, ChevronRight, Dumbbell, FilterX, Search, SearchX, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import { useDebouncedValue } from '@/src/features/dashboard/users/use-debounced-value';
 import { useExerciseFacets, useExercises } from '../hooks';
 import { bodyPartLabel, equipmentLabel } from '../exercise-labels';
@@ -37,6 +38,21 @@ export function ExerciseLibrary({ onExerciseClick, renderCardAction }: ExerciseL
     const { data, isPending, isError, refetch } = useExercises(filters);
     const { data: facets } = useExerciseFacets();
 
+    // Página nueva se lee desde el inicio: al cambiar offset se sube al tope de
+    // la biblioteca (keepPreviousData deja el grid viejo anclado al fondo si no).
+    // scrollIntoView cubre ambos contextos (página del catálogo y panel del
+    // builder) sin saber cuál ancestro scrollea. Se salta el mount para no
+    // robarle el scroll a la página al montar.
+    const rootRef = useRef<HTMLDivElement>(null);
+    const isFirstRender = useRef(true);
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+        rootRef.current?.scrollIntoView({ block: 'start' });
+    }, [offset]);
+
     const hasFilters = q !== '' || bodyPart !== ALL || equipment !== ALL;
     const resetAnd = (fn: () => void) => {
         fn();
@@ -44,65 +60,86 @@ export function ExerciseLibrary({ onExerciseClick, renderCardAction }: ExerciseL
     };
 
     return (
-        <div className="space-y-4">
-            {/* Toolbar */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div className="relative flex-1 sm:max-w-xs">
-                    <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        value={q}
-                        onChange={(e) => resetAnd(() => setQ(e.target.value))}
-                        placeholder="Buscar ejercicio..."
-                        className="pl-8"
-                    />
+        <div ref={rootRef} className="@container scroll-mt-3 space-y-4">
+            {/* Toolbar: búsqueda + equipo en una fila; grupo muscular como chips
+                (el filtro más usado, visible y de un clic — mismo patrón que la app mobile) */}
+            <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative min-w-[180px] flex-1">
+                        <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            value={q}
+                            onChange={(e) => resetAnd(() => setQ(e.target.value))}
+                            placeholder="Buscar ejercicio..."
+                            className="pl-8 pr-8"
+                        />
+                        {q !== '' && (
+                            <button
+                                type="button"
+                                aria-label="Borrar búsqueda"
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                onClick={() => resetAnd(() => setQ(''))}
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
+                    <Select value={equipment} onValueChange={(v) => resetAnd(() => setEquipment(v))}>
+                        <SelectTrigger
+                            className={cn('w-44 shrink-0', equipment !== ALL && 'border-primary/50 text-foreground')}
+                        >
+                            <Dumbbell className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <SelectValue placeholder="Equipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL}>Todo el equipo</SelectItem>
+                            {facets?.equipments.map((eq) => (
+                                <SelectItem key={eq} value={eq}>
+                                    {equipmentLabel(eq)}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    {hasFilters && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0"
+                            aria-label="Limpiar filtros"
+                            title="Limpiar filtros"
+                            onClick={() =>
+                                resetAnd(() => {
+                                    setQ('');
+                                    setBodyPart(ALL);
+                                    setEquipment(ALL);
+                                })
+                            }
+                        >
+                            <FilterX className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
-                <Select value={bodyPart} onValueChange={(v) => resetAnd(() => setBodyPart(v))}>
-                    <SelectTrigger className="w-full sm:w-44">
-                        <SelectValue placeholder="Grupo muscular" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value={ALL}>Todos los grupos</SelectItem>
-                        {facets?.bodyParts.map((bp) => (
-                            <SelectItem key={bp} value={bp}>
-                                {bodyPartLabel(bp)}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <Select value={equipment} onValueChange={(v) => resetAnd(() => setEquipment(v))}>
-                    <SelectTrigger className="w-full sm:w-44">
-                        <SelectValue placeholder="Equipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value={ALL}>Todo el equipo</SelectItem>
-                        {facets?.equipments.map((eq) => (
-                            <SelectItem key={eq} value={eq}>
-                                {equipmentLabel(eq)}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                {hasFilters && (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                            resetAnd(() => {
-                                setQ('');
-                                setBodyPart(ALL);
-                                setEquipment(ALL);
-                            })
-                        }
-                    >
-                        <X className="mr-1 h-4 w-4" />
-                        Limpiar
-                    </Button>
-                )}
+
+                {/* Chips de grupo muscular (scroll horizontal, click activo = quitar) */}
+                <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
+                    <FilterChip active={bodyPart === ALL} onClick={() => resetAnd(() => setBodyPart(ALL))}>
+                        Todos
+                    </FilterChip>
+                    {facets?.bodyParts.map((bp) => (
+                        <FilterChip
+                            key={bp}
+                            active={bodyPart === bp}
+                            onClick={() => resetAnd(() => setBodyPart(bodyPart === bp ? ALL : bp))}
+                        >
+                            {bodyPartLabel(bp)}
+                        </FilterChip>
+                    ))}
+                </div>
             </div>
 
             {/* Grid */}
             {isPending ? (
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                <div className="grid grid-cols-2 gap-4 @md:grid-cols-3 @2xl:grid-cols-4 @4xl:grid-cols-5">
                     {Array.from({ length: 10 }).map((_, i) => (
                         <div key={i} className="space-y-2">
                             <Skeleton className="aspect-square w-full rounded-xl" />
@@ -126,7 +163,7 @@ export function ExerciseLibrary({ onExerciseClick, renderCardAction }: ExerciseL
                 </div>
             ) : data ? (
                 <>
-                    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                    <div className="grid grid-cols-2 gap-4 @md:grid-cols-3 @2xl:grid-cols-4 @4xl:grid-cols-5">
                         {data.items.map((exercise) => (
                             <ExerciseCard
                                 key={exercise.id}
@@ -167,5 +204,22 @@ export function ExerciseLibrary({ onExerciseClick, renderCardAction }: ExerciseL
                 </>
             ) : null}
         </div>
+    );
+}
+
+function FilterChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={cn(
+                'shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                active
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-secondary/40 text-muted-foreground hover:bg-secondary hover:text-foreground',
+            )}
+        >
+            {children}
+        </button>
     );
 }

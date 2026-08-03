@@ -1,5 +1,13 @@
 import { useNavigate } from '@tanstack/react-router';
-import { LayoutDashboard, Users, Dumbbell, CalendarDays, BicepsFlexed, type LucideIcon } from 'lucide-react';
+import {
+    LayoutDashboard,
+    Users,
+    Dumbbell,
+    CalendarDays,
+    BicepsFlexed,
+    ClipboardList,
+    type LucideIcon,
+} from 'lucide-react';
 
 import {
     Command,
@@ -24,6 +32,7 @@ const navItems: NavItem[] = [
     { group: 'Principal', title: 'Clases', href: '/dashboard/classes', icon: Dumbbell },
     { group: 'Principal', title: 'Reservas', href: '/dashboard/reservations', icon: CalendarDays },
     { group: 'Entrenamiento', title: 'Ejercicios', href: '/dashboard/exercises', icon: BicepsFlexed },
+    { group: 'Entrenamiento', title: 'Rutinas', href: '/dashboard/routines', icon: ClipboardList },
 ];
 
 const groups: NavItem['group'][] = ['Principal', 'Entrenamiento'];

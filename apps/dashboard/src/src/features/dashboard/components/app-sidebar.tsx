@@ -1,5 +1,14 @@
 import { Link, useLocation } from '@tanstack/react-router';
-import { LayoutDashboard, Users, CalendarDays, Dumbbell, LogOut, BicepsFlexed, type LucideIcon } from 'lucide-react';
+import {
+    LayoutDashboard,
+    Users,
+    CalendarDays,
+    ClipboardList,
+    Dumbbell,
+    LogOut,
+    BicepsFlexed,
+    type LucideIcon,
+} from 'lucide-react';
 
 import {
     Sidebar,
@@ -47,7 +56,11 @@ const trainingNavItems: { title: string; href: string; icon: LucideIcon; exact?:
         href: '/dashboard/exercises',
         icon: BicepsFlexed,
     },
-    // Futuro: { title: 'Rutinas', href: '/dashboard/routines', ... }
+    {
+        title: 'Rutinas',
+        href: '/dashboard/routines',
+        icon: ClipboardList,
+    },
 ];
 
 function getInitials(name: string): string {
