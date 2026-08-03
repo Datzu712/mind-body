@@ -1,17 +1,5 @@
 import { useNavigate } from '@tanstack/react-router';
-import {
-    LayoutDashboard,
-    Users,
-    UserSearch,
-    UserPlus,
-    UserRound,
-    IdCard,
-    ClipboardCheck,
-    UsersRound,
-    BookOpen,
-    Settings,
-    type LucideIcon,
-} from 'lucide-react';
+import { LayoutDashboard, Users, Dumbbell, CalendarDays, BicepsFlexed, type LucideIcon } from 'lucide-react';
 
 import {
     Command,
@@ -24,7 +12,7 @@ import {
 } from '@/components/ui/command';
 
 interface NavItem {
-    group: 'Principal' | 'Administración';
+    group: 'Principal' | 'Entrenamiento';
     title: string;
     href: string;
     icon: LucideIcon;
@@ -33,22 +21,12 @@ interface NavItem {
 const navItems: NavItem[] = [
     { group: 'Principal', title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { group: 'Principal', title: 'Usuarios', href: '/dashboard/users', icon: Users },
-    { group: 'Administración', title: 'Miembros', href: '/dashboard/members', icon: UserSearch },
-    { group: 'Administración', title: 'Registrar miembro', href: '/dashboard/members/new', icon: UserPlus },
-    { group: 'Administración', title: 'Mi perfil', href: '/dashboard/profile', icon: UserRound },
-    { group: 'Administración', title: 'Membresías', href: '/dashboard/memberships', icon: IdCard },
-    {
-        group: 'Administración',
-        title: 'Aprobación de membresías',
-        href: '/dashboard/memberships/approval',
-        icon: ClipboardCheck,
-    },
-    { group: 'Administración', title: 'Mis miembros', href: '/dashboard/trainer/members', icon: UsersRound },
-    { group: 'Administración', title: 'Catálogo', href: '/dashboard/catalog', icon: BookOpen },
-    { group: 'Administración', title: 'Configuración', href: '/dashboard/settings', icon: Settings },
+    { group: 'Principal', title: 'Clases', href: '/dashboard/classes', icon: Dumbbell },
+    { group: 'Principal', title: 'Reservas', href: '/dashboard/reservations', icon: CalendarDays },
+    { group: 'Entrenamiento', title: 'Ejercicios', href: '/dashboard/exercises', icon: BicepsFlexed },
 ];
 
-const groups: NavItem['group'][] = ['Principal', 'Administración'];
+const groups: NavItem['group'][] = ['Principal', 'Entrenamiento'];
 
 interface CommandPaletteProps {
     open: boolean;
