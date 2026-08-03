@@ -10,6 +10,7 @@ import { ClassSessionsModule } from './class-sessions/class-sessions.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { AgentModule } from './agent/agent.module';
 import { ExercisesModule } from './exercises/exercises.module';
+import { RoutinesModule } from './routines/routines.module';
 
 @Module({
     imports: [
@@ -24,6 +25,7 @@ import { ExercisesModule } from './exercises/exercises.module';
         ReservationsModule,
         AgentModule,
         ExercisesModule,
+        RoutinesModule,
     ],
 })
 export class V1Module {}

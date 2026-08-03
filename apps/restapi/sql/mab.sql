@@ -181,7 +181,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_exercises_source_id ON app.exercises (sourc
 
 CREATE TABLE IF NOT EXISTS app.routines (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
-    trainer_id UUID REFERENCES app.trainers(id), -- el entrenador que creó la rutina, puede ser NULL si es una rutina "genérica"
+    created_by_user_id UUID REFERENCES app.users(id), -- dueño: quien creó la rutina (trainer o staff); NULL solo en datos legacy/seed
     name VARCHAR(120) NOT NULL,
     objective TEXT,
     status app.routine_status NOT NULL DEFAULT 'DRAFT',
@@ -211,7 +211,7 @@ CREATE TABLE IF NOT EXISTS app.member_routines (
     id UUID PRIMARY KEY DEFAULT uuidv7(),
     member_id UUID NOT NULL REFERENCES app.members(id),
     routine_id UUID NOT NULL REFERENCES app.routines(id),
-    assigned_by_trainer_id UUID REFERENCES app.trainers(id),
+    assigned_by_user_id UUID REFERENCES app.users(id),
     assigned_at DATE NOT NULL DEFAULT CURRENT_DATE,
     ended_at DATE,
     status app.record_status NOT NULL DEFAULT 'ACTIVE',
@@ -243,7 +243,7 @@ CREATE INDEX IF NOT EXISTS idx_users_keycloak_subject ON app.users(keycloak_subj
 CREATE INDEX IF NOT EXISTS idx_members_status ON app.members(status);
 CREATE INDEX IF NOT EXISTS idx_trainers_status ON app.trainers(status);
 CREATE INDEX IF NOT EXISTS idx_memberships_member_status_dates ON app.memberships(member_id, status, start_date, end_date);
-CREATE INDEX IF NOT EXISTS idx_routines_trainer_status ON app.routines(trainer_id, status);
+CREATE INDEX IF NOT EXISTS idx_routines_created_by_status ON app.routines(created_by_user_id, status);
 CREATE INDEX IF NOT EXISTS idx_member_routines_member_status ON app.member_routines(member_id, status);
 CREATE INDEX IF NOT EXISTS idx_member_measurements_member_date ON app.member_measurements(member_id, measured_at DESC);
 -- ═══════════════════════════════════════════════════════════════════════════

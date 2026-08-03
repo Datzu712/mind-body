@@ -1,10 +1,11 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { openai } from '@ai-sdk/openai';
+import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
 import { type ModelMessage, stepCountIs, streamText, tool } from 'ai';
 import { z } from 'zod';
 import type Redis from 'ioredis';
 import { DateTime } from 'luxon';
 
+import { TypedConfigService } from '@/config/typed-config.service';
 import { REDIS_KEY } from '@/infra/database/redis/redis-provider';
 import { type User } from '@/infra/database/pg/schemas/schema';
 import { ClockService } from '@/common/clock/clock.service';
@@ -13,6 +14,7 @@ import { ActivityService } from '@/modules/activity/activity.service';
 import { ReservationsService } from '@/modules/reservations/reservations.service';
 import { ClassSessionsService } from '@/modules/class-sessions/class-sessions.service';
 import { ExercisesService } from '@/modules/exercises/exercises.service';
+import { buildExerciseCatalogTools } from '@/modules/exercises/exercise-agent-tools';
 
 const HISTORY_TTL_SECONDS = 86_400; // 24 h
 const MAX_HISTORY_MESSAGES = 50;
@@ -46,6 +48,7 @@ export class AgentService {
         private readonly reservations: ReservationsService,
         private readonly classSessions: ClassSessionsService,
         private readonly exercises: ExercisesService,
+        private readonly config: TypedConfigService,
     ) {}
 
     async *streamChat(userMessage: string, currentUser: User): AsyncGenerator<string> {
@@ -55,11 +58,26 @@ export class AgentService {
         ]);
         const inputMessages: ModelMessage[] = [...history, { role: 'user', content: userMessage }];
 
+        const modelId = this.config.get('FORGE_MODEL');
+        const supportsReasoning = /^(gpt-5|o[1-9])/.test(modelId);
+        const openaiOptions = {
+            parallelToolCalls: true,
+            store: false,
+            ...(supportsReasoning && {
+                reasoningEffort: this.config.get('FORGE_REASONING_EFFORT'),
+                textVerbosity: 'low' as const,
+            }),
+        } satisfies OpenAIResponsesProviderOptions;
+
         const result = streamText({
-            model: openai('gpt-4o-mini'),
+            model: openai.responses(modelId),
             system: this.buildSystemPrompt(currentUser, latestMeasurement),
             messages: inputMessages,
-            tools: { ...this.buildCatalogTools(), ...this.buildUserTools(currentUser) },
+            providerOptions: { openai: openaiOptions },
+            tools: {
+                ...buildExerciseCatalogTools(this.exercises, (t, e) => this.toolError(t, e)),
+                ...this.buildUserTools(currentUser),
+            },
             stopWhen: stepCountIs(5),
             onStepFinish: ({ toolCalls, toolResults }) => {
                 if (toolCalls?.length) {
@@ -75,87 +93,6 @@ export class AgentService {
 
         const { messages: responseMessages } = await result.response;
         await this.saveHistory(currentUser.keycloakSubject, [...inputMessages, ...responseMessages]);
-    }
-
-    /** Tools over the gym's exercise catalog (seeded, read-only). */
-    private buildCatalogTools() {
-        return {
-            getExerciseFilters: tool({
-                description:
-                    'Get the valid filter values of the exercise catalog: body parts, equipment types and target ' +
-                    'muscles. Call this before searchExercises when you need to filter by one of those fields.',
-                inputSchema: z.object({}),
-                execute: async () => {
-                    try {
-                        return await this.exercises.facets();
-                    } catch (err) {
-                        return this.toolError('getExerciseFilters', err);
-                    }
-                },
-            }),
-            searchExercises: tool({
-                description:
-                    "Search the app's exercise library. Every exercise you recommend must come from here so the " +
-                    'user can find it (with demo GIF and instructions) in the Exercises section of the app. ' +
-                    'Filters must use values returned by getExerciseFilters.',
-                inputSchema: z.object({
-                    q: z.string().max(120).optional().describe('Free-text search on the exercise name (English)'),
-                    bodyPart: z.string().max(80).optional(),
-                    equipment: z.string().max(80).optional(),
-                    target: z.string().max(80).optional().describe('Primary muscle worked'),
-                    limit: z.number().int().min(1).max(25).default(10),
-                }),
-                execute: async ({ q, bodyPart, equipment, target, limit }) => {
-                    try {
-                        const page = await this.exercises.list({
-                            limit,
-                            offset: 0,
-                            ...(q && { q }),
-                            ...(bodyPart && { bodyPart }),
-                            ...(equipment && { equipment }),
-                            ...(target && { target }),
-                        });
-                        return {
-                            total: page.total,
-                            items: page.items.map((e) => ({
-                                id: e.id,
-                                name: e.name,
-                                bodyPart: e.bodyPart,
-                                equipment: e.equipment,
-                                target: e.target,
-                            })),
-                        };
-                    } catch (err) {
-                        return this.toolError('searchExercises', err);
-                    }
-                },
-            }),
-            getExerciseDetails: tool({
-                description:
-                    'Get the full details of one exercise from the library by its id (from searchExercises): ' +
-                    'step-by-step instructions, secondary muscles and description. Use it when explaining form ' +
-                    'or technique for a specific exercise.',
-                inputSchema: z.object({
-                    id: z.string().describe('Exercise id returned by searchExercises'),
-                }),
-                execute: async ({ id }) => {
-                    try {
-                        const e = await this.exercises.detail(id);
-                        return {
-                            name: e.name,
-                            bodyPart: e.bodyPart,
-                            equipment: e.equipment,
-                            target: e.target,
-                            secondaryMuscles: e.secondaryMuscles,
-                            instructions: e.instructions,
-                            description: e.description,
-                        };
-                    } catch (err) {
-                        return this.toolError('getExerciseDetails', err);
-                    }
-                },
-            }),
-        };
     }
 
     /** Tools backed by real per-user data. Errors are returned as data so a
@@ -292,7 +229,12 @@ export class AgentService {
     }
 
     private async saveHistory(userId: string, messages: ModelMessage[]): Promise<void> {
-        const trimmed = messages.slice(-MAX_HISTORY_MESSAGES);
+        // El recorte NO puede partir un par tool-call/tool-result (OpenAI
+        // rechaza el request): tras recortar se descarta todo lo anterior al
+        // primer mensaje de usuario, que siempre es una frontera limpia.
+        let trimmed = messages.slice(-MAX_HISTORY_MESSAGES);
+        const firstUser = trimmed.findIndex((m) => m.role === 'user');
+        trimmed = firstUser === -1 ? [] : trimmed.slice(firstUser);
         await this.redis.set(this.historyKey(userId), JSON.stringify(trimmed), 'EX', HISTORY_TTL_SECONDS);
     }
 

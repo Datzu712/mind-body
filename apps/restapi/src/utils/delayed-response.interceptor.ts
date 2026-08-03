@@ -6,7 +6,7 @@ import { delay } from 'rxjs/operators';
 export class DelayedResponseInterceptor implements NestInterceptor {
     private logger = new Logger('DR Interceptor');
 
-    intercept(_ctx: ExecutionContext, next: CallHandler): Observable<any> {
+    intercept(_ctx: ExecutionContext, next: CallHandler): Observable<unknown> {
         this.logger.log(`Delaying response...`);
 
         return next.handle().pipe(delay(3000));

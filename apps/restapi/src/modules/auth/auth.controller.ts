@@ -62,7 +62,7 @@ export class AuthController {
     @Public()
     @Get('login')
     async login(@Query('redirect') redirect: string | undefined, @Res() reply: FastifyReply) {
-        const redirectPath = redirect || '/dashboard';
+        const redirectPath = redirect?.trim() ? redirect : '/dashboard';
 
         const { codeVerifier, codeChallenge } = this.oidcService.generatePKCE();
         const state = randomBytes(16).toString('hex');

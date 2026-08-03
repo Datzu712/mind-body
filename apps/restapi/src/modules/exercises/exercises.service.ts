@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { and, asc, count, eq, ilike, isNull, type SQL } from 'drizzle-orm';
+import { and, asc, count, eq, ilike, isNull, or, type SQL } from 'drizzle-orm';
 import { DrizzleService } from '@/infra/database/pg/drizzle.service';
 import { exercisesInApp } from '@/infra/database/pg/schemas/schema';
+import type { AgentExerciseCandidate, AgentExerciseSearchFilters } from './exercise-agent-search';
 import { toDetailDto, toSlimDto } from './exercises.mapper';
 import type { ExerciseDetailDto, ExerciseFacetsDto, PaginatedExercisesDto } from './exercise.types';
 import type { ListExercisesQueryDto } from './dto/exercise.dtos';
@@ -39,6 +40,35 @@ export class ExercisesService {
         const total = totalRows[0]?.total ?? 0;
 
         return { items: rows.map(toSlimDto), total, limit: query.limit, offset: query.offset };
+    }
+
+    /**
+     * Candidatos para recuperar una búsqueda sobre-restringida de un agente.
+     * Usa OR intencionalmente y proyecta solo los campos necesarios; el helper
+     * de búsqueda los ordena después y nunca cambia la semántica del GET público.
+     */
+    async agentCandidates(filters: AgentExerciseSearchFilters): Promise<AgentExerciseCandidate[]> {
+        const signals: SQL[] = [];
+        if (filters.q) {
+            const escaped = filters.q.replace(/[\\%_]/g, (m) => `\\${m}`);
+            signals.push(ilike(exercisesInApp.name, `%${escaped}%`));
+        }
+        if (filters.bodyPart) signals.push(eq(exercisesInApp.bodyPart, filters.bodyPart));
+        if (filters.equipment) signals.push(eq(exercisesInApp.equipment, filters.equipment));
+        if (filters.target) signals.push(eq(exercisesInApp.target, filters.target));
+        if (signals.length === 0) return [];
+
+        return this.drizzle.db
+            .select({
+                id: exercisesInApp.id,
+                name: exercisesInApp.name,
+                bodyPart: exercisesInApp.bodyPart,
+                equipment: exercisesInApp.equipment,
+                target: exercisesInApp.target,
+            })
+            .from(exercisesInApp)
+            .where(and(...this.baseConditions(), or(...signals)))
+            .orderBy(asc(exercisesInApp.name));
     }
 
     async facets(): Promise<ExerciseFacetsDto> {

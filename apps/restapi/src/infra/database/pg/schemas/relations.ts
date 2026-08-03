@@ -35,15 +35,15 @@ export const usersInAppRelations = relations(usersInApp, ({ many }) => ({
     membersInApps: many(membersInApp),
     trainersInApps: many(trainersInApp),
     staffInApps: many(staffInApp),
+    routinesInApps: many(routinesInApp),
+    memberRoutinesInApps: many(memberRoutinesInApp),
 }));
 
-export const trainersInAppRelations = relations(trainersInApp, ({ one, many }) => ({
+export const trainersInAppRelations = relations(trainersInApp, ({ one }) => ({
     usersInApp: one(usersInApp, {
         fields: [trainersInApp.userId],
         references: [usersInApp.id],
     }),
-    routinesInApps: many(routinesInApp),
-    memberRoutinesInApps: many(memberRoutinesInApp),
 }));
 
 export const staffInAppRelations = relations(staffInApp, ({ one }) => ({
@@ -69,9 +69,9 @@ export const membershipPlansInAppRelations = relations(membershipPlansInApp, ({ 
 }));
 
 export const routinesInAppRelations = relations(routinesInApp, ({ one, many }) => ({
-    trainersInApp: one(trainersInApp, {
-        fields: [routinesInApp.trainerId],
-        references: [trainersInApp.id],
+    usersInApp: one(usersInApp, {
+        fields: [routinesInApp.createdByUserId],
+        references: [usersInApp.id],
     }),
     routineExercisesInApps: many(routineExercisesInApp),
     memberRoutinesInApps: many(memberRoutinesInApp),
@@ -101,9 +101,9 @@ export const memberRoutinesInAppRelations = relations(memberRoutinesInApp, ({ on
         fields: [memberRoutinesInApp.routineId],
         references: [routinesInApp.id],
     }),
-    trainersInApp: one(trainersInApp, {
-        fields: [memberRoutinesInApp.assignedByTrainerId],
-        references: [trainersInApp.id],
+    usersInApp: one(usersInApp, {
+        fields: [memberRoutinesInApp.assignedByUserId],
+        references: [usersInApp.id],
     }),
 }));
 

@@ -261,7 +261,7 @@ export const routinesInApp = app.table(
             .default(sql`uuidv7()`)
             .primaryKey()
             .notNull(),
-        trainerId: uuid('trainer_id'),
+        createdByUserId: uuid('created_by_user_id'),
         name: varchar({ length: 120 }).notNull(),
         objective: text(),
         status: routineStatusInApp().default('DRAFT').notNull(),
@@ -270,15 +270,15 @@ export const routinesInApp = app.table(
         updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
     },
     (table) => [
-        index('idx_routines_trainer_status').using(
+        index('idx_routines_created_by_status').using(
             'btree',
-            table.trainerId.asc().nullsLast().op('uuid_ops'),
+            table.createdByUserId.asc().nullsLast().op('uuid_ops'),
             table.status.asc().nullsLast().op('enum_ops'),
         ),
         foreignKey({
-            columns: [table.trainerId],
-            foreignColumns: [trainersInApp.id],
-            name: 'routines_trainer_id_fkey',
+            columns: [table.createdByUserId],
+            foreignColumns: [usersInApp.id],
+            name: 'routines_created_by_user_id_fkey',
         }),
     ],
 );
@@ -323,7 +323,7 @@ export const memberRoutinesInApp = app.table(
             .notNull(),
         memberId: uuid('member_id').notNull(),
         routineId: uuid('routine_id').notNull(),
-        assignedByTrainerId: uuid('assigned_by_trainer_id'),
+        assignedByUserId: uuid('assigned_by_user_id'),
         assignedAt: date('assigned_at')
             .default(sql`CURRENT_DATE`)
             .notNull(),
@@ -350,9 +350,9 @@ export const memberRoutinesInApp = app.table(
             name: 'member_routines_routine_id_fkey',
         }),
         foreignKey({
-            columns: [table.assignedByTrainerId],
-            foreignColumns: [trainersInApp.id],
-            name: 'member_routines_assigned_by_trainer_id_fkey',
+            columns: [table.assignedByUserId],
+            foreignColumns: [usersInApp.id],
+            name: 'member_routines_assigned_by_user_id_fkey',
         }),
         check('chk_member_routine_dates', sql`(ended_at IS NULL) OR (ended_at >= assigned_at)`),
     ],

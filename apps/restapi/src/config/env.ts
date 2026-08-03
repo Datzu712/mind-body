@@ -89,6 +89,24 @@ class EnvironmentVariables {
     @IsIn(Intl.supportedValuesOf('timeZone'))
     BUSINESS_TIME_ZONE: string = 'America/Costa_Rica';
 
+    // Modelo base de Forge para el coach de miembros. El builder de rutinas
+    // tiene un override porque su planificación multi-tool prioriza calidad.
+    @IsString()
+    @IsNotEmpty()
+    FORGE_MODEL: string = 'gpt-5.6-luna';
+
+    @IsIn(['low', 'medium', 'high'])
+    FORGE_REASONING_EFFORT: 'low' | 'medium' | 'high' = 'medium';
+
+    // El builder realiza planificación multi-tool y prioriza calidad; se
+    // puede ajustar sin cambiar el modelo del coach general.
+    @IsString()
+    @IsNotEmpty()
+    FORGE_ROUTINES_MODEL: string = 'gpt-5.6-luna';
+
+    @IsIn(['low', 'medium', 'high'])
+    FORGE_ROUTINES_REASONING_EFFORT: 'low' | 'medium' | 'high' = 'medium';
+
     // Rolling horizon (weeks ahead) the session materializer keeps populated.
     @IsNumber()
     @Min(1)
