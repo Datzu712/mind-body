@@ -12,88 +12,10 @@ import { MeasurementsService } from '@/modules/measurements/measurements.service
 import { ActivityService } from '@/modules/activity/activity.service';
 import { ReservationsService } from '@/modules/reservations/reservations.service';
 import { ClassSessionsService } from '@/modules/class-sessions/class-sessions.service';
+import { ExercisesService } from '@/modules/exercises/exercises.service';
 
 const HISTORY_TTL_SECONDS = 86_400; // 24 h
 const MAX_HISTORY_MESSAGES = 50;
-
-// Mocked tools: no backend module exists yet for routines/equipment, so the
-// coach keeps answering from a plausible static plan until those ship.
-const mockedTools = {
-    getAvailableEquipment: tool({
-        description: 'Get the list of gym equipment available to the user for their workouts.',
-        inputSchema: z.object({}),
-        execute: () => ({
-            equipment: [
-                'Barbell',
-                'Dumbbells (5 - 40 kg)',
-                'EZ curl bar',
-                'Pull-up bar',
-                'Flat bench',
-                'Incline bench',
-                'Squat rack',
-                'Cable machine (high & low pulley)',
-                'Leg press machine',
-                'Resistance bands',
-            ],
-        }),
-    }),
-    getUserFitnessProfile: tool({
-        description:
-            "Get the user's fitness profile: experience level, primary goals, training frequency, and any injuries or limitations.",
-        inputSchema: z.object({}),
-        execute: () => ({
-            experienceLevel: 'Intermediate',
-            trainingYears: 3,
-            primaryGoal: 'Muscle hypertrophy',
-            secondaryGoal: 'Improve strength in compound lifts',
-            trainingDaysPerWeek: 5,
-            currentSplit: 'Push / Pull / Legs (PPL x2 per week, one rest day)',
-            injuries: 'None currently',
-            preferredWorkoutDuration: '60-75 minutes',
-        }),
-    }),
-    getTodaysWorkout: tool({
-        description: "Get the user's planned workout session for today.",
-        inputSchema: z.object({}),
-        execute: () => ({
-            day: 'Monday',
-            split: 'Push - Chest, Shoulders & Triceps',
-            exercises: [
-                { name: 'Barbell Bench Press', sets: 4, reps: '6-8', rest: '2 min', notes: 'Main compound — go heavy' },
-                { name: 'Incline Dumbbell Press', sets: 3, reps: '10-12', rest: '90 s' },
-                { name: 'Cable Lateral Raise', sets: 4, reps: '15-20', rest: '60 s' },
-                { name: 'Cable Fly (low to high)', sets: 3, reps: '12-15', rest: '60 s' },
-                { name: 'Overhead Tricep Extension (cable)', sets: 3, reps: '10-12', rest: '75 s' },
-                { name: 'Tricep Pushdown (rope)', sets: 3, reps: '12-15', rest: '60 s' },
-            ],
-            estimatedDuration: '65 minutes',
-        }),
-    }),
-    getWeeklyPlan: tool({
-        description: "Get the user's full weekly training split.",
-        inputSchema: z.object({}),
-        execute: () => ({
-            split: 'PPL x2 (Push / Pull / Legs — 5 training days, 2 rest)',
-            schedule: [
-                { day: 'Monday', session: 'Push A - Chest, Shoulders, Triceps' },
-                { day: 'Tuesday', session: 'Pull A - Back, Biceps, Rear Delts' },
-                { day: 'Wednesday', session: 'Legs A - Quads, Hamstrings, Glutes, Calves' },
-                { day: 'Thursday', session: 'Push B - Shoulders focus, Chest, Triceps' },
-                { day: 'Friday', session: 'Pull B - Back width focus, Biceps' },
-                { day: 'Saturday', session: 'Rest / Active recovery' },
-                { day: 'Sunday', session: 'Rest' },
-            ],
-            weeklyVolume: {
-                chest: '12-16 sets',
-                back: '16-20 sets',
-                shoulders: '16-20 sets',
-                triceps: '10-14 sets',
-                biceps: '10-14 sets',
-                legs: '16-20 sets',
-            },
-        }),
-    }),
-};
 
 interface MeasurementRow {
     measuredAt: string;
@@ -123,17 +45,21 @@ export class AgentService {
         private readonly activity: ActivityService,
         private readonly reservations: ReservationsService,
         private readonly classSessions: ClassSessionsService,
+        private readonly exercises: ExercisesService,
     ) {}
 
     async *streamChat(userMessage: string, currentUser: User): AsyncGenerator<string> {
-        const history = await this.loadHistory(currentUser.keycloakSubject);
+        const [history, latestMeasurement] = await Promise.all([
+            this.loadHistory(currentUser.keycloakSubject),
+            this.loadLatestMeasurement(currentUser),
+        ]);
         const inputMessages: ModelMessage[] = [...history, { role: 'user', content: userMessage }];
 
         const result = streamText({
             model: openai('gpt-4o-mini'),
-            system: this.buildSystemPrompt(currentUser),
+            system: this.buildSystemPrompt(currentUser, latestMeasurement),
             messages: inputMessages,
-            tools: { ...mockedTools, ...this.buildUserTools(currentUser) },
+            tools: { ...this.buildCatalogTools(), ...this.buildUserTools(currentUser) },
             stopWhen: stepCountIs(5),
             onStepFinish: ({ toolCalls, toolResults }) => {
                 if (toolCalls?.length) {
@@ -149,6 +75,87 @@ export class AgentService {
 
         const { messages: responseMessages } = await result.response;
         await this.saveHistory(currentUser.keycloakSubject, [...inputMessages, ...responseMessages]);
+    }
+
+    /** Tools over the gym's exercise catalog (seeded, read-only). */
+    private buildCatalogTools() {
+        return {
+            getExerciseFilters: tool({
+                description:
+                    'Get the valid filter values of the exercise catalog: body parts, equipment types and target ' +
+                    'muscles. Call this before searchExercises when you need to filter by one of those fields.',
+                inputSchema: z.object({}),
+                execute: async () => {
+                    try {
+                        return await this.exercises.facets();
+                    } catch (err) {
+                        return this.toolError('getExerciseFilters', err);
+                    }
+                },
+            }),
+            searchExercises: tool({
+                description:
+                    "Search the app's exercise library. Every exercise you recommend must come from here so the " +
+                    'user can find it (with demo GIF and instructions) in the Exercises section of the app. ' +
+                    'Filters must use values returned by getExerciseFilters.',
+                inputSchema: z.object({
+                    q: z.string().max(120).optional().describe('Free-text search on the exercise name (English)'),
+                    bodyPart: z.string().max(80).optional(),
+                    equipment: z.string().max(80).optional(),
+                    target: z.string().max(80).optional().describe('Primary muscle worked'),
+                    limit: z.number().int().min(1).max(25).default(10),
+                }),
+                execute: async ({ q, bodyPart, equipment, target, limit }) => {
+                    try {
+                        const page = await this.exercises.list({
+                            limit,
+                            offset: 0,
+                            ...(q && { q }),
+                            ...(bodyPart && { bodyPart }),
+                            ...(equipment && { equipment }),
+                            ...(target && { target }),
+                        });
+                        return {
+                            total: page.total,
+                            items: page.items.map((e) => ({
+                                id: e.id,
+                                name: e.name,
+                                bodyPart: e.bodyPart,
+                                equipment: e.equipment,
+                                target: e.target,
+                            })),
+                        };
+                    } catch (err) {
+                        return this.toolError('searchExercises', err);
+                    }
+                },
+            }),
+            getExerciseDetails: tool({
+                description:
+                    'Get the full details of one exercise from the library by its id (from searchExercises): ' +
+                    'step-by-step instructions, secondary muscles and description. Use it when explaining form ' +
+                    'or technique for a specific exercise.',
+                inputSchema: z.object({
+                    id: z.string().describe('Exercise id returned by searchExercises'),
+                }),
+                execute: async ({ id }) => {
+                    try {
+                        const e = await this.exercises.detail(id);
+                        return {
+                            name: e.name,
+                            bodyPart: e.bodyPart,
+                            equipment: e.equipment,
+                            target: e.target,
+                            secondaryMuscles: e.secondaryMuscles,
+                            instructions: e.instructions,
+                            description: e.description,
+                        };
+                    } catch (err) {
+                        return this.toolError('getExerciseDetails', err);
+                    }
+                },
+            }),
+        };
     }
 
     /** Tools backed by real per-user data. Errors are returned as data so a
@@ -254,6 +261,17 @@ export class AgentService {
         };
     }
 
+    /** Latest body measurement for the system prompt. Null (silently) when the
+     *  user has no member profile or no records — the coach just asks instead. */
+    private async loadLatestMeasurement(user: User) {
+        try {
+            const summary = await this.measurements.getSummary(user.id);
+            return slimMeasurement(summary.latest);
+        } catch {
+            return null;
+        }
+    }
+
     private toolError(toolName: string, err: unknown): { error: string } {
         this.logger.warn(`${toolName} failed: ${err instanceof Error ? err.message : String(err)}`);
         return { error: 'This data is not available for the user right now.' };
@@ -278,14 +296,32 @@ export class AgentService {
         await this.redis.set(this.historyKey(userId), JSON.stringify(trimmed), 'EX', HISTORY_TTL_SECONDS);
     }
 
-    private buildSystemPrompt(user: User): string {
+    private buildSystemPrompt(user: User, latestMeasurement: ReturnType<typeof slimMeasurement>): string {
         const name = user.fullName || 'the user';
         const today = this.clock.nowLocal();
         const age = user.birthDate ? Math.floor(-DateTime.fromISO(user.birthDate).diffNow('years').years) : null;
+
+        const m = latestMeasurement;
+        const measurementLines = m
+            ? [
+                  m.weightKg && `- Weight: ${m.weightKg} kg`,
+                  m.heightCm && `- Height: ${m.heightCm} cm`,
+                  m.bodyFatPercentage && `- Body fat: ${m.bodyFatPercentage} %`,
+                  m.waistCm && `- Waist: ${m.waistCm} cm`,
+              ].filter(Boolean)
+            : [];
+        const measurementBlock = m
+            ? `Latest body measurement (recorded ${m.measuredAt}):\n${measurementLines.join('\n')}`
+            : 'No body measurements recorded yet — ask before giving weight-dependent advice.';
+
         return `
             You are a knowledgeable and motivating personal fitness coach inside the Mind&Body app.
             You are talking to ${name}${age ? ` (${age} years old)` : ''}.
             Today is ${today.toFormat('cccc, yyyy-MM-dd')} (${today.toFormat('HH:mm')} local time).
+
+            ## User data (real, already loaded)
+            ${measurementBlock}
+            Use getBodyProgress when the user asks about progress or changes over time.
 
             ## Personality
             - Encouraging and direct — no fluff
@@ -301,10 +337,15 @@ export class AgentService {
             - Progress tracking and programme adjustments
 
             ## Rules
-            - Always use your tools to check the user's equipment, profile, and current plan before making recommendations
             - Ground your advice in the user's REAL data whenever relevant: body progress (getBodyProgress),
               recent activity (getRecentActivity), their reservations (getMyReservations) and the gym's
               class schedule (getUpcomingClasses)
+            - When recommending exercises or building workout plans, pick exercises from the app's library:
+              use searchExercises (and getExerciseFilters for valid filters); use getExerciseDetails when
+              explaining technique. Tell the user they can see each exercise with its demo GIF and
+              instructions in the Exercises section of the app
+            - Exercise names in the library are in English; keep the official name and add a short Spanish
+              explanation when the user writes in Spanish
             - When recommending group classes, only suggest concrete sessions returned by getUpcomingClasses
               and mention day, time and trainer; the user books them from the reservations tab in the app
             - Never diagnose medical conditions — refer to a doctor when pain or injury is involved
