@@ -26,6 +26,12 @@ export class ListSessionsQueryDto {
     @Transform(toBool)
     @IsBoolean()
     includeCancelled?: boolean;
+
+    /** Agenda propia: recorta a las sesiones del entrenador del token. */
+    @IsOptional()
+    @Transform(toBool)
+    @IsBoolean()
+    mine?: boolean;
 }
 
 export class MoveSessionDto {

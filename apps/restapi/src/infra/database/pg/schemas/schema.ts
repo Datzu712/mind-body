@@ -375,6 +375,8 @@ export const memberMeasurementsInApp = app.table(
         waistCm: numeric('waist_cm', { precision: 5, scale: 2 }),
         notes: text(),
         createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+        /** Igual a createdAt mientras la medición no se corrija; el miembro puede editarla. */
+        updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
     },
     (table) => [
         index('idx_member_measurements_member_date').using(

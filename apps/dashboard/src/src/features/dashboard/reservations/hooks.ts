@@ -10,7 +10,7 @@ import { weekStartForOffset } from './utils';
 export const reservationKeys = {
     classes: ['gym-classes'] as const,
     trainers: ['trainers'] as const,
-    sessions: (from: string, to: string) => ['sessions', 'range', from, to] as const,
+    sessions: (from: string, to: string, mine: boolean) => ['sessions', 'range', from, to, mine] as const,
     session: (id: string) => ['sessions', 'detail', id] as const,
     sessionReservations: (id: string) => ['sessions', 'detail', id, 'reservations'] as const,
     rescheduleOptions: (id: string) => ['reservations', id, 'reschedule-options'] as const,
@@ -22,17 +22,21 @@ export function useGymClasses() {
     return useQuery({ queryKey: reservationKeys.classes, queryFn: async () => api.fetchClasses() });
 }
 
-export function useTrainers() {
-    return useQuery({ queryKey: reservationKeys.trainers, queryFn: async () => api.fetchTrainers() });
+// GET /classes/trainer-options es ADMIN/STAFF en la API: `enabled` permite que
+// el llamador se salte el request cuando el rol no puede consultarlo.
+export function useTrainers(enabled = true) {
+    return useQuery({ queryKey: reservationKeys.trainers, queryFn: async () => api.fetchTrainers(), enabled });
 }
 
-export function useWeekSessions(weekOffset: number) {
+// `mine`: agenda propia del entrenador. Es un filtro del servidor, no un permiso —
+// el catálogo completo lo puede leer cualquier rol autenticado.
+export function useWeekSessions(weekOffset: number, mine = false) {
     const start = weekStartForOffset(weekOffset);
     const from = format(start, 'yyyy-MM-dd');
     const to = format(addDays(start, 6), 'yyyy-MM-dd');
     return useQuery({
-        queryKey: reservationKeys.sessions(from, to),
-        queryFn: async () => api.fetchSessions(from, to),
+        queryKey: reservationKeys.sessions(from, to, mine),
+        queryFn: async () => api.fetchSessions(from, to, mine),
     });
 }
 

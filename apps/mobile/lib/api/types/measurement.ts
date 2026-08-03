@@ -8,6 +8,8 @@ export interface Measurement {
     waistCm: number | null;
     notes: string | null;
     createdAt: string;
+    /** Mayor que `createdAt` solo si la medición fue corregida. */
+    updatedAt: string;
 }
 
 export interface MeasurementVariation {

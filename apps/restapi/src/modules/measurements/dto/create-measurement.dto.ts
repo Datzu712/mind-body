@@ -1,31 +1,15 @@
-import { IsDateString, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsDateString, IsOptional } from 'class-validator';
 
-export class CreateMeasurementDto {
+import { MeasurementValuesDto } from './measurement-values.dto';
+
+/**
+ * Crear = los valores + la fecha de la medición. `measuredAt` solo existe acá:
+ * la corrección no lo toca (ver `PUT /measurements/:id`) porque mobile nunca lo
+ * manda, así que no hay forma de digitarlo mal, y moverlo al futuro desordenaría
+ * el historial y `summary.latest`.
+ */
+export class CreateMeasurementDto extends MeasurementValuesDto {
     @IsOptional()
     @IsDateString()
     measuredAt?: string;
-
-    @IsOptional()
-    @IsNumber()
-    @Min(0)
-    weightKg?: number;
-
-    @IsOptional()
-    @IsNumber()
-    @Min(0)
-    heightCm?: number;
-
-    @IsOptional()
-    @IsNumber()
-    @Min(0)
-    bodyFatPercentage?: number;
-
-    @IsOptional()
-    @IsNumber()
-    @Min(0)
-    waistCm?: number;
-
-    @IsOptional()
-    @IsString()
-    notes?: string;
 }

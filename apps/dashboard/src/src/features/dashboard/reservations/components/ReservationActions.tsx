@@ -10,6 +10,7 @@ import {
 import { CalendarClock, MoreHorizontal, UserCheck, UserX, XCircle } from 'lucide-react';
 import { sileo } from 'sileo';
 
+import { useAuth, isManagementRole } from '@/hooks/use-auth';
 import { ConfirmDialog } from '@/src/shared/components/confirm-dialog';
 import { useCancelReservation, useMarkAttendance } from '../hooks';
 import type { ClassSession, Reservation } from '../types';
@@ -30,11 +31,16 @@ interface ReservationActionsProps {
 export function ReservationActions({ reservation, session }: ReservationActionsProps) {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [rescheduleOpen, setRescheduleOpen] = useState(false);
+    // Asistencia, cancelación y reprogramación son ADMIN/STAFF en la API; el
+    // TRAINER solo consulta el roster.
+    const { user: authUser } = useAuth();
+    const canManage = isManagementRole(authUser?.roles);
     const cancelReservation = useCancelReservation();
     const markAttendanceMutation = useMarkAttendance();
 
     const past = isPastSession(session);
 
+    if (!canManage) return null;
     if (session.status === 'cancelada') return null;
     if (reservation.status === 'cancelada') return null;
     if (!past && reservation.status !== 'confirmada') return null;

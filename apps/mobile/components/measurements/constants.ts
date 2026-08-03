@@ -1,10 +1,30 @@
-import { format, subMonths, startOfMonth } from 'date-fns';
+import { addDays, format, isAfter, subMonths, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Ionicons } from '@expo/vector-icons';
 import { FitColors as T } from '@/constants/theme';
+import type { Measurement } from '@/lib/api/types/measurement';
 
 /** Parse YYYY-MM-DD as local midnight (not UTC) */
 const toDate = (iso: string) => new Date(iso + 'T00:00:00');
+
+/**
+ * Espeja `MEASUREMENT_EDIT_WINDOW_DAYS` de
+ * `apps/restapi/src/modules/measurements/measurement-edit-policy.ts`. Acá solo
+ * decide si se dibuja el botón de editar; quien autoriza es el API, que rechaza
+ * con `MEASUREMENT_EDIT_WINDOW_EXPIRED`.
+ */
+export const MEASUREMENT_EDIT_WINDOW_DAYS = 7;
+
+/** La ventana corre desde el registro (`createdAt`), no desde la fecha medida. */
+export function isEditable(measurement: Measurement, now: Date = new Date()): boolean {
+    const limit = addDays(new Date(measurement.createdAt), MEASUREMENT_EDIT_WINDOW_DAYS);
+    return !isAfter(now, limit);
+}
+
+/** El API iguala ambos timestamps al crear, así que difieren solo si se corrigió. */
+export function wasEdited(measurement: Measurement): boolean {
+    return new Date(measurement.updatedAt).getTime() > new Date(measurement.createdAt).getTime();
+}
 
 export const METRICS = [
     { key: 'weightKg' as const, label: 'Peso', unit: 'kg', icon: 'scale-outline' as const, step: 0.1 },

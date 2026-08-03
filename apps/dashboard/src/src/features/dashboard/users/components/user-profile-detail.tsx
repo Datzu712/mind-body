@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Mail, Calendar, Cake, Pencil, X } from 'lucide-react';
 import { sileo } from 'sileo';
 import { hasChanges, formatDate, getInitials } from '@/lib/utils';
+import { useAuth, isManagementRole } from '@/hooks/use-auth';
 import type { UserDetail, ProfileType, DniType } from '../types';
 import { ProfileGeneralTab, type GeneralFormValues } from './profile-general-tab';
 import { MembershipCard } from './membership-card';
@@ -37,6 +38,10 @@ const tabContentAnim = 'animate-in fade-in-0 duration-300 ease-out';
 
 export function UserProfileDetail({ user, profileType, isOwnProfile = false }: UserProfileDetailProps) {
     const [editing, setEditing] = useState(false);
+
+    // Editar el usuario y sus perfiles es ADMIN/STAFF en la API; el TRAINER solo consulta.
+    const { user: authUser } = useAuth();
+    const canManage = isManagementRole(authUser?.roles);
 
     const updateUser = useUpdateUser(user.id);
     const updateMember = useUpdateMemberProfile(user.id);
@@ -151,7 +156,7 @@ export function UserProfileDetail({ user, profileType, isOwnProfile = false }: U
                             </div>
                         </dl>
 
-                        {!isOwnProfile && (
+                        {!isOwnProfile && canManage && (
                             <>
                                 <Separator />
                                 {editing ? (

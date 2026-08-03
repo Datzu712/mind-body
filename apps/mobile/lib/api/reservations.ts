@@ -11,6 +11,7 @@ import { es } from 'date-fns/locale';
 
 import { FitColors as T } from '@/constants/theme';
 import { useApiClient } from './client';
+import { okJson } from './http';
 
 export type ClassLevel = 'Bajo' | 'Medio' | 'Alto';
 
@@ -166,21 +167,6 @@ function toReservationView(api: ApiReservation): ReservationView {
         time: `${timeOf(starts)} - ${timeOf(ends)}`,
         status,
     };
-}
-
-/** Lanza con el mensaje del backend (`{ message }` de DomainHttpException). */
-async function okJson<T>(res: Response): Promise<T> {
-    if (!res.ok) {
-        let message = `Error ${res.status}`;
-        try {
-            const body = (await res.json()) as { message?: unknown };
-            if (typeof body.message === 'string' && body.message) message = body.message;
-        } catch {
-            /* body no-JSON: se usa el mensaje genérico */
-        }
-        throw new Error(message);
-    }
-    return (await res.json()) as T;
 }
 
 // ── Hooks ───────────────────────────────────────────────────────────────────

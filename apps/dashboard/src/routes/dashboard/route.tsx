@@ -23,6 +23,13 @@ export const Route = createFileRoute('/dashboard')({
                 // eslint-disable-next-line @typescript-eslint/only-throw-error
                 throw redirect({ to: '/' });
             }
+            if (error instanceof ApiError && error.status === 403) {
+                // El RolesGuard niega un token sin ningún rol de la app (p. ej. roles
+                // revocados en Keycloak con la cookie todavía vigente): no hay
+                // dashboard que mostrar, y sin esto reventaría el error boundary.
+                // eslint-disable-next-line @typescript-eslint/only-throw-error
+                throw redirect({ to: '/auth/forbidden' });
+            }
             throw error;
         }
     },

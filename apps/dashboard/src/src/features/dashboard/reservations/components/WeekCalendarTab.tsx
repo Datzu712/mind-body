@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CalendarX2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth, isManagementRole } from '@/hooks/use-auth';
 
 import { useGymClasses, useTrainers, useWeekSessions } from '../hooks';
 import { formatTime12h, formatWeekLabel, weekStartForOffset } from '../utils';
@@ -13,6 +14,11 @@ import { SessionCard } from './SessionCard';
 import { SessionDetailSheet } from './SessionDetailSheet';
 
 export function WeekCalendarTab() {
+    // Sin rol de gestión el calendario pide `mine=true` (agenda propia), y el
+    // listado de entrenadores (GET /classes/trainer-options, ADMIN/STAFF) no se
+    // pide ni se muestra: filtrar por entrenador no aporta nada sobre tu agenda.
+    const { user: authUser } = useAuth();
+    const canManage = isManagementRole(authUser?.roles);
     const [weekOffset, setWeekOffset] = useState(0);
     const [classFilter, setClassFilter] = useState('all');
     const [trainerFilter, setTrainerFilter] = useState('all');
@@ -27,9 +33,9 @@ export function WeekCalendarTab() {
 
     const weekStart = weekStartForOffset(weekOffset);
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-    const { data: weekSessions = [] } = useWeekSessions(weekOffset);
+    const { data: weekSessions = [] } = useWeekSessions(weekOffset, !canManage);
     const { data: classes = [] } = useGymClasses();
-    const { data: trainers = [] } = useTrainers();
+    const { data: trainers = [] } = useTrainers(canManage);
     const sessions = weekSessions
         .filter((s) => classFilter === 'all' || s.classId === classFilter)
         .filter((s) => trainerFilter === 'all' || s.trainerId === trainerFilter);
@@ -100,19 +106,21 @@ export function WeekCalendarTab() {
                                 ))}
                         </SelectContent>
                     </Select>
-                    <Select value={trainerFilter} onValueChange={setTrainerFilter}>
-                        <SelectTrigger className="w-full bg-secondary/50 border-border sm:w-44">
-                            <SelectValue placeholder="Entrenador" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover border-border">
-                            <SelectItem value="all">Todos los entrenadores</SelectItem>
-                            {trainers.map((trainer) => (
-                                <SelectItem key={trainer.id} value={trainer.id}>
-                                    {trainer.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    {canManage && (
+                        <Select value={trainerFilter} onValueChange={setTrainerFilter}>
+                            <SelectTrigger className="w-full bg-secondary/50 border-border sm:w-44">
+                                <SelectValue placeholder="Entrenador" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover border-border">
+                                <SelectItem value="all">Todos los entrenadores</SelectItem>
+                                {trainers.map((trainer) => (
+                                    <SelectItem key={trainer.id} value={trainer.id}>
+                                        {trainer.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
             </div>
 

@@ -16,8 +16,8 @@ function ForbiddenPage() {
                 </div>
                 <h1 className="text-2xl font-bold tracking-tight">Acceso denegado</h1>
                 <p className="text-muted-foreground">
-                    No tienes permisos para acceder al dashboard. Solo usuarios con rol de <strong>Staff</strong> o{' '}
-                    <strong>Entrenador</strong> pueden ingresar.
+                    No tienes permisos para acceder al dashboard. Solo usuarios con rol de <strong>Admin</strong>,{' '}
+                    <strong>Staff</strong> o <strong>Entrenador</strong> pueden ingresar.
                 </p>
                 <p className="text-sm text-muted-foreground">
                     Si crees que esto es un error, contacta al administrador del sistema.

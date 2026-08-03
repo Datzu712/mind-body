@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { CalendarClock, CircleSlash, Search, Users, XCircle } from 'lucide-react';
 import { sileo } from 'sileo';
 
+import { useAuth, isManagementRole } from '@/hooks/use-auth';
 import { ConfirmDialog } from '@/src/shared/components/confirm-dialog';
 import { useCancelSession, useSession, useSessionReservations } from '../hooks';
 import { formatTime12h, isPastSession, sessionStartDate } from '../utils';
@@ -23,6 +24,10 @@ export function SessionDetailSheet({ sessionId, onOpenChange }: SessionDetailShe
     const [query, setQuery] = useState('');
     const [moveOpen, setMoveOpen] = useState(false);
     const [cancelOpen, setCancelOpen] = useState(false);
+
+    // Mover y cancelar la sesión son ADMIN/STAFF en la API; el TRAINER solo consulta.
+    const { user: authUser } = useAuth();
+    const canManage = isManagementRole(authUser?.roles);
 
     // Al abrir otra sesión, la búsqueda anterior no debe arrastrarse.
     useEffect(() => {
@@ -61,7 +66,8 @@ export function SessionDetailSheet({ sessionId, onOpenChange }: SessionDetailShe
                                     Sesión cancelada — sus reservas fueron canceladas.
                                 </div>
                             ) : (
-                                !past && (
+                                !past &&
+                                canManage && (
                                     <div className="flex gap-2">
                                         <Button
                                             variant="outline"
