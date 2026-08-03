@@ -237,12 +237,21 @@ export const exercisesInApp = app.table(
         name: varchar({ length: 120 }).notNull(),
         description: text(),
         muscleGroup: varchar('muscle_group', { length: 80 }),
+        sourceId: varchar('source_id', { length: 20 }),
+        bodyPart: varchar('body_part', { length: 80 }),
+        equipment: varchar({ length: 80 }),
+        target: varchar({ length: 80 }),
+        secondaryMuscles: text('secondary_muscles').array(),
+        instructionsEs: text('instructions_es').array(),
+        instructionsEn: text('instructions_en').array(),
+        imageUrl: text('image_url'),
+        gifUrl: text('gif_url'),
         status: recordStatusInApp().default('ACTIVE').notNull(),
         deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
         createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
     },
-    (table) => [unique('exercises_name_key').on(table.name)],
+    (table) => [unique('exercises_name_key').on(table.name), uniqueIndex('uq_exercises_source_id').on(table.sourceId)],
 );
 
 export const routinesInApp = app.table(
@@ -252,7 +261,7 @@ export const routinesInApp = app.table(
             .default(sql`uuidv7()`)
             .primaryKey()
             .notNull(),
-        trainerId: uuid('trainer_id'),
+        createdByUserId: uuid('created_by_user_id'),
         name: varchar({ length: 120 }).notNull(),
         objective: text(),
         status: routineStatusInApp().default('DRAFT').notNull(),
@@ -261,15 +270,15 @@ export const routinesInApp = app.table(
         updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
     },
     (table) => [
-        index('idx_routines_trainer_status').using(
+        index('idx_routines_created_by_status').using(
             'btree',
-            table.trainerId.asc().nullsLast().op('uuid_ops'),
+            table.createdByUserId.asc().nullsLast().op('uuid_ops'),
             table.status.asc().nullsLast().op('enum_ops'),
         ),
         foreignKey({
-            columns: [table.trainerId],
-            foreignColumns: [trainersInApp.id],
-            name: 'routines_trainer_id_fkey',
+            columns: [table.createdByUserId],
+            foreignColumns: [usersInApp.id],
+            name: 'routines_created_by_user_id_fkey',
         }),
     ],
 );
@@ -314,7 +323,7 @@ export const memberRoutinesInApp = app.table(
             .notNull(),
         memberId: uuid('member_id').notNull(),
         routineId: uuid('routine_id').notNull(),
-        assignedByTrainerId: uuid('assigned_by_trainer_id'),
+        assignedByUserId: uuid('assigned_by_user_id'),
         assignedAt: date('assigned_at')
             .default(sql`CURRENT_DATE`)
             .notNull(),
@@ -341,9 +350,9 @@ export const memberRoutinesInApp = app.table(
             name: 'member_routines_routine_id_fkey',
         }),
         foreignKey({
-            columns: [table.assignedByTrainerId],
-            foreignColumns: [trainersInApp.id],
-            name: 'member_routines_assigned_by_trainer_id_fkey',
+            columns: [table.assignedByUserId],
+            foreignColumns: [usersInApp.id],
+            name: 'member_routines_assigned_by_user_id_fkey',
         }),
         check('chk_member_routine_dates', sql`(ended_at IS NULL) OR (ended_at >= assigned_at)`),
     ],

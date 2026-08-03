@@ -67,6 +67,11 @@ class EnvironmentVariables {
     @IsNotEmpty()
     DASHBOARD_URL!: string;
 
+    // Public URL of THIS API, used as the OIDC redirect_uri host. Empty means
+    // the dashboard proxies /api (dev setup) and DASHBOARD_URL is used instead.
+    @IsString()
+    API_PUBLIC_URL: string = '';
+
     // Absolute/relative path to the TSE Padrón Nacional file (PADRON_COMPLETO.txt).
     // Used as a fallback when the live TSE scrape is unavailable. The file is operator-
     // downloaded (see .env.example); PadronService refuses to boot if it is missing.
@@ -83,6 +88,24 @@ class EnvironmentVariables {
     // are local to this zone; the DB stores timestamptz instants.
     @IsIn(Intl.supportedValuesOf('timeZone'))
     BUSINESS_TIME_ZONE: string = 'America/Costa_Rica';
+
+    // Modelo base de Forge para el coach de miembros. El builder de rutinas
+    // tiene un override porque su planificación multi-tool prioriza calidad.
+    @IsString()
+    @IsNotEmpty()
+    FORGE_MODEL: string = 'gpt-5.6-luna';
+
+    @IsIn(['low', 'medium', 'high'])
+    FORGE_REASONING_EFFORT: 'low' | 'medium' | 'high' = 'medium';
+
+    // El builder realiza planificación multi-tool y prioriza calidad; se
+    // puede ajustar sin cambiar el modelo del coach general.
+    @IsString()
+    @IsNotEmpty()
+    FORGE_ROUTINES_MODEL: string = 'gpt-5.6-luna';
+
+    @IsIn(['low', 'medium', 'high'])
+    FORGE_ROUTINES_REASONING_EFFORT: 'low' | 'medium' | 'high' = 'medium';
 
     // Rolling horizon (weeks ahead) the session materializer keeps populated.
     @IsNumber()

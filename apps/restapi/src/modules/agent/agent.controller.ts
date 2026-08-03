@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Post, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 
+import { CurrentActor } from '@/common/decorators/current-actor.decorator';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import type { Actor } from '@/common/auth/actor';
 import { type User } from '@/infra/database/pg/schemas/schema';
 import { AgentService } from './agent.service';
 import { ChatDto } from './dto/chat.dto';
@@ -33,7 +35,12 @@ export class AgentController {
     constructor(private readonly agentService: AgentService) {}
 
     @Post('chat')
-    async chat(@Body() dto: ChatDto, @CurrentUser() user: User, @Res() reply: FastifyReply): Promise<void> {
+    async chat(
+        @Body() dto: ChatDto,
+        @CurrentUser() user: User,
+        @CurrentActor() actor: Actor,
+        @Res() reply: FastifyReply,
+    ): Promise<void> {
         reply.hijack();
         reply.raw.writeHead(200, {
             'Content-Type': 'text/event-stream; charset=utf-8',
@@ -42,7 +49,7 @@ export class AgentController {
         });
 
         try {
-            for await (const token of this.agentService.streamChat(dto.message, user)) {
+            for await (const token of this.agentService.streamChat(dto.message, user, actor)) {
                 reply.raw.write(`data: ${JSON.stringify(token)}\n\n`);
             }
             reply.raw.write('data: [DONE]\n\n');

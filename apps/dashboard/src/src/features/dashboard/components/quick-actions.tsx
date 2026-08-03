@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, ClipboardList, BookOpen, FileBarChart, HardDrive, Settings, ArrowRight } from 'lucide-react';
+import { Users, Dumbbell, CalendarDays, BicepsFlexed, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const quickActions = [
@@ -12,39 +12,25 @@ const quickActions = [
         color: 'bg-chart-3/20 text-chart-3',
     },
     {
-        title: 'Auditoría',
-        description: 'Revisar logs del sistema',
-        href: '/dashboard/audit',
-        icon: ClipboardList,
-        color: 'bg-warning/20 text-warning',
-    },
-    {
-        title: 'Catálogo',
-        description: 'Clases, planes y servicios',
-        href: '/dashboard/catalog',
-        icon: BookOpen,
+        title: 'Clases',
+        description: 'Gestionar clases y horarios',
+        href: '/dashboard/classes',
+        icon: Dumbbell,
         color: 'bg-primary/20 text-primary',
     },
     {
-        title: 'Reportes',
-        description: 'Generar informes',
-        href: '/dashboard/reports',
-        icon: FileBarChart,
+        title: 'Reservas',
+        description: 'Sesiones y asistencia',
+        href: '/dashboard/reservations',
+        icon: CalendarDays,
         color: 'bg-success/20 text-success',
     },
     {
-        title: 'Respaldos',
-        description: 'Backups y restauración',
-        href: '/dashboard/backups',
-        icon: HardDrive,
-        color: 'bg-chart-5/20 text-chart-5',
-    },
-    {
-        title: 'Configuración',
-        description: 'Ajustes del sistema',
-        href: '/dashboard/settings',
-        icon: Settings,
-        color: 'bg-muted text-muted-foreground',
+        title: 'Ejercicios',
+        description: 'Catálogo de ejercicios',
+        href: '/dashboard/exercises',
+        icon: BicepsFlexed,
+        color: 'bg-warning/20 text-warning',
     },
 ];
 

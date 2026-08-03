@@ -2,17 +2,11 @@ import { Link, useLocation } from '@tanstack/react-router';
 import {
     LayoutDashboard,
     Users,
-    UserSearch,
-    UserRound,
-    UsersRound,
-    UserPlus,
-    IdCard,
-    ClipboardCheck,
     CalendarDays,
+    ClipboardList,
     Dumbbell,
-    Settings,
-    BookOpen,
     LogOut,
+    BicepsFlexed,
     type LucideIcon,
 } from 'lucide-react';
 
@@ -65,49 +59,16 @@ const mainNavItems: {
     },
 ];
 
-const adminNavItems: { title: string; href: string; icon: LucideIcon; exact?: boolean }[] = [
+const trainingNavItems: { title: string; href: string; icon: LucideIcon; exact?: boolean }[] = [
     {
-        title: 'Miembros',
-        href: '/dashboard/members',
-        icon: UserSearch,
-        exact: true,
+        title: 'Ejercicios',
+        href: '/dashboard/exercises',
+        icon: BicepsFlexed,
     },
     {
-        title: 'Registrar miembro',
-        href: '/dashboard/members/new',
-        icon: UserPlus,
-    },
-    {
-        title: 'Mi perfil',
-        href: '/dashboard/profile',
-        icon: UserRound,
-        exact: true,
-    },
-    {
-        title: 'Membresías',
-        href: '/dashboard/memberships',
-        icon: IdCard,
-        exact: true,
-    },
-    {
-        title: 'Aprobación de membresías',
-        href: '/dashboard/memberships/approval',
-        icon: ClipboardCheck,
-    },
-    {
-        title: 'Mis miembros',
-        href: '/dashboard/trainer/members',
-        icon: UsersRound,
-    },
-    {
-        title: 'Catálogo',
-        href: '/dashboard/catalog',
-        icon: BookOpen,
-    },
-    {
-        title: 'Configuración',
-        href: '/dashboard/settings',
-        icon: Settings,
+        title: 'Rutinas',
+        href: '/dashboard/routines',
+        icon: ClipboardList,
     },
 ];
 
@@ -177,17 +138,18 @@ export function AppSidebar() {
 
                 <SidebarGroup>
                     <SidebarGroupLabel className="text-muted-foreground/70 uppercase text-xs tracking-wider">
-                        Administración
+                        Entrenamiento
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {adminNavItems.map((item) => (
+                            {trainingNavItems.map((item) => (
                                 <SidebarMenuItem key={item.href}>
                                     <SidebarMenuButton
                                         asChild
                                         isActive={
-                                            pathname === item.href ||
-                                            (!item.exact && pathname.startsWith(item.href + '/'))
+                                            item.exact
+                                                ? pathname === item.href
+                                                : pathname === item.href || pathname.startsWith(item.href + '/')
                                         }
                                         tooltip={item.title}
                                     >

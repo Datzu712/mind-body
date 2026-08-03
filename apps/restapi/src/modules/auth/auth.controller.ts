@@ -11,12 +11,6 @@ import type { User } from '@/infra/database/pg/schemas/schema';
 import { NodeEnv } from '@/config/env';
 import { DASHBOARD_ROLES, extractRealmRoles } from '@/common/constant/roles.constant';
 
-const COOKIE_OPTS_BASE = {
-    httpOnly: true,
-    sameSite: 'lax' as const,
-    path: '/',
-};
-
 interface OAuthStateCookie {
     codeVerifier: string;
     state: string;
@@ -30,20 +24,40 @@ interface OAuthStateCookie {
 export class AuthController {
     private readonly logger = new Logger(AuthController.name);
     private readonly dashboardUrl: string;
+    private readonly callbackBaseUrl: string;
     private readonly isProduction: boolean;
+    private readonly cookieOpts: {
+        httpOnly: boolean;
+        path: string;
+        sameSite: 'none' | 'lax';
+        secure: boolean;
+    };
 
     constructor(
         private readonly oidcService: OidcService,
         private readonly configService: TypedConfigService,
     ) {
         this.dashboardUrl = this.configService.getOrThrow('DASHBOARD_URL');
+        // With a static dashboard (Cloudflare Pages) there is no /api proxy, so
+        // the OIDC callback must land on the API's own public URL; in dev the
+        // Vite proxy makes DASHBOARD_URL work for both.
+        this.callbackBaseUrl = this.configService.get('API_PUBLIC_URL') || this.dashboardUrl;
         this.isProduction = this.configService.get('NODE_ENV') === NodeEnv.Production;
+        // SameSite=None (mandatory with Secure) so the static dashboard hosted
+        // on another site (Cloudflare Pages) can send the session cookies
+        // cross-site. Dev runs over http behind the Vite proxy → Lax.
+        this.cookieOpts = {
+            httpOnly: true,
+            path: '/',
+            sameSite: this.isProduction ? ('none' as const) : ('lax' as const),
+            secure: this.isProduction,
+        };
     }
 
     @Public()
     @Get('login')
     async login(@Query('redirect') redirect: string | undefined, @Res() reply: FastifyReply) {
-        const redirectPath = redirect || '/dashboard';
+        const redirectPath = redirect?.trim() ? redirect : '/dashboard';
 
         const { codeVerifier, codeChallenge } = this.oidcService.generatePKCE();
         const state = randomBytes(16).toString('hex');
@@ -55,15 +69,13 @@ export class AuthController {
         };
 
         reply.setCookie('oauth_state', Buffer.from(JSON.stringify(stateCookie)).toString('base64'), {
-            ...COOKIE_OPTS_BASE,
-            secure: this.isProduction,
+            ...this.cookieOpts,
             maxAge: 300, // 5 minutes — enough for the auth flow
             path: '/api/v1/auth',
         });
 
-        // Callback goes through the dashboard's proxy so cookies stay on the same domain
         const authUrl = this.oidcService.buildAuthorizationUrl({
-            redirectUri: `${this.dashboardUrl}/api/v1/auth/callback`,
+            redirectUri: `${this.callbackBaseUrl}/api/v1/auth/callback`,
             state,
             codeChallenge: await codeChallenge,
         });
@@ -91,8 +103,8 @@ export class AuthController {
         // Clear the temporary state cookie
         reply.clearCookie('oauth_state', { path: '/api/v1/auth' });
 
-        // Reconstruct the callback URL using DASHBOARD_URL (must match the redirect_uri sent to KC)
-        const callbackUrl = new URL(`${this.dashboardUrl}${request.url}`);
+        // Reconstruct the callback URL (must match the redirect_uri sent to KC)
+        const callbackUrl = new URL(`${this.callbackBaseUrl}${request.url}`);
 
         const tokens = await this.oidcService.exchangeCode(callbackUrl, {
             expectedState: stateCookie.state,
@@ -118,15 +130,12 @@ export class AuthController {
 
         // Set auth cookies
         reply.setCookie('access_token', accessToken, {
-            ...COOKIE_OPTS_BASE,
-            secure: this.isProduction,
+            ...this.cookieOpts,
             maxAge: 15 * 60, // 15 minutes
         });
 
         reply.setCookie('refresh_token', refreshToken, {
-            ...COOKIE_OPTS_BASE,
-            secure: this.isProduction,
-            sameSite: 'strict',
+            ...this.cookieOpts,
             maxAge: 24 * 60 * 60, // 1 day
             path: '/api/v1/auth',
         });

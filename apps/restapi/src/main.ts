@@ -41,6 +41,10 @@ async function bootstrap(): Promise<void> {
 
     await app.listen(config.get('PORT'), config.getOrThrow('HOST'));
     logger.log(`Server running on http://${config.getOrThrow('HOST')}:${config.getOrThrow('PORT')}`);
+    logger.log(`Forge coach: ${config.get('FORGE_MODEL')} (${config.get('FORGE_REASONING_EFFORT')})`);
+    logger.log(
+        `Forge routines: ${config.get('FORGE_ROUTINES_MODEL')} (${config.get('FORGE_ROUTINES_REASONING_EFFORT')})`,
+    );
 }
 
 void bootstrap();
