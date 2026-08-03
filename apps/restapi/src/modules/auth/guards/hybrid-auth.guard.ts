@@ -14,6 +14,7 @@ import { Reflector } from '@nestjs/core';
 
 import { AuthService } from './auth.service';
 import { IS_PUBLIC_RESOURCE_KEY } from '@/common/constant/public.decorator';
+import { extractRealmRoles } from '@/common/constant/roles.constant';
 import { UsersService } from '@/modules/users/users.service';
 import { OidcService } from '@/modules/auth/oidc.service';
 import { TypedConfigService } from '@/config/typed-config.service';
@@ -96,6 +97,7 @@ export class HybridAuthGuard implements CanActivate {
                 fullName: `${givenName} ${familyName}`.trim(),
                 email,
             });
+            request.roles = extractRealmRoles(payload);
 
             return true;
         } catch (error) {
@@ -159,6 +161,7 @@ export class HybridAuthGuard implements CanActivate {
                 fullName: `${givenName} ${familyName}`.trim(),
                 email,
             });
+            request.roles = extractRealmRoles(payload);
 
             // Update the cookie on the request so downstream handlers (like /auth/me) see the new token
             request.cookies.access_token = newAccessToken;

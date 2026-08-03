@@ -20,6 +20,7 @@ import type { DbTx } from '@/infra/database/pg/drizzle.types';
 import { ClockService } from '@/common/clock/clock.service';
 import { DomainHttpException } from '@/common/domain/domain-http.exception';
 import { assertVersion } from '@/common/domain/assert-version';
+import { isTrainerScoped, requireTrainerId, type Actor } from '@/common/auth/actor';
 import { SessionMaterializerService } from './session-materializer.service';
 import type { CreateClassDto, ListClassesQueryDto, SetClassStatusDto, UpdateClassDto } from './dto/class.dtos';
 import type { ClassMutationResult, ClassSeriesDto, MutationImpact, TrainerSummary } from './class.types';
@@ -42,12 +43,16 @@ export class ClassesService {
         private readonly materializer: SessionMaterializerService,
     ) {}
 
-    async list(query: ListClassesQueryDto): Promise<ClassSeriesDto[]> {
+    async list(query: ListClassesQueryDto, actor: Actor): Promise<ClassSeriesDto[]> {
         const conditions = [
             query.status ? eq(classSeriesInApp.status, query.status) : ne(classSeriesInApp.status, 'ARCHIVED'),
         ];
         if (query.trainerId) conditions.push(eq(classSeriesInApp.trainerId, query.trainerId));
         if (query.q?.trim()) conditions.push(ilike(classSeriesInApp.name, `%${query.q.trim()}%`));
+        if (isTrainerScoped(actor)) {
+            const trainerId = await requireTrainerId(this.drizzle.db, actor.userId);
+            conditions.push(eq(classSeriesInApp.trainerId, trainerId));
+        }
 
         const rows = await this.drizzle.db
             .select({ series: classSeriesInApp, trainerName: usersInApp.fullName })
@@ -61,7 +66,7 @@ export class ClassesService {
         return rows.map((r) => this.toDto(r.series, weekdaysBySeries.get(r.series.id) ?? [], r.trainerName));
     }
 
-    async detail(id: string): Promise<ClassSeriesDto> {
+    async detail(id: string, actor: Actor): Promise<ClassSeriesDto> {
         const [row] = await this.drizzle.db
             .select({ series: classSeriesInApp, trainerName: usersInApp.fullName })
             .from(classSeriesInApp)
@@ -69,6 +74,15 @@ export class ClassesService {
             .innerJoin(usersInApp, eq(trainersInApp.userId, usersInApp.id))
             .where(eq(classSeriesInApp.id, id));
         if (!row) throw new DomainHttpException(404, 'CLASS_NOT_FOUND', 'La clase no existe.', { classId: id });
+        if (isTrainerScoped(actor)) {
+            const trainerId = await requireTrainerId(this.drizzle.db, actor.userId);
+            if (row.series.trainerId !== trainerId) {
+                // Mismo código que un 404 para no filtrar la existencia de la serie.
+                throw new DomainHttpException(403, 'CLASS_NOT_FOUND', 'La clase no pertenece al entrenador.', {
+                    classId: id,
+                });
+            }
+        }
         const weekdays = await this.weekdaysFor([id]);
         return this.toDto(row.series, weekdays.get(id) ?? [], row.trainerName);
     }

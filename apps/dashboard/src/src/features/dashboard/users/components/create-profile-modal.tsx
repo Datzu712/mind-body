@@ -35,8 +35,10 @@ export function CreateProfileModal({
     suggestedType,
     availableTypes,
 }: CreateProfileModalProps) {
-    const [profileType, setProfileType] = useState<ProfileType | ''>(suggestedType || '');
+    // Solo ADMIN/STAFF llega hasta aquí (la acción está oculta para el resto),
+    // así que todos los tipos disponibles del usuario son asignables.
     const typeOptions = availableTypes ?? (['MEMBER', 'TRAINER', 'STAFF'] as ProfileType[]);
+    const [profileType, setProfileType] = useState<ProfileType | ''>(suggestedType ?? '');
     const formRef = useRef<HTMLFormElement>(null);
     const createProfile = useCreateProfile(userId);
 
@@ -66,7 +68,7 @@ export function CreateProfileModal({
                         profileType === 'MEMBER' ? 'miembro' : profileType === 'TRAINER' ? 'entrenador' : 'staff';
                     sileo.success({ title: `Perfil de ${label} creado exitosamente` });
                     onOpenChange(false);
-                    setProfileType(suggestedType || '');
+                    setProfileType(suggestedType ?? '');
                     form.reset();
                 },
                 onError: (error) => {
@@ -91,18 +93,24 @@ export function CreateProfileModal({
                 <form ref={formRef} onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
                     <div className="col-span-2 flex flex-col gap-1.5">
                         <Label className="text-sm font-medium">Tipo de perfil</Label>
-                        <Select value={profileType} onValueChange={(v) => setProfileType(v as ProfileType)}>
-                            <SelectTrigger className="w-full bg-secondary/50 border-border">
-                                <SelectValue placeholder="Seleccionar tipo..." />
-                            </SelectTrigger>
-                            <SelectContent className="bg-popover border-border">
-                                {typeOptions.map((type) => (
-                                    <SelectItem key={type} value={type}>
-                                        {PROFILE_TYPE_LABELS[type]}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        {typeOptions.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                Este usuario ya tiene todos los perfiles disponibles.
+                            </p>
+                        ) : (
+                            <Select value={profileType} onValueChange={(v) => setProfileType(v as ProfileType)}>
+                                <SelectTrigger className="w-full bg-secondary/50 border-border">
+                                    <SelectValue placeholder="Seleccionar tipo..." />
+                                </SelectTrigger>
+                                <SelectContent className="bg-popover border-border">
+                                    {typeOptions.map((type) => (
+                                        <SelectItem key={type} value={type}>
+                                            {PROFILE_TYPE_LABELS[type]}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
                     </div>
 
                     <Separator className="col-span-2" />

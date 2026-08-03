@@ -12,7 +12,8 @@ import {
 } from '@/infra/database/pg/schemas/schema';
 import type { User } from '@/infra/database/pg/schemas/schema';
 import { REDIS_KEY } from '@/infra/database/redis/redis-provider';
-import { KeycloakAdminService, type APPLICATION_ROLE } from '@/infra/keycloak/keycloak-admin.service';
+import { KeycloakAdminService } from '@/infra/keycloak/keycloak-admin.service';
+import type { AppRole } from '@/common/constant/roles.constant';
 import type { ListUsersQueryDto } from './dto/list-users-query.dto';
 import type { CreateUserDto } from './dto/create-user.dto';
 import type { UpdateUserDto } from './dto/update-user.dto';
@@ -29,7 +30,7 @@ interface UpsertUserOptions {
     email?: string | undefined;
 }
 
-const PROFILE_TO_KC_ROLE: Record<ProfileType, APPLICATION_ROLE> = {
+const PROFILE_TO_KC_ROLE: Record<ProfileType, AppRole> = {
     MEMBER: 'MEMBER',
     TRAINER: 'TRAINER',
     STAFF: 'STAFF',

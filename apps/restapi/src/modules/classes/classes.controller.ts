@@ -13,28 +13,37 @@ import {
 } from '@nestjs/common';
 import type { User } from '@/infra/database/pg/schemas/schema';
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { CurrentActor } from '@/common/decorators/current-actor.decorator';
+import { Roles } from '@/common/decorators/roles.decorator';
+import { DASHBOARD_ROLES, MANAGEMENT_ROLES } from '@/common/constant/roles.constant';
+import type { Actor } from '@/common/auth/actor';
 import { ClassesService } from './classes.service';
 import { CreateClassDto, ListClassesQueryDto, SetClassStatusDto, UpdateClassDto } from './dto/class.dtos';
 
-// TODO(RBAC): cuando el RolesGuard del equipo esté disponible, restringir:
-// gestión → ADMIN/STAFF; lectura → ADMIN/STAFF/TRAINER (trainer solo sus series).
+// Dominio exclusivo del dashboard. Gestión → ADMIN/STAFF (default de clase, así
+// un endpoint nuevo sin decorador queda cerrado); lectura → + TRAINER, recortada
+// a sus propias series en el service. `@CurrentActor` autoriza, `@CurrentUser` audita.
+@Roles(...MANAGEMENT_ROLES)
 @Controller('classes')
 export class ClassesController {
     constructor(private readonly classes: ClassesService) {}
 
+    @Roles(...DASHBOARD_ROLES)
     @Get()
-    async list(@Query() query: ListClassesQueryDto) {
-        return this.classes.list(query);
+    async list(@Query() query: ListClassesQueryDto, @CurrentActor() actor: Actor) {
+        return this.classes.list(query, actor);
     }
 
+    /** Catálogo de entrenadores para asignar una serie: solo gestión. */
     @Get('trainer-options')
     async trainerOptions() {
         return this.classes.trainerOptions();
     }
 
+    @Roles(...DASHBOARD_ROLES)
     @Get(':id')
-    async detail(@Param('id', ParseUUIDPipe) id: string) {
-        return this.classes.detail(id);
+    async detail(@Param('id', ParseUUIDPipe) id: string, @CurrentActor() actor: Actor) {
+        return this.classes.detail(id, actor);
     }
 
     @Post()

@@ -95,12 +95,15 @@ function UserRowActions({
     user,
     onNavigate,
     onCreateProfile,
+    canCreateProfile,
 }: {
     user: UserBase;
     onNavigate: (path: string) => void;
     onCreateProfile: (user: UserBase, type: ProfileType) => void;
+    canCreateProfile: boolean;
 }) {
-    const missing = ALL_PROFILE_TYPES.filter((t) => !user.profiles.includes(t));
+    // Crear perfiles es ADMIN/STAFF en la API: sin ese rol no se ofrece la acción.
+    const missing = canCreateProfile ? ALL_PROFILE_TYPES.filter((t) => !user.profiles.includes(t)) : [];
     return (
         <div className="flex justify-end">
             <DropdownMenu>
@@ -137,6 +140,7 @@ function UserRowActions({
 export function createUsersColumns(
     onNavigate: (path: string) => void,
     onCreateProfile: (user: UserBase, type: ProfileType) => void,
+    canCreateProfile: boolean,
 ): ColumnDef<UserBase>[] {
     return [
         {
@@ -207,7 +211,12 @@ export function createUsersColumns(
             enableSorting: false,
             enableGlobalFilter: false,
             cell: ({ row }) => (
-                <UserRowActions user={row.original} onNavigate={onNavigate} onCreateProfile={onCreateProfile} />
+                <UserRowActions
+                    user={row.original}
+                    onNavigate={onNavigate}
+                    onCreateProfile={onCreateProfile}
+                    canCreateProfile={canCreateProfile}
+                />
             ),
         },
     ];

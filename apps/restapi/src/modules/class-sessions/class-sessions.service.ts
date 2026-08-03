@@ -17,6 +17,7 @@ import type { DbTx } from '@/infra/database/pg/drizzle.types';
 import { ClockService } from '@/common/clock/clock.service';
 import { DomainHttpException } from '@/common/domain/domain-http.exception';
 import { assertVersion } from '@/common/domain/assert-version';
+import { requireTrainerId, type Actor } from '@/common/auth/actor';
 import type { ListSessionsQueryDto, MoveSessionDto } from './dto/session.dtos';
 import type { SessionDto, SessionMutationResult, SessionViewer } from './session.types';
 
@@ -31,7 +32,7 @@ export class ClassSessionsService {
         private readonly clock: ClockService,
     ) {}
 
-    async list(query: ListSessionsQueryDto, viewerUserId: string): Promise<SessionDto[]> {
+    async list(query: ListSessionsQueryDto, actor: Actor): Promise<SessionDto[]> {
         const fromInstant = this.clock.fromLocal(query.from, '00:00');
         const toInstant = this.clock.fromLocal(query.to, '00:00').plus({ days: 1 });
         if (toInstant <= fromInstant) {
@@ -48,6 +49,12 @@ export class ClassSessionsService {
         if (!query.includeCancelled) conditions.push(eq(classSessionsInApp.status, 'SCHEDULED'));
         if (query.classId) conditions.push(eq(classSessionsInApp.classSeriesId, query.classId));
         if (query.trainerId) conditions.push(eq(classSessionsInApp.trainerId, query.trainerId));
+        // Filtro explícito, no permiso: el catálogo completo lo puede leer cualquier
+        // rol autenticado (es la agenda del gimnasio que mobile ya muestra).
+        if (query.mine) {
+            const trainerId = await requireTrainerId(this.drizzle.db, actor.userId);
+            conditions.push(eq(classSessionsInApp.trainerId, trainerId));
+        }
 
         const rows = await this.drizzle.db
             .select({ session: classSessionsInApp, trainerName: usersInApp.fullName })
@@ -59,14 +66,14 @@ export class ClassSessionsService {
 
         const sessionIds = rows.map((r) => r.session.id);
         const booked = await this.bookedBySession(this.drizzle.db, sessionIds);
-        const viewers = await this.viewersFor(sessionIds, viewerUserId);
+        const viewers = await this.viewersFor(sessionIds, actor.userId);
 
         return rows.map((r) =>
             this.toDto(r.session, r.trainerName, booked.get(r.session.id) ?? 0, viewers?.get(r.session.id) ?? null),
         );
     }
 
-    async detail(id: string, viewerUserId: string): Promise<SessionDto> {
+    async detail(id: string, actor: Actor): Promise<SessionDto> {
         const [row] = await this.drizzle.db
             .select({ session: classSessionsInApp, trainerName: usersInApp.fullName })
             .from(classSessionsInApp)
@@ -76,7 +83,7 @@ export class ClassSessionsService {
         if (!row) throw new DomainHttpException(404, 'SESSION_NOT_FOUND', 'La sesión no existe.', { sessionId: id });
 
         const booked = await this.bookedBySession(this.drizzle.db, [id]);
-        const viewers = await this.viewersFor([id], viewerUserId);
+        const viewers = await this.viewersFor([id], actor.userId);
         return this.toDto(row.session, row.trainerName, booked.get(id) ?? 0, viewers?.get(id) ?? null);
     }
 

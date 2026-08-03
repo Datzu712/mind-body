@@ -82,6 +82,23 @@ jobs:
     test:
         name: Test
         runs-on: ubuntu-latest
+        # Sin Postgres, la suite de integración de reservas se salta en silencio
+        # y con ella todas las pruebas de autorización a nivel de servicio.
+        services:
+            postgres:
+                # 18: las migraciones usan uuidv7(), nativo desde esa versión.
+                image: postgres:18
+                env:
+                    POSTGRES_PASSWORD: postgres
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+        env:
+            DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
         steps:
             - uses: actions/checkout@v4
 

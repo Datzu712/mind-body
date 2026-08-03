@@ -17,6 +17,7 @@ import { pgErrorCode } from '@/infra/database/pg/pg-error';
 import type { DbTx } from '@/infra/database/pg/drizzle.types';
 import { ClockService } from '@/common/clock/clock.service';
 import { DomainHttpException } from '@/common/domain/domain-http.exception';
+import { isManagement, isTrainerScoped, requireTrainerId, type Actor } from '@/common/auth/actor';
 import type { SessionDto } from '@/modules/class-sessions/session.types';
 import type {
     AdminCancelReservationDto,
@@ -172,9 +173,9 @@ export class ReservationsService {
     }
 
     /** Sesiones alternativas: misma serie, futuras, programadas, con cupo. */
-    async rescheduleOptions(reservationId: string, viewerUserId: string): Promise<SessionDto[]> {
+    async rescheduleOptions(reservationId: string, actor: Actor): Promise<SessionDto[]> {
         const context = await this.loadReservation(this.drizzle.db, reservationId);
-        await this.assertOwnerOrStaff(this.drizzle.db, context.reservation, viewerUserId);
+        await this.assertOwnerOrManagement(this.drizzle.db, context.reservation, actor);
 
         const nowIso = this.clock.now().toISO()!;
         const candidates = await this.drizzle.db
@@ -211,7 +212,7 @@ export class ReservationsService {
     async reschedule(
         reservationId: string,
         dto: RescheduleReservationDto,
-        viewerUserId: string,
+        actor: Actor,
     ): Promise<ReservationMutationResult> {
         return await this.drizzle.db.transaction(async (tx) => {
             const loaded = await this.loadReservation(tx, reservationId);
@@ -231,7 +232,7 @@ export class ReservationsService {
                 .from(reservationsInApp)
                 .where(eq(reservationsInApp.id, reservationId))
                 .for('update');
-            const isOwner = await this.assertOwnerOrStaff(tx, reservation!, viewerUserId);
+            const isOwner = await this.assertOwnerOrManagement(tx, reservation!, actor);
 
             // Retry idéntico: el origen ya fue reprogramado a este mismo target.
             if (reservation!.status === 'CANCELLED' && reservation!.statusReason === 'RESCHEDULED') {
@@ -320,7 +321,7 @@ export class ReservationsService {
                     status: 'CANCELLED',
                     statusReason: 'RESCHEDULED',
                     cancelledAt: nowIso,
-                    updatedByUserId: viewerUserId,
+                    updatedByUserId: actor.userId,
                     updatedAt: nowIso,
                 })
                 .where(eq(reservationsInApp.id, reservationId));
@@ -334,14 +335,14 @@ export class ReservationsService {
                     statusReason: 'RESCHEDULED',
                     confirmedAt: nowIso,
                     rescheduledFromReservationId: reservationId,
-                    createdByUserId: viewerUserId,
+                    createdByUserId: actor.userId,
                 })
                 .returning();
 
             await tx.insert(reservationEventsInApp).values([
                 {
                     reservationId,
-                    actorUserId: viewerUserId,
+                    actorUserId: actor.userId,
                     fromStatus: 'CONFIRMED' as const,
                     toStatus: 'CANCELLED' as const,
                     reason: 'RESCHEDULED' as const,
@@ -352,7 +353,7 @@ export class ReservationsService {
                 },
                 {
                     reservationId: destination!.id,
-                    actorUserId: viewerUserId,
+                    actorUserId: actor.userId,
                     fromStatus: null,
                     toStatus: 'CONFIRMED' as const,
                     reason: 'RESCHEDULED' as const,
@@ -373,7 +374,7 @@ export class ReservationsService {
     async cancel(
         reservationId: string,
         dto: AdminCancelReservationDto | undefined,
-        viewerUserId: string,
+        actor: Actor,
     ): Promise<CancelReservationResult> {
         return await this.drizzle.db.transaction(async (tx) => {
             const loaded = await this.loadReservation(tx, reservationId);
@@ -383,7 +384,7 @@ export class ReservationsService {
                 .from(reservationsInApp)
                 .where(eq(reservationsInApp.id, reservationId))
                 .for('update');
-            const isOwner = await this.assertOwnerOrStaff(tx, reservation!, viewerUserId);
+            const isOwner = await this.assertOwnerOrManagement(tx, reservation!, actor);
 
             if (reservation!.status === 'CANCELLED' || reservation!.status === 'NO_SHOW') {
                 // Idempotente: repetir la cancelación devuelve el estado actual.
@@ -432,14 +433,14 @@ export class ReservationsService {
                               status: 'NO_SHOW',
                               statusReason: 'LATE_CANCELLATION',
                               cancelledAt: nowIso,
-                              updatedByUserId: viewerUserId,
+                              updatedByUserId: actor.userId,
                               updatedAt: nowIso,
                           }
                         : {
                               status: 'CANCELLED',
                               statusReason: intent === 'ADMIN_OVERRIDE' ? 'ADMIN_CANCELLED' : 'MEMBER_CANCELLED',
                               cancelledAt: nowIso,
-                              updatedByUserId: viewerUserId,
+                              updatedByUserId: actor.userId,
                               updatedAt: nowIso,
                           },
                 )
@@ -447,7 +448,7 @@ export class ReservationsService {
 
             await tx.insert(reservationEventsInApp).values({
                 reservationId,
-                actorUserId: viewerUserId,
+                actorUserId: actor.userId,
                 fromStatus: 'CONFIRMED',
                 toStatus: asNoShow ? 'NO_SHOW' : 'CANCELLED',
                 reason: asNoShow
@@ -530,7 +531,7 @@ export class ReservationsService {
     }
 
     /** Roster administrativo de una sesión: todas las reservas, incluida la historia cancelada. */
-    async roster(sessionId: string): Promise<SessionMemberEntryDto[]> {
+    async roster(sessionId: string, actor: Actor): Promise<SessionMemberEntryDto[]> {
         const [sessionRow] = await this.drizzle.db
             .select({ session: classSessionsInApp, trainerName: usersInApp.fullName })
             .from(classSessionsInApp)
@@ -539,6 +540,15 @@ export class ReservationsService {
             .where(eq(classSessionsInApp.id, sessionId));
         if (!sessionRow) {
             throw new DomainHttpException(404, 'SESSION_NOT_FOUND', 'La sesión no existe.', { sessionId });
+        }
+        if (isTrainerScoped(actor)) {
+            const trainerId = await requireTrainerId(this.drizzle.db, actor.userId);
+            if (sessionRow.session.trainerId !== trainerId) {
+                // Mismo código que un 404 para no filtrar la existencia de la sesión.
+                throw new DomainHttpException(403, 'SESSION_NOT_FOUND', 'La sesión no pertenece al entrenador.', {
+                    sessionId,
+                });
+            }
         }
 
         const memberUsers = alias(usersInApp, 'member_users');
@@ -668,18 +678,22 @@ export class ReservationsService {
     }
 
     /**
-     * Ownership provisional sin RBAC: el dueño siempre puede; un usuario SIN
-     * perfil de miembro se trata como staff/admin. Un miembro ajeno se
-     * rechaza. TODO(RBAC): sustituir por roles verificados del token.
+     * Ownership con los roles verificados del token: el dueño de la reserva
+     * siempre puede, y ADMIN/STAFF pueden sobre reservas ajenas (devuelve
+     * `false` = actúa como gestión, no como dueño). Cualquier otro caso se
+     * rechaza con el mismo código que un 404 para no filtrar la reserva.
+     *
+     * Un ADMIN/STAFF que además es miembro y opera SU propia reserva cuenta
+     * como dueño: se le aplican las reglas de miembro, igual que antes.
      */
-    private async assertOwnerOrStaff(
+    private async assertOwnerOrManagement(
         db: DbTx | DrizzleService['db'],
         reservation: ReservationRow,
-        viewerUserId: string,
+        actor: Actor,
     ): Promise<boolean> {
-        const member = await this.memberOf(db, viewerUserId);
+        const member = await this.memberOf(db, actor.userId);
         if (member?.id === reservation.memberId) return true;
-        if (!member) return false; // sin perfil member → staff/admin (provisional)
+        if (isManagement(actor)) return false;
         throw new DomainHttpException(403, 'RESERVATION_NOT_FOUND', 'La reserva no pertenece al usuario.', {
             reservationId: reservation.id,
         });

@@ -12,6 +12,13 @@ export interface AuthUser {
 
 export const AUTH_QUERY_KEY = ['auth', 'me'] as const;
 
+// ADMIN y STAFF son los roles de gestión del gimnasio; el TRAINER solo
+// consulta. Fuente única de la verdad en el dashboard para que no se
+// desincronice de `MANAGEMENT_ROLES` en la API (@Roles en los controllers).
+export function isManagementRole(roles: string[] | undefined): boolean {
+    return roles?.some((r) => r === 'ADMIN' || r === 'STAFF') ?? false;
+}
+
 export function useAuth() {
     const queryClient = useQueryClient();
 
