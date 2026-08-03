@@ -5,6 +5,7 @@ import { z } from 'zod';
 import type Redis from 'ioredis';
 import { DateTime } from 'luxon';
 
+import type { Actor } from '@/common/auth/actor';
 import { TypedConfigService } from '@/config/typed-config.service';
 import { REDIS_KEY } from '@/infra/database/redis/redis-provider';
 import { type User } from '@/infra/database/pg/schemas/schema';
@@ -51,7 +52,7 @@ export class AgentService {
         private readonly config: TypedConfigService,
     ) {}
 
-    async *streamChat(userMessage: string, currentUser: User): AsyncGenerator<string> {
+    async *streamChat(userMessage: string, currentUser: User, actor: Actor): AsyncGenerator<string> {
         const [history, latestMeasurement] = await Promise.all([
             this.loadHistory(currentUser.keycloakSubject),
             this.loadLatestMeasurement(currentUser),
@@ -76,7 +77,7 @@ export class AgentService {
             providerOptions: { openai: openaiOptions },
             tools: {
                 ...buildExerciseCatalogTools(this.exercises, (t, e) => this.toolError(t, e)),
-                ...this.buildUserTools(currentUser),
+                ...this.buildUserTools(currentUser, actor),
             },
             stopWhen: stepCountIs(5),
             onStepFinish: ({ toolCalls, toolResults }) => {
@@ -97,7 +98,7 @@ export class AgentService {
 
     /** Tools backed by real per-user data. Errors are returned as data so a
      *  missing member profile degrades to a normal answer instead of killing the stream. */
-    private buildUserTools(user: User) {
+    private buildUserTools(user: User, actor: Actor) {
         return {
             getBodyProgress: tool({
                 description:
@@ -175,7 +176,7 @@ export class AgentService {
                         const to = from.plus({ days: days - 1 });
                         const sessions = await this.classSessions.list(
                             { from: from.toISODate()!, to: to.toISODate()! },
-                            user.id,
+                            actor,
                         );
                         return sessions
                             .filter((s) => s.status === 'SCHEDULED')
