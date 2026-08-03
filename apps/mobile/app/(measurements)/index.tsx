@@ -13,15 +13,25 @@ import { NewMeasurementModal } from '@/components/measurements/NewMeasurementMod
 export default function MeasurementsScreen() {
     const [historyVisible, setHistoryVisible] = useState(false);
     const [formVisible, setFormVisible] = useState(false);
-    const [toast, setToast] = useState(false);
+    const [toast, setToast] = useState<string | null>(null);
     const { data: measurements } = useMeasurements();
     const hasData = measurements && measurements.length > 0;
 
-    const handleSaved = useCallback(() => {
-        setFormVisible(false);
-        setToast(true);
-        setTimeout(() => setToast(false), 2200);
+    const showToast = useCallback((message: string) => {
+        setToast(message);
+        setTimeout(() => setToast(null), 2200);
     }, []);
+
+    const handleCreated = useCallback(() => {
+        setFormVisible(false);
+        showToast('Medición registrada');
+    }, [showToast]);
+
+    // El historial se cierra al corregir: el toast va detrás del modal.
+    const handleCorrected = useCallback(() => {
+        setHistoryVisible(false);
+        showToast('Medición corregida');
+    }, [showToast]);
 
     return (
         <>
@@ -56,17 +66,18 @@ export default function MeasurementsScreen() {
                     </Pressable>
                 )}
 
-                <HistoryModal visible={historyVisible} onClose={() => setHistoryVisible(false)} />
-                <NewMeasurementModal
-                    visible={formVisible}
-                    onClose={() => setFormVisible(false)}
-                    onSaved={handleSaved}
+                <HistoryModal
+                    visible={historyVisible}
+                    onClose={() => setHistoryVisible(false)}
+                    onSaved={handleCorrected}
                 />
+                {/* Montado solo mientras está abierto: nunca hay dos Modal vivos a la vez. */}
+                {formVisible && <NewMeasurementModal onClose={() => setFormVisible(false)} onSaved={handleCreated} />}
 
                 {toast && (
                     <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(300)} style={s.toast}>
                         <Ionicons name="checkmark-circle" size={20} color={T.green} />
-                        <Text style={s.toastText}>Medición registrada</Text>
+                        <Text style={s.toastText}>{toast}</Text>
                     </Animated.View>
                 )}
             </View>
