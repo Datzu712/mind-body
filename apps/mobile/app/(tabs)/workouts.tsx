@@ -1,245 +1,346 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    FlatList,
+    Modal,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+
 import { FitColors as T } from '@/constants/theme';
+import { useExercises, useExerciseFacets, type ExerciseSlim } from '@/lib/api/exercises';
+import { bodyPartLabel, equipmentLabel, targetLabel } from '@/lib/exercise-labels';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type Exercise = {
-    nm: string;
-    ms: string;
-    sets: string;
-    reps: string;
-    lv: string;
-    ac: string;
-    em: string;
-};
-
-type CategoryId = 'fuerza' | 'cardio' | 'flexibilidad';
-
-// ── Data ─────────────────────────────────────────────────────────────────────
-
-const CATEGORIES: { id: CategoryId; label: string; icon: string }[] = [
-    { id: 'fuerza', label: 'FUERZA', icon: '🏋️' },
-    { id: 'cardio', label: 'CARDIO', icon: '🏃' },
-    { id: 'flexibilidad', label: 'FLEXIB.', icon: '🧘' },
-];
-
-const EXERCISES: Record<CategoryId, Exercise[]> = {
-    fuerza: [
-        { nm: 'Press de Banca', ms: 'Pecho', sets: '4', reps: '10', lv: 'AVANZADO', ac: T.orange, em: '🏋️' },
-        { nm: 'Peso Muerto', ms: 'Espalda baja', sets: '4', reps: '6', lv: 'AVANZADO', ac: T.red, em: '⚡' },
-        { nm: 'Sentadilla', ms: 'Cuádriceps', sets: '4', reps: '8', lv: 'AVANZADO', ac: '#FF9500', em: '🔥' },
-        { nm: 'Press Militar', ms: 'Hombros', sets: '3', reps: '10', lv: 'INTERMEDIO', ac: T.purple, em: '💥' },
-        { nm: 'Dominadas', ms: 'Espalda', sets: '3', reps: 'Máx.', lv: 'AVANZADO', ac: T.blue, em: '🎯' },
-        { nm: 'Fondos en Paralelas', ms: 'Tríceps', sets: '3', reps: '12', lv: 'INTERMEDIO', ac: T.green, em: '✊' },
-    ],
-    cardio: [
-        { nm: 'Carrera HIIT', ms: 'Full Body', sets: '8', reps: '30s', lv: 'INTENSO', ac: T.yellow, em: '🏃' },
-        { nm: 'Salto de Cuerda', ms: 'Cardio', sets: '5', reps: '2min', lv: 'MODERADO', ac: T.orange, em: '⚡' },
-        { nm: 'Box Jumps', ms: 'Piernas', sets: '4', reps: '15', lv: 'INTENSO', ac: T.red, em: '🦘' },
-        { nm: 'Burpees', ms: 'Full Body', sets: '4', reps: '20', lv: 'INTENSO', ac: '#FF9500', em: '🔥' },
-        { nm: 'Ciclismo Indoor', ms: 'Cardio', sets: '1', reps: '45min', lv: 'MODERADO', ac: T.green, em: '🚴' },
-    ],
-    flexibilidad: [
-        { nm: 'Hip Flexor Stretch', ms: 'Caderas', sets: '3', reps: '60s', lv: 'BÁSICO', ac: '#64D2FF', em: '🧘' },
-        { nm: 'Isquiotibiales', ms: 'Piernas', sets: '3', reps: '45s', lv: 'BÁSICO', ac: T.green, em: '🌊' },
-        { nm: 'Movilidad Hombros', ms: 'Hombros', sets: '3', reps: '30s', lv: 'BÁSICO', ac: T.purple, em: '🌀' },
-        { nm: 'Cat-Cow', ms: 'Columna', sets: '2', reps: '20', lv: 'BÁSICO', ac: '#FF9500', em: '🐱' },
-        { nm: 'Pigeon Pose', ms: 'Glúteos', sets: '2', reps: '90s', lv: 'MODERADO', ac: T.blue, em: '🕊️' },
-    ],
-};
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const Pill = ({ label, bg = T.yellow, fg = T.bg, sm }: { label: string; bg?: string; fg?: string; sm?: boolean }) => (
-    <View
-        style={{
-            backgroundColor: bg,
-            borderRadius: 5,
-            paddingHorizontal: sm ? 6 : 8,
-            paddingVertical: sm ? 2 : 3,
-            alignSelf: 'flex-start',
-        }}
-    >
-        <Text
-            style={{
-                color: fg,
-                fontSize: sm ? 9 : 10,
-                fontWeight: '800',
-                letterSpacing: 0.4,
-                textTransform: 'uppercase',
-            }}
-        >
-            {label}
-        </Text>
-    </View>
-);
-
-// ── Screen ────────────────────────────────────────────────────────────────────
+function useDebounced(value: string, ms = 300): string {
+    const [debounced, setDebounced] = useState(value);
+    useEffect(() => {
+        const t = setTimeout(() => setDebounced(value), ms);
+        return () => clearTimeout(t);
+    }, [value, ms]);
+    return debounced;
+}
 
 export default function WorkoutsScreen() {
-    const [cat, setCat] = useState<CategoryId>('fuerza');
-    const list = EXERCISES[cat];
+    const [search, setSearch] = useState('');
+    const [bodyPart, setBodyPart] = useState<string | null>(null);
+    const [equipment, setEquipment] = useState<string | null>(null);
+    const [equipModalOpen, setEquipModalOpen] = useState(false);
+    const q = useDebounced(search);
+
+    const { data: facets } = useExerciseFacets();
+    const { data, isPending, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useExercises({
+        q: q || undefined,
+        bodyPart: bodyPart ?? undefined,
+        equipment: equipment ?? undefined,
+    });
+
+    const exercises = data?.pages.flatMap((p) => p.items) ?? [];
+    const total = data?.pages[0]?.total ?? 0;
+
+    const openDetail = (id: string) => router.push({ pathname: '/(exercises)/detail', params: { id } });
 
     return (
-        <SafeAreaView style={s.root} edges={['top']}>
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
-                {/* Header */}
-                <View style={s.header}>
-                    <Text style={s.eyebrow}>CATÁLOGO</Text>
+        <SafeAreaView style={s.safe} edges={['top']}>
+            {/* Header */}
+            <View style={s.header}>
+                <View>
                     <Text style={s.title}>EJERCICIOS</Text>
+                    {total > 0 && <Text style={s.subtitle}>{total} en la biblioteca</Text>}
                 </View>
+                <TouchableOpacity
+                    style={[s.filterBtn, equipment != null && s.filterBtnActive]}
+                    onPress={() => setEquipModalOpen(true)}
+                >
+                    <Ionicons name="options-outline" size={20} color={equipment != null ? '#000' : T.white} />
+                </TouchableOpacity>
+            </View>
 
-                {/* Search bar (visual) */}
-                <View style={s.px}>
-                    <View style={s.searchBar}>
-                        <Ionicons name="search" size={15} color={T.muted} />
-                        <Text style={s.searchPlaceholder}>Buscar ejercicio...</Text>
-                    </View>
-                </View>
+            {/* Búsqueda */}
+            <View style={s.searchBox}>
+                <Ionicons name="search" size={18} color={T.muted} />
+                <TextInput
+                    style={s.searchInput}
+                    value={search}
+                    onChangeText={setSearch}
+                    placeholder="Buscar ejercicio..."
+                    placeholderTextColor={T.muted}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                />
+                {search !== '' && (
+                    <Pressable onPress={() => setSearch('')}>
+                        <Ionicons name="close-circle" size={18} color={T.muted} />
+                    </Pressable>
+                )}
+            </View>
 
-                {/* Category tabs */}
-                <View style={s.catRow}>
-                    {CATEGORIES.map((c) => {
-                        const active = cat === c.id;
-                        return (
-                            <TouchableOpacity
-                                key={c.id}
-                                style={[s.catTab, active && s.catTabActive]}
-                                onPress={() => setCat(c.id)}
-                                activeOpacity={0.75}
-                            >
-                                <Text style={s.catIcon}>{c.icon}</Text>
-                                <Text style={[s.catLabel, active && s.catLabelActive]}>{c.label}</Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
-
-                {/* Exercise list */}
-                <View style={[s.px, { gap: 10 }]}>
-                    {list.map((ex, i) => (
-                        <TouchableOpacity key={`${cat}-${i}`} style={s.exCard} activeOpacity={0.8}>
-                            {/* Emoji icon */}
-                            <View style={[s.exIcon, { backgroundColor: ex.ac + '22', borderColor: ex.ac + '44' }]}>
-                                <Text style={{ fontSize: 22 }}>{ex.em}</Text>
-                            </View>
-
-                            {/* Info */}
-                            <View style={{ flex: 1 }}>
-                                <View style={s.exTopRow}>
-                                    <Text style={s.exName} numberOfLines={1}>
-                                        {ex.nm}
-                                    </Text>
-                                    <Pill label={ex.lv} bg={ex.ac + '22'} fg={ex.ac} sm />
-                                </View>
-                                <Text style={s.exMuscle}>{ex.ms}</Text>
-
-                                {/* Sets / Reps chips */}
-                                <View style={s.chipsRow}>
-                                    {[
-                                        ['SERIES', ex.sets],
-                                        ['REPS', ex.reps],
-                                    ].map(([lbl, val], j) => (
-                                        <View key={j} style={s.chip}>
-                                            <Text style={s.chipLabel}>{lbl}</Text>
-                                            <Text style={s.chipVal}>{val}</Text>
-                                        </View>
-                                    ))}
-                                </View>
-                            </View>
-
-                            <Ionicons name="chevron-forward" size={16} color={T.muted} />
+            {/* Chips de grupo muscular */}
+            <View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsRow}>
+                    <TouchableOpacity
+                        style={[s.chip, bodyPart == null && s.chipActive]}
+                        onPress={() => setBodyPart(null)}
+                    >
+                        <Text style={[s.chipText, bodyPart == null && s.chipTextActive]}>Todos</Text>
+                    </TouchableOpacity>
+                    {facets?.bodyParts.map((bp) => (
+                        <TouchableOpacity
+                            key={bp}
+                            style={[s.chip, bodyPart === bp && s.chipActive]}
+                            onPress={() => setBodyPart(bodyPart === bp ? null : bp)}
+                        >
+                            <Text style={[s.chipText, bodyPart === bp && s.chipTextActive]}>{bodyPartLabel(bp)}</Text>
                         </TouchableOpacity>
                     ))}
+                </ScrollView>
+            </View>
+
+            {/* Lista */}
+            {isPending ? (
+                <View style={s.listPad}>
+                    {Array.from({ length: 7 }).map((_, i) => (
+                        <View key={i} style={s.skeletonRow}>
+                            <View style={s.skeletonThumb} />
+                            <View style={{ flex: 1, gap: 8 }}>
+                                <View style={[s.skeletonBar, { width: '70%' }]} />
+                                <View style={[s.skeletonBar, { width: '45%' }]} />
+                            </View>
+                        </View>
+                    ))}
                 </View>
-            </ScrollView>
+            ) : isError ? (
+                <View style={s.centerBox}>
+                    <Ionicons name="cloud-offline-outline" size={40} color={T.muted} />
+                    <Text style={s.centerText}>No se pudieron cargar los ejercicios</Text>
+                    <TouchableOpacity style={s.retryBtn} onPress={() => void refetch()}>
+                        <Text style={s.retryText}>REINTENTAR</Text>
+                    </TouchableOpacity>
+                </View>
+            ) : exercises.length === 0 ? (
+                <View style={s.centerBox}>
+                    <Ionicons name="search-outline" size={40} color={T.muted} />
+                    <Text style={s.centerText}>Sin resultados</Text>
+                    <Text style={s.centerSub}>Probá con otro término u otros filtros</Text>
+                </View>
+            ) : (
+                <FlatList
+                    data={exercises}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={s.listPad}
+                    onEndReached={() => hasNextPage && !isFetchingNextPage && fetchNextPage()}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={
+                        isFetchingNextPage ? (
+                            <ActivityIndicator color={T.yellow} style={{ marginVertical: 16 }} />
+                        ) : null
+                    }
+                    renderItem={({ item }) => <ExerciseRow exercise={item} onPress={() => openDetail(item.id)} />}
+                />
+            )}
+
+            {/* Modal filtro de equipo */}
+            <Modal
+                visible={equipModalOpen}
+                animationType="slide"
+                transparent
+                onRequestClose={() => setEquipModalOpen(false)}
+            >
+                <Pressable style={s.modalBackdrop} onPress={() => setEquipModalOpen(false)}>
+                    <Pressable style={s.modalSheet} onPress={(e) => e.stopPropagation()}>
+                        <View style={s.modalHandle} />
+                        <Text style={s.modalTitle}>EQUIPO</Text>
+                        <ScrollView style={{ maxHeight: 420 }}>
+                            <TouchableOpacity
+                                style={s.modalRow}
+                                onPress={() => {
+                                    setEquipment(null);
+                                    setEquipModalOpen(false);
+                                }}
+                            >
+                                <Text style={[s.modalRowText, equipment == null && s.modalRowActive]}>
+                                    Todo el equipo
+                                </Text>
+                                {equipment == null && <Ionicons name="checkmark" size={18} color={T.yellow} />}
+                            </TouchableOpacity>
+                            {facets?.equipments.map((eq) => (
+                                <TouchableOpacity
+                                    key={eq}
+                                    style={s.modalRow}
+                                    onPress={() => {
+                                        setEquipment(eq);
+                                        setEquipModalOpen(false);
+                                    }}
+                                >
+                                    <Text style={[s.modalRowText, equipment === eq && s.modalRowActive]}>
+                                        {equipmentLabel(eq)}
+                                    </Text>
+                                    {equipment === eq && <Ionicons name="checkmark" size={18} color={T.yellow} />}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+function ExerciseRow({ exercise, onPress }: { exercise: ExerciseSlim; onPress: () => void }) {
+    const [broken, setBroken] = useState(false);
+    return (
+        <TouchableOpacity style={s.row} onPress={onPress} activeOpacity={0.7}>
+            <View style={s.thumbWrap}>
+                {!broken && exercise.imageUrl ? (
+                    <Image
+                        source={{ uri: exercise.imageUrl }}
+                        style={s.thumb}
+                        contentFit="contain"
+                        transition={150}
+                        onError={() => setBroken(true)}
+                    />
+                ) : (
+                    <Ionicons name="barbell-outline" size={24} color={T.muted} />
+                )}
+            </View>
+            <View style={{ flex: 1 }}>
+                <Text style={s.rowName} numberOfLines={2}>
+                    {exercise.name}
+                </Text>
+                <Text style={s.rowSub} numberOfLines={1}>
+                    {targetLabel(exercise.target)} · {equipmentLabel(exercise.equipment)}
+                </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={T.muted} />
+        </TouchableOpacity>
+    );
+}
 
 const s = StyleSheet.create({
-    root: { flex: 1, backgroundColor: T.bg },
-    scroll: { paddingBottom: 28 },
-    px: { paddingHorizontal: 20 },
-
-    header: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 14 },
-    eyebrow: {
-        fontSize: 11,
-        color: T.muted,
-        fontWeight: '700',
-        letterSpacing: 1,
-        textTransform: 'uppercase',
-        marginBottom: 4,
-    },
-    title: { fontSize: 24, fontWeight: '900', color: T.white },
-
-    searchBar: {
-        backgroundColor: T.card,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: T.border,
+    safe: { flex: 1, backgroundColor: T.bg },
+    header: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
-        paddingHorizontal: 14,
-        paddingVertical: 11,
-        marginBottom: 14,
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingTop: 8,
+        paddingBottom: 12,
     },
-    searchPlaceholder: { fontSize: 13, color: T.muted, fontWeight: '500' },
-
-    catRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 14 },
-    catTab: {
-        flex: 1,
+    title: { color: T.white, fontSize: 24, fontWeight: '900', letterSpacing: 0.5 },
+    subtitle: { color: T.muted, fontSize: 12, marginTop: 2 },
+    filterBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
         backgroundColor: T.card,
-        borderRadius: 10,
-        paddingVertical: 9,
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: T.border,
-        gap: 4,
+        justifyContent: 'center',
     },
-    catTabActive: { backgroundColor: T.yellow, borderColor: T.yellow },
-    catIcon: { fontSize: 14 },
-    catLabel: { fontSize: 10, fontWeight: '800', color: T.muted, letterSpacing: 0.3, textTransform: 'uppercase' },
-    catLabelActive: { color: T.bg },
-
-    exCard: {
+    filterBtnActive: { backgroundColor: T.yellow },
+    searchBox: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginHorizontal: 20,
+        marginBottom: 12,
+        paddingHorizontal: 12,
+        height: 44,
+        borderRadius: 12,
         backgroundColor: T.card,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: T.border,
-        padding: 14,
+    },
+    searchInput: { flex: 1, color: T.white, fontSize: 15 },
+    chipsRow: { paddingHorizontal: 20, gap: 8, paddingBottom: 12 },
+    chip: {
+        paddingHorizontal: 14,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: T.card,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    chipActive: { backgroundColor: T.yellow },
+    chipText: { color: T.muted, fontSize: 13, fontWeight: '600' },
+    chipTextActive: { color: '#000' },
+    listPad: { paddingHorizontal: 20, paddingBottom: 24 },
+    row: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
-    },
-    exIcon: {
-        width: 50,
-        height: 50,
+        backgroundColor: T.card,
         borderRadius: 14,
+        padding: 10,
+        marginBottom: 10,
+    },
+    thumbWrap: {
+        width: 64,
+        height: 64,
+        borderRadius: 10,
+        backgroundColor: '#FFFFFF',
         alignItems: 'center',
         justifyContent: 'center',
-        borderWidth: 1,
-        flexShrink: 0,
+        overflow: 'hidden',
     },
-    exTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 },
-    exName: { flex: 1, fontSize: 13, fontWeight: '700', color: T.white, marginRight: 8 },
-    exMuscle: { fontSize: 11, color: T.muted, marginBottom: 8 },
-    chipsRow: { flexDirection: 'row', gap: 7 },
-    chip: {
-        backgroundColor: T.card2,
-        borderRadius: 7,
-        paddingHorizontal: 9,
-        paddingVertical: 4,
+    thumb: { width: 64, height: 64 },
+    rowName: { color: T.white, fontSize: 14, fontWeight: '700', textTransform: 'capitalize' },
+    rowSub: { color: T.muted, fontSize: 12, marginTop: 3 },
+    centerBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 40 },
+    centerText: { color: T.white, fontSize: 15, fontWeight: '700', textAlign: 'center' },
+    centerSub: { color: T.muted, fontSize: 13, textAlign: 'center' },
+    retryBtn: {
+        marginTop: 8,
+        backgroundColor: T.yellow,
+        paddingHorizontal: 20,
+        height: 40,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    retryText: { color: '#000', fontWeight: '800', fontSize: 13 },
+    skeletonRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 5,
+        gap: 12,
+        backgroundColor: T.card,
+        borderRadius: 14,
+        padding: 10,
+        marginBottom: 10,
     },
-    chipLabel: { fontSize: 9, color: T.muted, fontWeight: '700', textTransform: 'uppercase' },
-    chipVal: { fontSize: 13, color: T.yellow, fontWeight: '900' },
+    skeletonThumb: { width: 64, height: 64, borderRadius: 10, backgroundColor: T.card2 },
+    skeletonBar: { height: 12, borderRadius: 6, backgroundColor: T.card2 },
+    modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+    modalSheet: {
+        backgroundColor: T.card,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingHorizontal: 20,
+        paddingBottom: 30,
+        paddingTop: 10,
+    },
+    modalHandle: {
+        alignSelf: 'center',
+        width: 40,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: T.card3,
+        marginBottom: 12,
+    },
+    modalTitle: { color: T.white, fontSize: 14, fontWeight: '900', letterSpacing: 1, marginBottom: 8 },
+    modalRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 12,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: T.card3,
+    },
+    modalRowText: { color: T.white, fontSize: 15 },
+    modalRowActive: { color: T.yellow, fontWeight: '700' },
 });
