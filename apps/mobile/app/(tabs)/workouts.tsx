@@ -18,6 +18,7 @@ import { Image } from 'expo-image';
 
 import { FitColors as T } from '@/constants/theme';
 import { useExercises, useExerciseFacets, type ExerciseSlim } from '@/lib/api/exercises';
+import { useMyRoutines, type RoutineDetail } from '@/lib/api/routines';
 import { bodyPartLabel, equipmentLabel, targetLabel } from '@/lib/exercise-labels';
 
 function useDebounced(value: string, ms = 300): string {
@@ -63,6 +64,9 @@ export default function WorkoutsScreen() {
                     <Ionicons name="options-outline" size={20} color={equipment != null ? '#000' : T.white} />
                 </TouchableOpacity>
             </View>
+
+            {/* Mi rutina (asignada por el trainer) */}
+            <MyRoutinesSection />
 
             {/* Búsqueda */}
             <View style={s.searchBox}>
@@ -194,6 +198,77 @@ export default function WorkoutsScreen() {
     );
 }
 
+function MyRoutinesSection() {
+    const { data: routines, isPending, isError } = useMyRoutines();
+
+    if (isPending) {
+        return (
+            <View style={s.routineSection}>
+                <View style={[s.routineCard, { opacity: 0.5 }]}>
+                    <View style={s.routineIcon} />
+                    <View style={{ flex: 1, gap: 8 }}>
+                        <View style={[s.skeletonBar, { width: '55%' }]} />
+                        <View style={[s.skeletonBar, { width: '35%' }]} />
+                    </View>
+                </View>
+            </View>
+        );
+    }
+    // Si falla (p. ej. sin perfil de miembro) la sección se oculta: la
+    // biblioteca sigue siendo el contenido principal del tab.
+    if (isError) return null;
+
+    if (!routines?.length) {
+        return (
+            <View style={s.routineSection}>
+                <View style={s.routineCard}>
+                    <View style={s.routineIcon}>
+                        <Ionicons name="clipboard-outline" size={20} color={T.muted} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                        <Text style={s.routineName}>Sin rutina asignada</Text>
+                        <Text style={s.routineSub}>Tu entrenador aún no te asignó una rutina</Text>
+                    </View>
+                </View>
+            </View>
+        );
+    }
+
+    return (
+        <View style={s.routineSection}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+                {routines.map((routine) => (
+                    <RoutineCard key={routine.id} routine={routine} />
+                ))}
+            </ScrollView>
+        </View>
+    );
+}
+
+function RoutineCard({ routine }: { routine: RoutineDetail }) {
+    return (
+        <TouchableOpacity
+            style={[s.routineCard, s.routineCardAssigned]}
+            activeOpacity={0.8}
+            onPress={() => router.push({ pathname: '/(routines)/detail', params: { id: routine.id } })}
+        >
+            <View style={[s.routineIcon, { backgroundColor: T.yellow }]}>
+                <Ionicons name="clipboard" size={20} color="#000" />
+            </View>
+            <View style={{ flex: 1 }}>
+                <Text style={s.routineName} numberOfLines={1}>
+                    {routine.name}
+                </Text>
+                <Text style={s.routineSub} numberOfLines={1}>
+                    {routine.exercises.length} ejercicios
+                    {routine.createdByName ? ` · ${routine.createdByName}` : ''}
+                </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={T.muted} />
+        </TouchableOpacity>
+    );
+}
+
 function ExerciseRow({ exercise, onPress }: { exercise: ExerciseSlim; onPress: () => void }) {
     const [broken, setBroken] = useState(false);
     return (
@@ -270,6 +345,27 @@ const s = StyleSheet.create({
     chipText: { color: T.muted, fontSize: 13, fontWeight: '600' },
     chipTextActive: { color: '#000' },
     listPad: { paddingHorizontal: 20, paddingBottom: 24 },
+    routineSection: { paddingHorizontal: 20, marginBottom: 12 },
+    routineCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        backgroundColor: T.card,
+        borderRadius: 14,
+        padding: 12,
+        minWidth: 260,
+    },
+    routineCardAssigned: { borderWidth: 1, borderColor: 'rgba(255, 214, 0, 0.35)' },
+    routineIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        backgroundColor: T.card2,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    routineName: { color: T.white, fontSize: 14, fontWeight: '800' },
+    routineSub: { color: T.muted, fontSize: 12, marginTop: 2 },
     row: {
         flexDirection: 'row',
         alignItems: 'center',
