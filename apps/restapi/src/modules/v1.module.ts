@@ -9,6 +9,7 @@ import { ClassesModule } from './classes/classes.module';
 import { ClassSessionsModule } from './class-sessions/class-sessions.module';
 import { ReservationsModule } from './reservations/reservations.module';
 import { AgentModule } from './agent/agent.module';
+import { ExercisesModule } from './exercises/exercises.module';
 
 @Module({
     imports: [
@@ -22,6 +23,7 @@ import { AgentModule } from './agent/agent.module';
         ClassSessionsModule,
         ReservationsModule,
         AgentModule,
+        ExercisesModule,
     ],
 })
 export class V1Module {}

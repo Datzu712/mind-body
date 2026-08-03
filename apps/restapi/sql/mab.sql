@@ -158,6 +158,15 @@ CREATE TABLE IF NOT EXISTS app.exercises (
     name VARCHAR(120) UNIQUE NOT NULL,
     description TEXT,
     muscle_group VARCHAR(80),
+    source_id VARCHAR(20),
+    body_part VARCHAR(80),
+    equipment VARCHAR(80),
+    target VARCHAR(80),
+    secondary_muscles TEXT[],
+    instructions_es TEXT[],
+    instructions_en TEXT[],
+    image_url TEXT,
+    gif_url TEXT,
     status app.record_status NOT NULL DEFAULT 'ACTIVE',
     deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -167,6 +176,8 @@ CREATE TABLE IF NOT EXISTS app.exercises (
 CREATE TRIGGER trg_exercises_updated_at
 BEFORE UPDATE ON app.exercises
 FOR EACH ROW EXECUTE FUNCTION app.set_updated_at();
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_exercises_source_id ON app.exercises (source_id);
 
 CREATE TABLE IF NOT EXISTS app.routines (
     id UUID PRIMARY KEY DEFAULT uuidv7(),

@@ -237,12 +237,21 @@ export const exercisesInApp = app.table(
         name: varchar({ length: 120 }).notNull(),
         description: text(),
         muscleGroup: varchar('muscle_group', { length: 80 }),
+        sourceId: varchar('source_id', { length: 20 }),
+        bodyPart: varchar('body_part', { length: 80 }),
+        equipment: varchar({ length: 80 }),
+        target: varchar({ length: 80 }),
+        secondaryMuscles: text('secondary_muscles').array(),
+        instructionsEs: text('instructions_es').array(),
+        instructionsEn: text('instructions_en').array(),
+        imageUrl: text('image_url'),
+        gifUrl: text('gif_url'),
         status: recordStatusInApp().default('ACTIVE').notNull(),
         deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
         createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
         updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
     },
-    (table) => [unique('exercises_name_key').on(table.name)],
+    (table) => [unique('exercises_name_key').on(table.name), uniqueIndex('uq_exercises_source_id').on(table.sourceId)],
 );
 
 export const routinesInApp = app.table(
