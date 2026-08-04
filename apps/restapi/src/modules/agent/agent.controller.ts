@@ -8,6 +8,7 @@ import { type User } from '@/infra/database/pg/schemas/schema';
 import { AgentService } from './agent.service';
 import { ChatDto } from './dto/chat.dto';
 import { Public } from '../auth/decorators/public-endpoint.decorator';
+import { openSseStream } from '@/utils/sse';
 
 async function* fakeStream(): AsyncGenerator<string> {
     const words = [
@@ -41,12 +42,7 @@ export class AgentController {
         @CurrentActor() actor: Actor,
         @Res() reply: FastifyReply,
     ): Promise<void> {
-        reply.hijack();
-        reply.raw.writeHead(200, {
-            'Content-Type': 'text/event-stream; charset=utf-8',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive',
-        });
+        openSseStream(reply);
 
         try {
             for await (const token of this.agentService.streamChat(dto.message, user, actor)) {
@@ -61,13 +57,7 @@ export class AgentController {
     @Public()
     @Get('test-stream')
     async testStream(@Res() reply: FastifyReply): Promise<void> {
-        reply.hijack();
-
-        reply.raw.writeHead(200, {
-            'Content-Type': 'text/event-stream; charset=utf-8',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive',
-        });
+        openSseStream(reply);
 
         try {
             // fakeStream() es un AsyncGenerator igual que agentService.streamChat()
