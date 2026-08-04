@@ -24,9 +24,14 @@ async function bootstrap(): Promise<void> {
 
     const config = app.get(TypedConfigService);
 
+    // `methods` is explicit on purpose: @fastify/cors defaults to the
+    // CORS-safelisted 'GET,HEAD,POST', so the preflight would reject every
+    // PUT/PATCH/DELETE the dashboard makes. It never surfaces in dev because
+    // the Vite proxy keeps those calls same-origin.
     app.enableCors({
         origin: config.getOrThrow('CORS_ORIGIN'),
         credentials: true,
+        methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     });
 
     app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
