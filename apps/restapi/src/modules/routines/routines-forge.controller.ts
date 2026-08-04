@@ -3,6 +3,7 @@ import type { FastifyReply } from 'fastify';
 
 import { RoutinesForgeService } from './routines-forge.service';
 import { ForgeChatDto } from './dto/forge-chat.dto';
+import { openSseStream } from '@/utils/sse';
 
 /**
  * Anti-desync: el único lock es de UI (el dashboard deshabilita el builder
@@ -42,12 +43,7 @@ export class RoutinesForgeController {
         // 404 ANTES de hijackear: después del hijack ya no se puede responder con error HTTP.
         await this.forge.assertRoutineExists(id);
 
-        reply.hijack();
-        reply.raw.writeHead(200, {
-            'Content-Type': 'text/event-stream; charset=utf-8',
-            'Cache-Control': 'no-cache',
-            Connection: 'keep-alive',
-        });
+        openSseStream(reply);
 
         try {
             for await (const ev of this.forge.streamChat(id, dto.message)) {

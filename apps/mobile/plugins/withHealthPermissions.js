@@ -1,4 +1,4 @@
-const { withAndroidManifest } = require('@expo/config-plugins');
+const { withAndroidManifest } = require('expo/config-plugins');
 
 const HEALTH_PERMISSIONS = [
     'android.permission.health.READ_STEPS',
