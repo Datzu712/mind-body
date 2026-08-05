@@ -7,6 +7,9 @@ import {
     Dumbbell,
     LogOut,
     BicepsFlexed,
+    ChevronsUpDown,
+    ExternalLink,
+    Settings,
     type LucideIcon,
 } from 'lucide-react';
 
@@ -24,7 +27,16 @@ import {
     SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuth, isManagementRole } from '@/hooks/use-auth';
+import { getAccountUrl } from '@/lib/api';
 
 // `management`: toda acción de la pantalla es ADMIN/STAFF en la API, así que al
 // TRAINER no se le ofrece la entrada (cada request respondería 403).
@@ -169,31 +181,70 @@ export function AppSidebar() {
                 <SidebarSeparator className="mb-2" />
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" className="w-full" tooltip={user?.fullName ?? 'Perfil'}>
-                            <Avatar className="h-8 w-8 shrink-0">
-                                <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                                    {user ? getInitials(user.fullName) : '??'}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="flex min-w-0 flex-1 flex-col items-start group-data-[collapsible=icon]:hidden">
-                                <span className="w-full truncate text-sm font-medium">
-                                    {user?.fullName ?? 'Cargando...'}
-                                </span>
-                                <span className="w-full truncate text-xs text-muted-foreground">
-                                    {user ? getRoleLabel(user.roles) : ''}
-                                </span>
-                            </div>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            tooltip="Cerrar sesión"
-                            className="text-muted-foreground hover:text-foreground"
-                            onClick={() => void logout()}
-                        >
-                            <LogOut className="h-4 w-4" />
-                            <span>Cerrar sesión</span>
-                        </SidebarMenuButton>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <SidebarMenuButton size="lg" className="w-full" tooltip={user?.fullName ?? 'Perfil'}>
+                                    <Avatar className="h-8 w-8 shrink-0">
+                                        <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                                            {user ? getInitials(user.fullName) : '??'}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex min-w-0 flex-1 flex-col items-start group-data-[collapsible=icon]:hidden">
+                                        <span className="w-full truncate text-sm font-medium">
+                                            {user?.fullName ?? 'Cargando...'}
+                                        </span>
+                                        <span className="w-full truncate text-xs text-muted-foreground">
+                                            {user ? getRoleLabel(user.roles) : ''}
+                                        </span>
+                                    </div>
+                                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-60 group-data-[collapsible=icon]:hidden" />
+                                </SidebarMenuButton>
+                            </DropdownMenuTrigger>
+
+                            {/* `side="top"`: the trigger sits at the very bottom of the viewport. */}
+                            <DropdownMenuContent
+                                side="top"
+                                align="start"
+                                sideOffset={8}
+                                className="w-(--radix-dropdown-menu-trigger-width) min-w-56"
+                            >
+                                <DropdownMenuLabel className="flex flex-col gap-0.5">
+                                    <span className="truncate text-sm font-medium">
+                                        {user?.fullName ?? 'Cargando...'}
+                                    </span>
+                                    {user?.email ? (
+                                        <span className="truncate text-xs font-normal text-muted-foreground">
+                                            {user.email}
+                                        </span>
+                                    ) : null}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+
+                                {/* Keycloak owns password, 2FA and sessions — the dashboard has no
+                                    settings screen of its own, so this leaves the app entirely. */}
+                                <DropdownMenuItem asChild>
+                                    <a
+                                        href={getAccountUrl()}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="cursor-pointer"
+                                    >
+                                        <Settings className="h-4 w-4" />
+                                        <span>Configuraciones</span>
+                                        <ExternalLink className="ml-auto h-3.5 w-3.5 opacity-60" />
+                                    </a>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    className="cursor-pointer"
+                                    onSelect={() => void logout()}
+                                >
+                                    <LogOut className="h-4 w-4" />
+                                    <span>Cerrar sesión</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarFooter>

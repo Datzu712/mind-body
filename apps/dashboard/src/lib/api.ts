@@ -62,3 +62,8 @@ export class ApiError extends Error {
 export function getLoginUrl(redirect = '/dashboard'): string {
     return `${API_BASE}/api/v1/auth/login?redirect=${encodeURIComponent(redirect)}`;
 }
+
+/** Keycloak's account console. The API redirects, so the realm URL stays server-side. */
+export function getAccountUrl(): string {
+    return `${API_BASE}/api/v1/auth/account`;
+}
