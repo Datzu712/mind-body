@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, lt, or } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 
 import { ClockService } from '@/common/clock/clock.service';
@@ -76,6 +76,25 @@ export class MembershipsService {
     }
 
     /**
+     * The caller's own history, resolved from the authenticated user rather than
+     * a supplied id, so it can never be pointed at another member. A user with no
+     * member profile (staff, a trainer) simply has none — not an error.
+     */
+    async findMine(userId: string): Promise<MembershipDto[]> {
+        const [member] = await this.drizzle.db
+            .select({ id: Members.id })
+            .from(Members)
+            .where(and(eq(Members.userId, userId), isNull(Members.deletedAt)))
+            .limit(1);
+
+        if (!member) return [];
+
+        const rows = await this.selectMemberships(eq(Memberships.memberId, member.id));
+
+        return rows.map((row) => this.toDto(row));
+    }
+
+    /**
      * Create or renew — the same operation. A renewal is not an UPDATE: the
      * previous term stays in the history as EXPIRED and the new one is a fresh
      * row, so the member's timeline remains auditable.
@@ -95,13 +114,27 @@ export class MembershipsService {
         const createdId = await this.drizzle.db.transaction(async (tx) => {
             const planId = dto.planId ? await this.assertPlanExists(tx, dto.planId) : await this.defaultPlanId(tx);
 
-            // A renewal supersedes whatever term was running. CANCELLED rows are
-            // deliberately left alone: that member walked away, and flipping them
-            // to EXPIRED would put them back in the renewal-reminder list.
+            // A renewal supersedes every ACTIVE row EXCEPT one still running that
+            // the new term does not reach: the dashboard chains a renewal to start
+            // the day after the current term ends, so paying early must not expire
+            // the days already covered and leave the member with no live term in
+            // between. Everything else is superseded — a row whose term already
+            // lapsed is stale ACTIVE data (nothing sweeps it on a schedule) and an
+            // overlapping row is genuinely replaced.
+            //
+            // CANCELLED rows are deliberately left alone: that member walked away,
+            // and flipping them to EXPIRED would put them back in the
+            // renewal-reminder list.
             await tx
                 .update(Memberships)
                 .set({ status: 'EXPIRED' })
-                .where(and(eq(Memberships.memberId, dto.memberId), eq(Memberships.status, 'ACTIVE')));
+                .where(
+                    and(
+                        eq(Memberships.memberId, dto.memberId),
+                        eq(Memberships.status, 'ACTIVE'),
+                        or(lt(Memberships.endDate, this.today()), gte(Memberships.endDate, dto.startDate)),
+                    ),
+                );
 
             const [created] = await tx
                 .insert(Memberships)
@@ -124,10 +157,10 @@ export class MembershipsService {
      * Stop chasing a member who left. The rule itself lives in
      * `membership-cancel-policy`: only a lapsed term can be cancelled.
      */
-    async cancel(id: string): Promise<MembershipDto> {
+    async cancel(id: string, override = false): Promise<MembershipDto> {
         const membership = await this.getOne(id);
 
-        assertCancellable(membership, this.today());
+        assertCancellable(membership, this.today(), override);
 
         await this.drizzle.db.update(Memberships).set({ status: 'CANCELLED' }).where(eq(Memberships.id, id));
 

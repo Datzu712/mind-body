@@ -271,8 +271,14 @@ export function useCreateMembership(memberId: string) {
 export function useCancelMembership(memberId: string) {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: async (membershipId: string) =>
-            apiFetch<Membership>(`/api/v1/memberships/${membershipId}/cancel`, { method: 'PATCH' }),
+        // `override` is what lets management cancel a term that is still running;
+        // the API refuses without it, so the intent travels explicitly.
+        mutationFn: async ({ membershipId, override }: { membershipId: string; override: boolean }) =>
+            apiFetch<Membership>(`/api/v1/memberships/${membershipId}/cancel`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason: override ? 'ADMIN_OVERRIDE' : 'TERM_LAPSED' }),
+            }),
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: membershipKeys.byMember(memberId) });
         },

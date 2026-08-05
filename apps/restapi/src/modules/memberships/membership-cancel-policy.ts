@@ -25,25 +25,31 @@ export function isCancellable(membership: CancellableMembership, today: string):
 
 /**
  * Cancelling means "the member left, stop sending renewal reminders". Doing it
- * to a membership the member is still entitled to use would silently revoke
- * access that was already paid for at the front desk, so it is refused: staff
- * must wait for the term to lapse (or expire it first).
+ * to a running term revokes access already paid for at the front desk, so it is
+ * refused by default — but management legitimately needs it when a member quits
+ * mid-term, gets a refund, or the dates were entered wrong.
+ *
+ * So the escape hatch is `ADMIN_OVERRIDE`: allowed, but the intent is explicit
+ * and never inferred from the caller's role, the same contract
+ * `AdminCancelReservationDto` uses for late cancellations.
  *
  * Pure function on purpose (`today` is injected, no DB, no Nest) so the rule is
  * testable on its own — same shape as `measurement-edit-policy`.
  */
-export function assertCancellable(membership: CancellableMembership, today: string): void {
+export function assertCancellable(membership: CancellableMembership, today: string, override = false): void {
     if (membership.status === 'CANCELLED') {
         throw new DomainHttpException(409, 'MEMBERSHIP_ALREADY_CANCELLED', 'La membresía ya está cancelada.', {
             status: membership.status,
         });
     }
 
+    if (override) return;
+
     if (!isCancellable(membership, today)) {
         throw new DomainHttpException(
             409,
             'MEMBERSHIP_NOT_EXPIRED',
-            'Solo se puede cancelar una membresía vencida. Esta sigue vigente.',
+            'La membresía sigue vigente. Para cancelarla igualmente, confirmá la cancelación administrativa.',
             { status: membership.status, endDate: membership.endDate, today },
         );
     }

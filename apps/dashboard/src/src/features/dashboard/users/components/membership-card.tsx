@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ConfirmDialog } from '@/src/shared/components/confirm-dialog';
 import { IdCard, Ban, RefreshCw } from 'lucide-react';
 import { sileo } from 'sileo';
 import type { Membership, MembershipStatus } from '../types';
@@ -38,31 +38,38 @@ interface MembershipCardProps {
 /** Current membership term plus its history, with renew and cancel actions. */
 export function MembershipCard({ memberId, canManage }: MembershipCardProps) {
     const [renewOpen, setRenewOpen] = useState(false);
+    const [cancelTarget, setCancelTarget] = useState<Membership | null>(null);
     const { data, isLoading, isError, error } = useMemberships(memberId);
     const cancelMembership = useCancelMembership(memberId ?? '');
 
-    // The API returns the history newest-first, so the head is the current term.
-    const [current, ...history] = data ?? [];
+    // The API returns the history newest-first by start date, which is NOT the
+    // same as "the term running today": renewals are chained to start the day
+    // after the current one ends, so the head can be a term that has not begun.
+    const memberships = data ?? [];
+    const today = new Date().toLocaleDateString('en-CA'); // 'YYYY-MM-DD', local
+    const current =
+        memberships.find((m) => m.startDate <= today && m.endDate >= today && m.status !== 'CANCELLED') ??
+        memberships[0];
+    const history = memberships.filter((m) => m.id !== current?.id);
 
-    const handleCancel = (membership: Membership) => {
-        sileo.action({
-            title: '¿Cancelar la membresía?',
-            description: 'Se deja de dar seguimiento al miembro y no se le enviarán recordatorios de renovación.',
-            button: {
-                title: 'Confirmar',
-                onClick: () => {
-                    void cancelMembership
-                        .mutateAsync(membership.id)
-                        .then(() => sileo.success({ title: 'Membresía cancelada' }))
-                        .catch((e: unknown) =>
-                            sileo.error({
-                                title: 'No se pudo cancelar',
-                                description: e instanceof Error ? e.message : undefined,
-                            }),
-                        );
-                },
-            },
-        });
+    // A lapsed term is routine. A running one revokes access the member already
+    // paid for at the front desk, so it travels as ADMIN_OVERRIDE and the dialog
+    // says exactly that.
+    const override = cancelTarget ? !cancelTarget.cancellable : false;
+
+    const confirmCancel = () => {
+        if (!cancelTarget) return;
+
+        void cancelMembership
+            .mutateAsync({ membershipId: cancelTarget.id, override })
+            .then(() => sileo.success({ title: 'Membresía cancelada' }))
+            .catch((e: unknown) =>
+                sileo.error({
+                    title: 'No se pudo cancelar',
+                    description: e instanceof Error ? e.message : undefined,
+                }),
+            )
+            .finally(() => setCancelTarget(null));
     };
 
     return (
@@ -75,37 +82,19 @@ export function MembershipCard({ memberId, canManage }: MembershipCardProps) {
                     </CardTitle>
                     {canManage && (
                         <div className="flex items-center gap-2">
-                            {/* Cancelling is only legal on a lapsed term; the server decides
-                                (`cancellable`) and the button explains itself when it cannot. */}
-                            {current &&
-                                current.status !== 'CANCELLED' &&
-                                (current.cancellable ? (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => handleCancel(current)}
-                                        disabled={cancelMembership.isPending}
-                                    >
-                                        <Ban className="mr-2 h-4 w-4" />
-                                        Cancelar
-                                    </Button>
-                                ) : (
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            {/* Wrapper: a disabled button swallows the events the tooltip needs. */}
-                                            <span tabIndex={0}>
-                                                <Button variant="outline" size="sm" disabled>
-                                                    <Ban className="mr-2 h-4 w-4" />
-                                                    Cancelar
-                                                </Button>
-                                            </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            Solo se puede cancelar una membresía vencida. Esta sigue vigente hasta el{' '}
-                                            {formatDate(current.endDate)}.
-                                        </TooltipContent>
-                                    </Tooltip>
-                                ))}
+                            {/* Management can always cancel; `cancellable` only decides how
+                                loudly the confirmation warns before it goes through. */}
+                            {current && current.status !== 'CANCELLED' && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setCancelTarget(current)}
+                                    disabled={cancelMembership.isPending}
+                                >
+                                    <Ban className="mr-2 h-4 w-4" />
+                                    Cancelar
+                                </Button>
+                            )}
                             <Button variant="outline" size="sm" onClick={() => setRenewOpen(true)} disabled={!memberId}>
                                 <RefreshCw className="mr-2 h-4 w-4" />
                                 Renovar
@@ -172,6 +161,21 @@ export function MembershipCard({ memberId, canManage }: MembershipCardProps) {
                     current={current}
                 />
             )}
+
+            <ConfirmDialog
+                open={cancelTarget !== null}
+                onOpenChange={(open) => !open && setCancelTarget(null)}
+                title={override ? '¿Cancelar una membresía vigente?' : '¿Cancelar la membresía?'}
+                description={
+                    override && cancelTarget
+                        ? `Esta membresía sigue vigente hasta el ${formatDate(cancelTarget.endDate)}. Al cancelarla, el miembro pierde el acceso que ya pagó en recepción.`
+                        : 'Se deja de dar seguimiento al miembro y no se le enviarán recordatorios de renovación.'
+                }
+                confirmLabel={override ? 'Cancelar de todos modos' : 'Confirmar'}
+                cancelLabel="Volver"
+                variant="destructive"
+                onConfirm={confirmCancel}
+            />
         </>
     );
 }

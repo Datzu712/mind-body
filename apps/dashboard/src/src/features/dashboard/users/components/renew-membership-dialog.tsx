@@ -141,7 +141,11 @@ export function RenewMembershipDialog({ open, onOpenChange, memberId, current }:
                     {endDate && (
                         <p className="text-sm text-muted-foreground">
                             Vence el <span className="font-medium text-foreground">{formatDate(endDate)}</span>.
-                            {current?.status === 'ACTIVE' && ' La membresia actual pasa a vencida.'}
+                            {/* Only an OVERLAPPING term is superseded: a renewal chained to
+                                start after the current one ends leaves it running. */}
+                            {current?.status === 'ACTIVE' &&
+                                current.endDate >= startDate &&
+                                ' La membresia actual pasa a vencida.'}
                         </p>
                     )}
                     <DialogFooter className="gap-2">
