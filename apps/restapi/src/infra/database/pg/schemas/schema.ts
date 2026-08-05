@@ -328,6 +328,8 @@ export const memberRoutinesInApp = app.table(
             .default(sql`CURRENT_DATE`)
             .notNull(),
         endedAt: date('ended_at'),
+        /** La que el home del móvil muestra. Preferencia de vista, no estado del plan. */
+        focused: boolean().default(false).notNull(),
         status: recordStatusInApp().default('ACTIVE').notNull(),
         deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
         createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),

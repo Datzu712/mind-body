@@ -135,6 +135,7 @@ export class RoutinesService {
 
     async remove(id: string): Promise<void> {
         await this.ensureExists(id);
+
         await this.drizzle.db
             .update(routinesInApp)
             .set({ deletedAt: sql`now()` })
@@ -345,11 +346,15 @@ export class RoutinesService {
     }
 
     /**
-     * A member follows ONE routine at a time. Assigning closes whatever was
-     * running and opens the new term, in a single transaction: `member_routines`
-     * models an assignment with history (`assigned_at`/`ended_at`/`status`), so
-     * two rows left ACTIVE for the same member is inconsistent data, not a
-     * feature — `listMine` would happily return both.
+     * Adds a routine to the member's plan. A plan is a weekly split (Monday back,
+     * Tuesday legs…), so several assignments stay ACTIVE at once and assigning
+     * does NOT close the others — `focused` decides which one the mobile home
+     * leads with. `member_routines` still models history
+     * (`assigned_at`/`ended_at`/`status`); an assignment is closed by `removeMine`,
+     * never by the next assign.
+     *
+     * Assigning the same routine twice is a conflict, not a no-op: the member
+     * would otherwise get duplicate cards for one routine.
      */
     async assign(routineId: string, memberId: string, userId: string): Promise<void> {
         const routine = await this.detail(routineId);
@@ -383,26 +388,9 @@ export class RoutinesService {
                 throw new ConflictException('El miembro ya tiene esta rutina asignada');
             }
 
-            if (active.length > 0) {
-                // Closed, not deleted: the term stays in the history as INACTIVE.
-                // `greatest` keeps chk_member_routine_dates (ended_at >= assigned_at)
-                // satisfied even when assigned_at is ahead of the business date —
-                // the column defaults to the database's CURRENT_DATE, which on a UTC
-                // server is already tomorrow late in the local evening.
-                await tx
-                    .update(memberRoutinesInApp)
-                    .set({
-                        status: 'INACTIVE',
-                        endedAt: sql`greatest(${memberRoutinesInApp.assignedAt}, ${today}::date)`,
-                    })
-                    .where(
-                        inArray(
-                            memberRoutinesInApp.id,
-                            active.map((a) => a.id),
-                        ),
-                    );
-            }
-
+            // Assignments accumulate on purpose: a training plan is a weekly split
+            // (Monday back, Tuesday legs…), so several routines are active at once.
+            // Which one the app leads with is `focused`, not "the newest one wins".
             await tx.insert(memberRoutinesInApp).values({
                 memberId,
                 routineId,
@@ -425,7 +413,7 @@ export class RoutinesService {
         if (!member) return [];
 
         const assignments = await this.drizzle.db
-            .select({ routineId: memberRoutinesInApp.routineId })
+            .select({ routineId: memberRoutinesInApp.routineId, focused: memberRoutinesInApp.focused })
             .from(memberRoutinesInApp)
             .innerJoin(routinesInApp, eq(memberRoutinesInApp.routineId, routinesInApp.id))
             .where(
@@ -437,9 +425,175 @@ export class RoutinesService {
                     isNull(routinesInApp.deletedAt),
                 ),
             )
-            .orderBy(desc(memberRoutinesInApp.assignedAt));
+            // Focused first: the home just takes the head of the list, so it needs
+            // no rule of its own. Newest-first is the tie-break when none is set,
+            // and the id keeps the order stable when two land on the same day
+            // (`assigned_at` is a DATE) — otherwise the home's featured routine
+            // would flip between refetches.
+            .orderBy(
+                desc(memberRoutinesInApp.focused),
+                desc(memberRoutinesInApp.assignedAt),
+                desc(memberRoutinesInApp.id),
+            );
 
-        return Promise.all(assignments.map(async (a) => this.detail(a.routineId)));
+        if (assignments.length === 0) return [];
+
+        // Two set-based queries instead of `detail()` per assignment: a plan is a
+        // weekly split, so this list grows with the member's training days.
+        const routineIds = assignments.map((a) => a.routineId);
+
+        const [routineRows, itemRows] = await Promise.all([
+            this.drizzle.db
+                .select({ routine: routinesInApp, createdByName: usersInApp.fullName })
+                .from(routinesInApp)
+                .leftJoin(usersInApp, eq(routinesInApp.createdByUserId, usersInApp.id))
+                .where(inArray(routinesInApp.id, routineIds)),
+            this.drizzle.db
+                .select({ item: routineExercisesInApp, exercise: exercisesInApp })
+                .from(routineExercisesInApp)
+                .innerJoin(exercisesInApp, eq(routineExercisesInApp.exerciseId, exercisesInApp.id))
+                .where(inArray(routineExercisesInApp.routineId, routineIds))
+                .orderBy(asc(routineExercisesInApp.displayOrder)),
+        ]);
+
+        const byRoutineId = new Map(routineRows.map((r) => [r.routine.id, r]));
+        const itemsByRoutineId = new Map<string, typeof itemRows>();
+        for (const row of itemRows) {
+            const bucket = itemsByRoutineId.get(row.item.routineId);
+            if (bucket) bucket.push(row);
+            else itemsByRoutineId.set(row.item.routineId, [row]);
+        }
+
+        return assignments.flatMap((a) => {
+            const row = byRoutineId.get(a.routineId);
+            if (!row) return [];
+            return [
+                {
+                    ...this.toDetail(row.routine, row.createdByName, itemsByRoutineId.get(a.routineId) ?? []),
+                    focused: a.focused,
+                },
+            ];
+        });
+    }
+
+    /**
+     * Members currently on this routine. The dashboard had no way to see that an
+     * assignment happened — the toast was the only evidence and it fades — so the
+     * editor lists them.
+     */
+    async listAssignedMembers(
+        routineId: string,
+    ): Promise<{ memberId: string; fullName: string; assignedAt: string }[]> {
+        await this.ensureExists(routineId);
+
+        return this.drizzle.db
+            .select({
+                memberId: memberRoutinesInApp.memberId,
+                fullName: usersInApp.fullName,
+                assignedAt: memberRoutinesInApp.assignedAt,
+            })
+            .from(memberRoutinesInApp)
+            .innerJoin(membersInApp, eq(memberRoutinesInApp.memberId, membersInApp.id))
+            .innerJoin(usersInApp, eq(membersInApp.userId, usersInApp.id))
+            .where(
+                and(
+                    eq(memberRoutinesInApp.routineId, routineId),
+                    eq(memberRoutinesInApp.status, 'ACTIVE'),
+                    isNull(memberRoutinesInApp.deletedAt),
+                ),
+            )
+            .orderBy(desc(memberRoutinesInApp.assignedAt));
+    }
+
+    /**
+     * Marks one assignment as the member's focused routine, clearing the previous
+     * one in the same transaction. Scoped to the caller's own assignments, so it
+     * cannot touch anybody else's plan.
+     */
+    async focusMine(userId: string, routineId: string): Promise<void> {
+        const memberId = await this.memberIdOf(userId);
+
+        await this.drizzle.db.transaction(async (tx) => {
+            // Lock the member, same as `assign`: under READ COMMITTED two
+            // concurrent focus calls (a double tap) would each clear a set that
+            // does not yet contain the other's row, then both set focused=true and
+            // the second commit trips uq_member_routines_focused with a raw 500.
+            await tx
+                .select({ id: membersInApp.id })
+                .from(membersInApp)
+                .where(eq(membersInApp.id, memberId))
+                .limit(1)
+                .for('update');
+
+            const [assignment] = await tx
+                .select({ id: memberRoutinesInApp.id })
+                .from(memberRoutinesInApp)
+                .where(
+                    and(
+                        eq(memberRoutinesInApp.memberId, memberId),
+                        eq(memberRoutinesInApp.routineId, routineId),
+                        eq(memberRoutinesInApp.status, 'ACTIVE'),
+                        isNull(memberRoutinesInApp.deletedAt),
+                    ),
+                )
+                .limit(1);
+
+            if (!assignment) throw new NotFoundException('Rutina no asignada');
+
+            // Clear first: uq_member_routines_focused allows a single focused row
+            // per member, so setting before clearing would trip the index.
+            await tx
+                .update(memberRoutinesInApp)
+                .set({ focused: false })
+                .where(and(eq(memberRoutinesInApp.memberId, memberId), eq(memberRoutinesInApp.focused, true)));
+
+            await tx
+                .update(memberRoutinesInApp)
+                .set({ focused: true })
+                .where(eq(memberRoutinesInApp.id, assignment.id));
+        });
+    }
+
+    /**
+     * Drops a routine from the member's plan. Closed, not deleted: the row stays
+     * as INACTIVE so the history of what was prescribed survives.
+     */
+    async removeMine(userId: string, routineId: string): Promise<void> {
+        const memberId = await this.memberIdOf(userId);
+        const today = this.today();
+
+        const updated = await this.drizzle.db
+            .update(memberRoutinesInApp)
+            .set({
+                status: 'INACTIVE',
+                focused: false,
+                // `greatest` keeps chk_member_routine_dates satisfied when assigned_at
+                // is ahead of the business date (the column defaults to the database's
+                // CURRENT_DATE, already tomorrow on a UTC server late in the evening).
+                endedAt: sql`greatest(${memberRoutinesInApp.assignedAt}, ${today}::date)`,
+            })
+            .where(
+                and(
+                    eq(memberRoutinesInApp.memberId, memberId),
+                    eq(memberRoutinesInApp.routineId, routineId),
+                    eq(memberRoutinesInApp.status, 'ACTIVE'),
+                    isNull(memberRoutinesInApp.deletedAt),
+                ),
+            )
+            .returning({ id: memberRoutinesInApp.id });
+
+        if (updated.length === 0) throw new NotFoundException('Rutina no asignada');
+    }
+
+    private async memberIdOf(userId: string): Promise<string> {
+        const [member] = await this.drizzle.db
+            .select({ id: membersInApp.id })
+            .from(membersInApp)
+            .where(and(eq(membersInApp.userId, userId), isNull(membersInApp.deletedAt)))
+            .limit(1);
+
+        if (!member) throw new NotFoundException('Miembro no encontrado');
+        return member.id;
     }
 
     /** Business-zone date ('YYYY-MM-DD') for the DATE columns of member_routines. */

@@ -28,6 +28,8 @@ export interface RoutineDetailDto {
     createdAt: string;
     updatedAt: string;
     exercises: RoutineExerciseItemDto[];
+    /** Solo en `GET /routines/mine`: la que el home del miembro muestra. */
+    focused?: boolean;
 }
 
 export interface RoutineSummaryDto {

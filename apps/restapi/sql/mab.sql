@@ -222,11 +222,24 @@ CREATE TABLE IF NOT EXISTS app.member_routines (
     assigned_at DATE NOT NULL DEFAULT CURRENT_DATE,
     ended_at DATE,
     status app.record_status NOT NULL DEFAULT 'ACTIVE',
+    -- Espejo de drizzle/0007: un plan es un split semanal, así que el miembro
+    -- tiene varias asignaciones ACTIVE a la vez. `focused` es la que el home del
+    -- móvil muestra — preferencia de vista, no estado del plan.
+    focused BOOLEAN NOT NULL DEFAULT false,
     deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT chk_member_routine_dates CHECK (ended_at IS NULL OR ended_at >= assigned_at)
 );
+
+-- Bases creadas antes de 0007: el CREATE TABLE de arriba es no-op para ellas.
+ALTER TABLE app.member_routines ADD COLUMN IF NOT EXISTS focused BOOLEAN NOT NULL DEFAULT false;
+
+-- "Como máximo una enfocada por miembro" como garantía de la base, no convención
+-- del servicio. Solo cuenta filas vivas, así el miembro puede re-enfocar libremente.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_member_routines_focused
+    ON app.member_routines (member_id)
+    WHERE focused AND status = 'ACTIVE' AND deleted_at IS NULL;
 
 CREATE TRIGGER trg_member_routines_updated_at
 BEFORE UPDATE ON app.member_routines

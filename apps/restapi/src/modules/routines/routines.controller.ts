@@ -1,8 +1,8 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Put, Query } from '@nestjs/common';
 
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
 import { Roles } from '@/common/decorators/roles.decorator';
-import { APP_ROLES, DASHBOARD_ROLES } from '@/common/constant/roles.constant';
+import { DASHBOARD_ROLES, Role } from '@/common/constant/roles.constant';
 import { type User } from '@/infra/database/pg/schemas/schema';
 import { RoutinesService } from './routines.service';
 import {
@@ -16,15 +16,19 @@ import {
 } from './dto/routine.dtos';
 
 /**
- * Routine builder. Designing a routine is a trainer's job, and ADMIN/STAFF run
- * the gym, so the whole dashboard both reads and writes here: the split
- * `users`/`memberships` make (read = DASHBOARD, write = MANAGEMENT) does not
- * apply, since excluding TRAINER from writes would lock out the only role whose
- * actual work this module is.
+ * Routine builder. Designing a routine is a trainer's job and ADMIN/STAFF run the
+ * gym, so all three both read and write here — the read = DASHBOARD /
+ * write = MANAGEMENT split that `users` and `memberships` use would lock out the
+ * one role this module exists for.
  *
- * Dashboard roles are the class default so a new endpoint added without a
- * decorator stays closed to MEMBER. `mine` is the single exception: it is
- * self-scoped by `@CurrentUser`, and it is the only routines route mobile calls.
+ * The class-level default is the constant — at this level it only has to mean
+ * "not MEMBER", so an endpoint added without a decorator stays closed. Handlers
+ * spell their roles out instead: there the set IS the business rule, and reading
+ * it should not require opening another file.
+ *
+ * A handler-level `@Roles` REPLACES the class one — the guard uses
+ * `getAllAndOverride`, not merge — which is how the `mine` routes open to MEMBER
+ * only.
  */
 @Roles(...DASHBOARD_ROLES)
 @Controller('routines')
@@ -37,12 +41,29 @@ export class RoutinesController {
     }
 
     /** Self-service de mobile: el user autenticado solo puede verse a sí mismo. */
-    @Roles(...APP_ROLES)
+    @Roles(Role.MEMBER)
     @Get('mine')
     async mine(@CurrentUser() user: User) {
         return this.routines.listMine(user.id);
     }
 
+    /** Elegir cuál rutina muestra el home. Solo sobre las asignaciones propias. */
+    @Roles(Role.MEMBER)
+    @Patch('mine/:id/focus')
+    @HttpCode(204)
+    async focusMine(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+        await this.routines.focusMine(user.id, id);
+    }
+
+    /** Sacar una rutina del plan propio. Cierra la asignación, no borra la rutina. */
+    @Roles(Role.MEMBER)
+    @Delete('mine/:id')
+    @HttpCode(204)
+    async removeMine(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+        await this.routines.removeMine(user.id, id);
+    }
+
+    @Roles(Role.TRAINER, Role.ADMIN, Role.STAFF)
     @Post()
     async create(@Body() dto: CreateRoutineDto, @CurrentUser() user: User) {
         return this.routines.create(dto, user.id);
@@ -86,6 +107,12 @@ export class RoutinesController {
     @Put(':id/exercises-order')
     async reorder(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ReorderRoutineExercisesDto) {
         return this.routines.reorderExercises(id, dto.itemIds);
+    }
+
+    /** Miembros con la rutina asignada: la confirmación visible de un assign. */
+    @Get(':id/members')
+    async assignedMembers(@Param('id', ParseUUIDPipe) id: string) {
+        return this.routines.listAssignedMembers(id);
     }
 
     @Post(':id/assign')

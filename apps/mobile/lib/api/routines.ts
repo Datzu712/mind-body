@@ -2,7 +2,7 @@
  * Rutinas asignadas al miembro (solo lectura). Espejo de los DTOs del
  * backend (apps/restapi/src/modules/routines/routine.types.ts).
  */
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useApiClient } from './client';
 
@@ -33,6 +33,8 @@ export interface RoutineDetail {
     createdAt: string;
     updatedAt: string;
     exercises: RoutineExerciseItem[];
+    /** Solo en `/routines/mine`: la que el inicio muestra. */
+    focused?: boolean;
 }
 
 /** Lanza con el mensaje del backend (`{ message }` de DomainHttpException). */
@@ -55,5 +57,36 @@ export function useMyRoutines() {
     return useQuery({
         queryKey: ['routines', 'mine'],
         queryFn: async () => okJson<RoutineDetail[]>(await apiFetch('/routines/mine')),
+    });
+}
+
+/**
+ * Marca cuál rutina abre el inicio. El backend limpia la anterior, así que basta
+ * con invalidar: la lista vuelve ya ordenada con la enfocada de primera.
+ */
+export function useFocusRoutine() {
+    const apiFetch = useApiClient();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (routineId: string) => {
+            const res = await apiFetch(`/routines/mine/${routineId}/focus`, { method: 'PATCH' });
+            if (!res.ok) throw new Error(`Error ${res.status}`);
+        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['routines', 'mine'] }),
+    });
+}
+
+/** Saca la rutina del plan. Cierra la asignación; la rutina en sí no se borra. */
+export function useRemoveRoutine() {
+    const apiFetch = useApiClient();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (routineId: string) => {
+            const res = await apiFetch(`/routines/mine/${routineId}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error(`Error ${res.status}`);
+        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ['routines', 'mine'] }),
     });
 }
