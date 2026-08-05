@@ -2,6 +2,9 @@ import { FitColors as T } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { useProfile } from '@/hooks/use-profile';
 import { Ionicons } from '@expo/vector-icons';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
@@ -27,8 +30,14 @@ export default function ProfileScreen() {
     const { data: profile } = useProfile();
 
     const displayName = profile?.fullName?.trim() || 'Usuario';
-    const displayEmail = profile!.email;
+    const displayEmail = profile?.email ?? '';
     const avatarLabel = (displayName.trim()[0] || 'U').toUpperCase();
+
+    // `createdAt` is '' while the JWT-claims placeholder stands in for the real profile.
+    const memberSince =
+        profile?.createdAt && !isNaN(new Date(profile.createdAt).getTime())
+            ? format(new Date(profile.createdAt), 'MMM yyyy', { locale: es })
+            : null;
 
     function toggleSetting(idx: number) {
         setSettings((prev) =>
@@ -63,28 +72,20 @@ export default function ProfileScreen() {
                             <View style={{ flex: 1, marginLeft: 14 }}>
                                 <Text style={s.userName}>{displayName}</Text>
                                 <Text style={s.userEmail}>{displayEmail}</Text>
-                                <View style={s.memberBadge}>
-                                    <Text style={s.memberIcon}>⭐</Text>
-                                    <Text style={s.memberText}>GOLD MEMBER</Text>
-                                </View>
+                                {profile?.status === 'ACTIVE' && (
+                                    <View style={s.memberBadge}>
+                                        <Text style={s.memberIcon}>⭐</Text>
+                                        <Text style={s.memberText}>MIEMBRO ACTIVO</Text>
+                                    </View>
+                                )}
                             </View>
                         </View>
                     </View>
                 </View>
 
-                {/* Membership card */}
-                <View style={[s.px, { marginTop: 12 }]}>
-                    <View style={s.membershipCard}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={s.membershipLabel}>MEMBRESÍA ACTIVA</Text>
-                            <Text style={s.membershipPlan}>Plan Gold · $29.99/mes</Text>
-                            <Text style={s.membershipRenewal}>Renueva: 15 Abr 2026</Text>
-                        </View>
-                        <TouchableOpacity style={s.manageBtn} activeOpacity={0.8}>
-                            <Text style={s.manageBtnText}>GESTIONAR</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
+                {/* TODO(memberships): membership card goes here once the memberships module
+                    ships an endpoint. It used to show an invented "Plan Gold · $29.99/mes":
+                    the gym charges in person, so the app never has a price to display. */}
 
                 {/* Settings */}
                 <View style={s.secHead}>
@@ -128,7 +129,10 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
                 </View>
 
-                <Text style={s.version}>Mind&Body v2.1.0 · MIEMBRO DESDE ENE 2024</Text>
+                <Text style={s.version}>
+                    Mind&Body v{Constants.expoConfig?.version ?? '—'}
+                    {memberSince ? ` · MIEMBRO DESDE ${memberSince.toUpperCase()}` : ''}
+                </Text>
             </ScrollView>
         </SafeAreaView>
     );
@@ -219,41 +223,6 @@ const s = StyleSheet.create({
     },
 
     // Membership
-    membershipCard: {
-        backgroundColor: T.card,
-        borderRadius: 14,
-        padding: 14,
-        borderWidth: 1,
-        borderColor: T.border,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    membershipLabel: {
-        fontSize: 9,
-        color: T.muted,
-        fontWeight: '700',
-        letterSpacing: 0.8,
-        textTransform: 'uppercase',
-        marginBottom: 4,
-    },
-    membershipPlan: { fontSize: 15, fontWeight: '800', color: T.white },
-    membershipRenewal: { fontSize: 11, color: T.muted, marginTop: 2 },
-    manageBtn: {
-        backgroundColor: T.yellowDim,
-        borderWidth: 1,
-        borderColor: T.yellowBdr,
-        borderRadius: 10,
-        paddingVertical: 8,
-        paddingHorizontal: 13,
-    },
-    manageBtnText: {
-        color: T.yellow,
-        fontSize: 11,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.3,
-    },
 
     secHead: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10 },
     secTitle: {

@@ -1,8 +1,13 @@
 import { FitColors as T } from '@/constants/theme';
+import { useHealthData } from '@/hooks/use-health-data';
+import { useProfile } from '@/hooks/use-profile';
+import { useMyRoutines } from '@/lib/api/routines';
 import { Ionicons } from '@expo/vector-icons';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { router } from 'expo-router';
 import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const Pill = ({ label, bg = T.yellow, fg = T.bg, sm }: { label: string; bg?: string; fg?: string; sm?: boolean }) => (
@@ -36,16 +41,35 @@ const SectionHead = ({ title, right }: { title: string; right?: string }) => (
     </View>
 );
 
-const todayPlan = [
-    { name: 'Press de Banca', sets: '4×10', done: true },
-    { name: 'Press Inclinado DB', sets: '3×12', done: true },
-    { name: 'Cable Fly', sets: '3×15', done: false },
-    { name: 'Tricep Pushdown', sets: '4×12', done: false },
-    { name: 'Skull Crushers', sets: '3×10', done: false },
-];
+function greetingFor(hour: number): string {
+    if (hour < 12) return 'BUENOS DÍAS';
+    if (hour < 19) return 'BUENAS TARDES';
+    return 'BUENAS NOCHES';
+}
+
+/** "4×10" from the routine's sets/reps; either side may be missing. */
+function setsLabel(sets: number | null, reps: string | null): string {
+    if (sets && reps) return `${sets}×${reps}`;
+    if (sets) return `${sets} series`;
+    return reps ?? '—';
+}
 
 export default function HomeScreen() {
-    const done = todayPlan.filter((e) => e.done).length;
+    const { data: profile } = useProfile();
+    const health = useHealthData();
+    const { data: routines, isLoading: routinesLoading } = useMyRoutines();
+
+    const now = new Date();
+    // The routine the member is on right now; the backend has no per-day split,
+    // so the active routine IS the plan shown. `GET /routines/mine` already
+    // returns only ACTIVE assignments of ACTIVE routines, ordered by assignedAt
+    // DESC, so the first item is the current one — no filtering needed here.
+    const activeRoutine = routines?.[0];
+    // Numbered in the trainer's intended order, not whatever order the API returned.
+    const planExercises = [...(activeRoutine?.exercises ?? [])].sort((a, b) => a.displayOrder - b.displayOrder);
+
+    const firstName = profile?.fullName?.trim().split(/\s+/)[0]?.toUpperCase() ?? '';
+    const initial = firstName.charAt(0) || '·';
 
     return (
         <SafeAreaView style={s.root} edges={['top']}>
@@ -53,14 +77,14 @@ export default function HomeScreen() {
                 {/* Header */}
                 <View style={s.header}>
                     <View style={{ flex: 1 }}>
-                        <Text style={s.dateLabel}>LUNES, 23 MAR</Text>
+                        <Text style={s.dateLabel}>{format(now, 'EEEE, d MMM', { locale: es })}</Text>
                         <Text style={s.greeting}>
-                            {'BUENOS DÍAS,\n'}
-                            <Text style={{ color: T.yellow }}>JUAN 💪</Text>
+                            {`${greetingFor(now.getHours())},\n`}
+                            <Text style={{ color: T.yellow }}>{firstName ? `${firstName} 💪` : '💪'}</Text>
                         </Text>
                     </View>
                     <View style={s.avatar}>
-                        <Text style={s.avatarTxt}>C</Text>
+                        <Text style={s.avatarTxt}>{initial}</Text>
                     </View>
                 </View>
 
@@ -68,9 +92,14 @@ export default function HomeScreen() {
                 <View style={s.statsRow}>
                     {(
                         [
-                            { icon: '🔥', val: '2,140', unit: 'CAL', ac: T.orange },
-                            { icon: '⚡', val: '5', unit: 'EJERC', ac: T.yellow },
-                            { icon: '⏱', val: '45', unit: 'MIN', ac: T.blue },
+                            {
+                                icon: '🔥',
+                                val: health.caloriesToday.toLocaleString('es-CR'),
+                                unit: 'CAL',
+                                ac: T.orange,
+                            },
+                            { icon: '⚡', val: String(health.exercisesToday), unit: 'EJERC', ac: T.yellow },
+                            { icon: '⏱', val: String(health.activeMinutesToday), unit: 'MIN', ac: T.blue },
                         ] as const
                     ).map((st, i) => (
                         <View key={i} style={s.statCard}>
@@ -81,59 +110,94 @@ export default function HomeScreen() {
                     ))}
                 </View>
 
-                {/* Featured workout card */}
+                {/* Featured routine card */}
                 <View style={s.px}>
-                    <View style={s.featCard}>
-                        <View style={s.featGlow} pointerEvents="none" />
-                        <Pill label="WORKOUT DEL DÍA" />
-                        <Text style={s.featTitle}>{'CHEST\n& TRICEPS'}</Text>
-                        <Text style={s.featSub}>PUSH DAY · SEMANA A</Text>
-                        <View style={s.featMetaRow}>
-                            {(['⚡', '⏱', '🔥'] as const).map((ic, i) => {
-                                const labels = ['6 EJERCICIOS', '55 MIN', '480 CAL'];
-                                return (
-                                    <View key={i} style={s.featMetaItem}>
-                                        <Text style={s.featMetaIcon}>{ic}</Text>
-                                        <Text style={s.featMetaText}>{labels[i]}</Text>
-                                    </View>
-                                );
-                            })}
+                    {routinesLoading ? (
+                        <View style={[s.featCard, s.featLoading]}>
+                            <ActivityIndicator color={T.yellow} />
                         </View>
-                        <TouchableOpacity style={s.featBtn} activeOpacity={0.85}>
-                            <Text style={s.featBtnText}>INICIAR ENTRENAMIENTO →</Text>
-                        </TouchableOpacity>
-                    </View>
+                    ) : activeRoutine ? (
+                        <View style={s.featCard}>
+                            <View style={s.featGlow} pointerEvents="none" />
+                            <Pill label="TU RUTINA" />
+                            <Text style={s.featTitle}>{activeRoutine.name}</Text>
+                            {activeRoutine.objective ? (
+                                <Text style={s.featSub} numberOfLines={2} ellipsizeMode="tail">
+                                    {activeRoutine.objective}
+                                </Text>
+                            ) : null}
+                            <View style={s.featMetaRow}>
+                                <View style={s.featMetaItem}>
+                                    <Text style={s.featMetaIcon}>⚡</Text>
+                                    <Text style={s.featMetaText}>
+                                        {planExercises.length} {planExercises.length === 1 ? 'EJERCICIO' : 'EJERCICIOS'}
+                                    </Text>
+                                </View>
+                                {activeRoutine.createdByName ? (
+                                    <View style={s.featMetaItem}>
+                                        <Text style={s.featMetaIcon}>👤</Text>
+                                        <Text style={s.featMetaText}>{activeRoutine.createdByName.toUpperCase()}</Text>
+                                    </View>
+                                ) : null}
+                            </View>
+                            <TouchableOpacity
+                                style={s.featBtn}
+                                activeOpacity={0.85}
+                                onPress={() =>
+                                    router.push({
+                                        pathname: '/(routines)/detail',
+                                        params: { id: activeRoutine.id },
+                                    })
+                                }
+                            >
+                                <Text style={s.featBtnText}>VER RUTINA →</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <View style={[s.featCard, s.featEmpty]}>
+                            <Text style={s.emptyTitle}>Sin rutina asignada</Text>
+                            <Text style={s.emptyText}>Tu entrenador todavía no te ha asignado una rutina.</Text>
+                        </View>
+                    )}
                 </View>
 
-                {/* Today's plan */}
-                <SectionHead title="PLAN DE HOY" right={`${done}/${todayPlan.length}`} />
-                <View style={[s.px, { gap: 8 }]}>
-                    {todayPlan.map((ex, i) => (
-                        <View key={i} style={[s.exRow, ex.done && s.exRowDone]}>
-                            <View style={[s.checkCircle, ex.done && s.checkDone]}>
-                                {ex.done && <Ionicons name="checkmark" size={12} color={T.bg} />}
-                            </View>
-                            <Text style={[s.exName, ex.done && s.exNameDone]} numberOfLines={1}>
-                                {ex.name}
-                            </Text>
-                            <View style={s.setsBadge}>
-                                <Text style={s.setsText}>{ex.sets}</Text>
-                            </View>
+                {/* Routine exercises */}
+                {planExercises.length > 0 && (
+                    <>
+                        <SectionHead title="EJERCICIOS" right={String(planExercises.length)} />
+                        <View style={[s.px, { gap: 8 }]}>
+                            {planExercises.map((item, index) => (
+                                <View key={item.id} style={s.exRow}>
+                                    <View style={s.exIndex}>
+                                        <Text style={s.exIndexText}>{index + 1}</Text>
+                                    </View>
+                                    <Text style={s.exName} numberOfLines={1}>
+                                        {item.exercise.name}
+                                    </Text>
+                                    <View style={s.setsBadge}>
+                                        <Text style={s.setsText}>{setsLabel(item.sets, item.reps)}</Text>
+                                    </View>
+                                </View>
+                            ))}
                         </View>
-                    ))}
-                </View>
+                    </>
+                )}
 
                 {/* Streak banner */}
-                <View style={[s.px, { marginTop: 14 }]}>
-                    <View style={s.streakCard}>
-                        <Text style={s.streakFire}>🔥</Text>
-                        <View style={{ flex: 1, marginLeft: 12 }}>
-                            <Text style={s.streakLabel}>RACHA ACTIVA</Text>
-                            <Text style={s.streakVal}>8 DÍAS SEGUIDOS</Text>
+                {health.currentStreak > 0 && (
+                    <View style={[s.px, { marginTop: 14 }]}>
+                        <View style={s.streakCard}>
+                            <Text style={s.streakFire}>🔥</Text>
+                            <View style={{ flex: 1, marginLeft: 12 }}>
+                                <Text style={s.streakLabel}>RACHA ACTIVA</Text>
+                                <Text style={s.streakVal}>
+                                    {health.currentStreak} {health.currentStreak === 1 ? 'DÍA' : 'DÍAS SEGUIDOS'}
+                                </Text>
+                            </View>
+                            {health.currentStreak >= health.bestStreak && <Pill label="RÉCORD" />}
                         </View>
-                        <Pill label="RÉCORD" />
                     </View>
-                </View>
+                )}
             </ScrollView>
 
             {/* FAB — Coach IA */}
@@ -227,6 +291,10 @@ const s = StyleSheet.create({
         overflow: 'hidden',
         marginTop: 14,
     },
+    featLoading: { minHeight: 150, alignItems: 'center', justifyContent: 'center' },
+    featEmpty: { backgroundColor: T.card, borderColor: T.border },
+    emptyTitle: { fontSize: 15, fontWeight: '800', color: T.white },
+    emptyText: { fontSize: 12, color: T.muted, marginTop: 6, lineHeight: 17 },
     featGlow: {
         position: 'absolute',
         top: -40,
@@ -251,6 +319,8 @@ const s = StyleSheet.create({
         fontWeight: '700',
         marginTop: 6,
         letterSpacing: 1,
+        // Needed once the objective wraps to a second line before being clipped.
+        lineHeight: 15,
         textTransform: 'uppercase',
     },
     featMetaRow: { flexDirection: 'row', gap: 14, marginTop: 14 },
@@ -300,18 +370,20 @@ const s = StyleSheet.create({
         borderWidth: 1,
         borderColor: T.border,
     },
-    exRowDone: { borderColor: T.yellowBdr, opacity: 0.75 },
-    checkCircle: {
-        width: 22,
-        height: 22,
+    exIndex: {
+        width: 24,
+        height: 24,
         borderRadius: 7,
-        backgroundColor: T.card2,
+        backgroundColor: T.bg,
+        borderWidth: 1,
+        borderColor: T.border,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    checkDone: { backgroundColor: T.yellow },
+    // Muted on purpose: the yellow accent belongs to the sets badge, which carries
+    // the actual data — the ordinal is just scaffolding.
+    exIndexText: { fontSize: 11, fontWeight: '800', color: T.muted },
     exName: { flex: 1, fontSize: 13, fontWeight: '600', color: T.white },
-    exNameDone: { color: T.muted, textDecorationLine: 'line-through' },
     setsBadge: {
         backgroundColor: T.yellowDim,
         borderRadius: 6,
