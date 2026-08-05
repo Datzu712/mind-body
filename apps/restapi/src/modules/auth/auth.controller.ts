@@ -156,6 +156,27 @@ export class AuthController {
         };
     }
 
+    /**
+     * Sends the user to Keycloak's account console, where password, 2FA and
+     * sessions live. Mirrors `GET login`: the browser opens an API route and the
+     * API owns the Keycloak URL, so the base URL and realm never have to be
+     * mirrored into the dashboard's build-time env.
+     *
+     * `@Public()` on purpose — an expired cookie should land on Keycloak's own
+     * login screen, not on a 401 in a fresh tab the user just opened.
+     */
+    @Public()
+    @Get('account')
+    account(@Res() reply: FastifyReply) {
+        const kcBaseUrl = this.configService.getOrThrow('KC_BASE_URL');
+        const realm = this.configService.getOrThrow('KC_REALM');
+        const clientId = this.configService.getOrThrow('KC_ADMIN_CLIENT_ID');
+        // `referrer` is what makes Keycloak render a link back to the dashboard.
+        const params = new URLSearchParams({ referrer: clientId, referrer_uri: this.dashboardUrl });
+
+        return reply.redirect(`${kcBaseUrl}/realms/${realm}/account?${params.toString()}`, 302);
+    }
+
     @Post('logout')
     async logout(@Res() reply: FastifyReply) {
         reply.clearCookie('access_token', { path: '/' });

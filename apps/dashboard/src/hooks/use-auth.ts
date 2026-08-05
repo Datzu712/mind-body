@@ -5,6 +5,8 @@ export interface AuthUser {
     id: string;
     keycloakSubject: string;
     fullName: string;
+    /** `GET /auth/me` has always returned this; the interface just never declared it. */
+    email: string | null;
     phone: string | null;
     status: string;
     roles: string[];

@@ -203,7 +203,7 @@ export function UserProfileDetail({ user, profileType, isOwnProfile = false }: U
 
                     {showMembershipTab && (
                         <TabsContent value="membership" className={tabContentAnim}>
-                            <MembershipCard membership={user.memberProfile?.activeMembership} />
+                            <MembershipCard memberId={user.memberProfile?.id} canManage={canManage} />
                         </TabsContent>
                     )}
 

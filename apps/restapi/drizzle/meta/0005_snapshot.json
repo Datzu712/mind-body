@@ -1,0 +1,2530 @@
+{
+    "id": "709ef165-348f-44df-8346-39a67812782d",
+    "prevId": "fd19dd3f-f434-4736-966e-ee94e3d535a0",
+    "version": "7",
+    "dialect": "postgresql",
+    "tables": {
+        "app.class_schedule_events": {
+            "name": "class_schedule_events",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "class_series_id": {
+                    "name": "class_series_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "class_session_id": {
+                    "name": "class_session_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "event_type": {
+                    "name": "event_type",
+                    "type": "varchar(80)",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "actor_user_id": {
+                    "name": "actor_user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "before_state": {
+                    "name": "before_state",
+                    "type": "jsonb",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "after_state": {
+                    "name": "after_state",
+                    "type": "jsonb",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "reason": {
+                    "name": "reason",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "occurred_at": {
+                    "name": "occurred_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "idx_class_schedule_events_series_occurred": {
+                    "name": "idx_class_schedule_events_series_occurred",
+                    "columns": [
+                        {
+                            "expression": "class_series_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        },
+                        {
+                            "expression": "occurred_at",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "timestamptz_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                },
+                "idx_class_schedule_events_session_occurred": {
+                    "name": "idx_class_schedule_events_session_occurred",
+                    "columns": [
+                        {
+                            "expression": "class_session_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        },
+                        {
+                            "expression": "occurred_at",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "timestamptz_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "class_schedule_events_class_series_id_fkey": {
+                    "name": "class_schedule_events_class_series_id_fkey",
+                    "tableFrom": "class_schedule_events",
+                    "tableTo": "class_series",
+                    "schemaTo": "app",
+                    "columnsFrom": ["class_series_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "class_schedule_events_class_session_id_fkey": {
+                    "name": "class_schedule_events_class_session_id_fkey",
+                    "tableFrom": "class_schedule_events",
+                    "tableTo": "class_sessions",
+                    "schemaTo": "app",
+                    "columnsFrom": ["class_session_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "class_schedule_events_actor_user_id_fkey": {
+                    "name": "class_schedule_events_actor_user_id_fkey",
+                    "tableFrom": "class_schedule_events",
+                    "tableTo": "users",
+                    "schemaTo": "app",
+                    "columnsFrom": ["actor_user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {
+                "chk_class_schedule_events_target": {
+                    "name": "chk_class_schedule_events_target",
+                    "value": "num_nonnulls(class_series_id, class_session_id) = 1"
+                }
+            },
+            "isRLSEnabled": false
+        },
+        "app.class_series": {
+            "name": "class_series",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "trainer_id": {
+                    "name": "trainer_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "name": {
+                    "name": "name",
+                    "type": "varchar(120)",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "description": {
+                    "name": "description",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "''"
+                },
+                "local_start_time": {
+                    "name": "local_start_time",
+                    "type": "time",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "duration_minutes": {
+                    "name": "duration_minutes",
+                    "type": "smallint",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "capacity": {
+                    "name": "capacity",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "allow_waitlist": {
+                    "name": "allow_waitlist",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": false
+                },
+                "starts_on": {
+                    "name": "starts_on",
+                    "type": "date",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "category": {
+                    "name": "category",
+                    "type": "varchar(80)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "level": {
+                    "name": "level",
+                    "type": "class_level",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "room": {
+                    "name": "room",
+                    "type": "varchar(120)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "zone": {
+                    "name": "zone",
+                    "type": "varchar(120)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "status": {
+                    "name": "status",
+                    "type": "record_status",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'ACTIVE'"
+                },
+                "created_by_user_id": {
+                    "name": "created_by_user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "updated_by_user_id": {
+                    "name": "updated_by_user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "version": {
+                    "name": "version",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": 1
+                },
+                "deleted_at": {
+                    "name": "deleted_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "idx_class_series_status": {
+                    "name": "idx_class_series_status",
+                    "columns": [
+                        {
+                            "expression": "status",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "enum_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                },
+                "idx_class_series_trainer_status": {
+                    "name": "idx_class_series_trainer_status",
+                    "columns": [
+                        {
+                            "expression": "trainer_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        },
+                        {
+                            "expression": "status",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "enum_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "class_series_trainer_id_fkey": {
+                    "name": "class_series_trainer_id_fkey",
+                    "tableFrom": "class_series",
+                    "tableTo": "trainers",
+                    "schemaTo": "app",
+                    "columnsFrom": ["trainer_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "class_series_created_by_user_id_fkey": {
+                    "name": "class_series_created_by_user_id_fkey",
+                    "tableFrom": "class_series",
+                    "tableTo": "users",
+                    "schemaTo": "app",
+                    "columnsFrom": ["created_by_user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "class_series_updated_by_user_id_fkey": {
+                    "name": "class_series_updated_by_user_id_fkey",
+                    "tableFrom": "class_series",
+                    "tableTo": "users",
+                    "schemaTo": "app",
+                    "columnsFrom": ["updated_by_user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {
+                "class_series_duration_minutes_check": {
+                    "name": "class_series_duration_minutes_check",
+                    "value": "duration_minutes BETWEEN 1 AND 1440"
+                },
+                "class_series_capacity_check": {
+                    "name": "class_series_capacity_check",
+                    "value": "capacity BETWEEN 1 AND 500"
+                },
+                "class_series_version_check": {
+                    "name": "class_series_version_check",
+                    "value": "version > 0"
+                },
+                "chk_class_series_archived_deleted_at": {
+                    "name": "chk_class_series_archived_deleted_at",
+                    "value": "(status = 'ARCHIVED') = (deleted_at IS NOT NULL)"
+                }
+            },
+            "isRLSEnabled": false
+        },
+        "app.class_series_weekdays": {
+            "name": "class_series_weekdays",
+            "schema": "app",
+            "columns": {
+                "class_series_id": {
+                    "name": "class_series_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "iso_weekday": {
+                    "name": "iso_weekday",
+                    "type": "smallint",
+                    "primaryKey": false,
+                    "notNull": true
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "class_series_weekdays_class_series_id_fkey": {
+                    "name": "class_series_weekdays_class_series_id_fkey",
+                    "tableFrom": "class_series_weekdays",
+                    "tableTo": "class_series",
+                    "schemaTo": "app",
+                    "columnsFrom": ["class_series_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "restrict",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {
+                "class_series_weekdays_pkey": {
+                    "name": "class_series_weekdays_pkey",
+                    "columns": ["class_series_id", "iso_weekday"]
+                }
+            },
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {
+                "class_series_weekdays_iso_weekday_check": {
+                    "name": "class_series_weekdays_iso_weekday_check",
+                    "value": "iso_weekday BETWEEN 1 AND 7"
+                }
+            },
+            "isRLSEnabled": false
+        },
+        "app.class_sessions": {
+            "name": "class_sessions",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "class_series_id": {
+                    "name": "class_series_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "origin_date": {
+                    "name": "origin_date",
+                    "type": "date",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "starts_at": {
+                    "name": "starts_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "ends_at": {
+                    "name": "ends_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "class_name": {
+                    "name": "class_name",
+                    "type": "varchar(120)",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "description": {
+                    "name": "description",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "trainer_id": {
+                    "name": "trainer_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "capacity": {
+                    "name": "capacity",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "allow_waitlist": {
+                    "name": "allow_waitlist",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "category": {
+                    "name": "category",
+                    "type": "varchar(80)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "level": {
+                    "name": "level",
+                    "type": "class_level",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "room": {
+                    "name": "room",
+                    "type": "varchar(120)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "zone": {
+                    "name": "zone",
+                    "type": "varchar(120)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "status": {
+                    "name": "status",
+                    "type": "class_session_status",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'SCHEDULED'"
+                },
+                "schedule_overridden": {
+                    "name": "schedule_overridden",
+                    "type": "boolean",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": false
+                },
+                "source_series_version": {
+                    "name": "source_series_version",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "version": {
+                    "name": "version",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": 1
+                },
+                "cancel_reason": {
+                    "name": "cancel_reason",
+                    "type": "class_session_cancel_reason",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "cancelled_at": {
+                    "name": "cancelled_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "cancelled_by_user_id": {
+                    "name": "cancelled_by_user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "updated_by_user_id": {
+                    "name": "updated_by_user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "idx_class_sessions_starts_status": {
+                    "name": "idx_class_sessions_starts_status",
+                    "columns": [
+                        {
+                            "expression": "starts_at",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "timestamptz_ops"
+                        },
+                        {
+                            "expression": "status",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "enum_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                },
+                "idx_class_sessions_series_starts": {
+                    "name": "idx_class_sessions_series_starts",
+                    "columns": [
+                        {
+                            "expression": "class_series_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        },
+                        {
+                            "expression": "starts_at",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "timestamptz_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                },
+                "idx_class_sessions_trainer_starts": {
+                    "name": "idx_class_sessions_trainer_starts",
+                    "columns": [
+                        {
+                            "expression": "trainer_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        },
+                        {
+                            "expression": "starts_at",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "timestamptz_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "class_sessions_class_series_id_fkey": {
+                    "name": "class_sessions_class_series_id_fkey",
+                    "tableFrom": "class_sessions",
+                    "tableTo": "class_series",
+                    "schemaTo": "app",
+                    "columnsFrom": ["class_series_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "class_sessions_trainer_id_fkey": {
+                    "name": "class_sessions_trainer_id_fkey",
+                    "tableFrom": "class_sessions",
+                    "tableTo": "trainers",
+                    "schemaTo": "app",
+                    "columnsFrom": ["trainer_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "class_sessions_cancelled_by_user_id_fkey": {
+                    "name": "class_sessions_cancelled_by_user_id_fkey",
+                    "tableFrom": "class_sessions",
+                    "tableTo": "users",
+                    "schemaTo": "app",
+                    "columnsFrom": ["cancelled_by_user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "class_sessions_updated_by_user_id_fkey": {
+                    "name": "class_sessions_updated_by_user_id_fkey",
+                    "tableFrom": "class_sessions",
+                    "tableTo": "users",
+                    "schemaTo": "app",
+                    "columnsFrom": ["updated_by_user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "class_sessions_series_origin_key": {
+                    "name": "class_sessions_series_origin_key",
+                    "nullsNotDistinct": false,
+                    "columns": ["class_series_id", "origin_date"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {
+                "class_sessions_time_range_check": {
+                    "name": "class_sessions_time_range_check",
+                    "value": "ends_at > starts_at"
+                },
+                "class_sessions_capacity_check": {
+                    "name": "class_sessions_capacity_check",
+                    "value": "capacity BETWEEN 1 AND 500"
+                },
+                "class_sessions_version_check": {
+                    "name": "class_sessions_version_check",
+                    "value": "version > 0"
+                },
+                "chk_class_sessions_cancel_coherence": {
+                    "name": "chk_class_sessions_cancel_coherence",
+                    "value": "(status = 'SCHEDULED' AND cancel_reason IS NULL AND cancelled_at IS NULL) OR (status = 'CANCELLED' AND cancel_reason IS NOT NULL AND cancelled_at IS NOT NULL)"
+                }
+            },
+            "isRLSEnabled": false
+        },
+        "app.daily_activity_summaries": {
+            "name": "daily_activity_summaries",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "member_id": {
+                    "name": "member_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "date": {
+                    "name": "date",
+                    "type": "date",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "steps": {
+                    "name": "steps",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": 0
+                },
+                "calories_total": {
+                    "name": "calories_total",
+                    "type": "numeric(8, 2)",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'0'"
+                },
+                "active_minutes": {
+                    "name": "active_minutes",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": 0
+                },
+                "exercise_count": {
+                    "name": "exercise_count",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": 0
+                },
+                "distance_meters": {
+                    "name": "distance_meters",
+                    "type": "numeric(10, 2)",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'0'"
+                },
+                "source": {
+                    "name": "source",
+                    "type": "activity_source",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "idx_daily_activity_member_date": {
+                    "name": "idx_daily_activity_member_date",
+                    "columns": [
+                        {
+                            "expression": "member_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        },
+                        {
+                            "expression": "date",
+                            "isExpression": false,
+                            "asc": false,
+                            "nulls": "first",
+                            "opclass": "date_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "daily_activity_summaries_member_id_fkey": {
+                    "name": "daily_activity_summaries_member_id_fkey",
+                    "tableFrom": "daily_activity_summaries",
+                    "tableTo": "members",
+                    "schemaTo": "app",
+                    "columnsFrom": ["member_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "daily_activity_summaries_member_date_key": {
+                    "name": "daily_activity_summaries_member_date_key",
+                    "nullsNotDistinct": false,
+                    "columns": ["member_id", "date"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "app.exercises": {
+            "name": "exercises",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "name": {
+                    "name": "name",
+                    "type": "varchar(120)",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "description": {
+                    "name": "description",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "muscle_group": {
+                    "name": "muscle_group",
+                    "type": "varchar(80)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "status": {
+                    "name": "status",
+                    "type": "record_status",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'ACTIVE'"
+                },
+                "deleted_at": {
+                    "name": "deleted_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "exercises_name_key": {
+                    "name": "exercises_name_key",
+                    "nullsNotDistinct": false,
+                    "columns": ["name"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "app.member_measurements": {
+            "name": "member_measurements",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "member_id": {
+                    "name": "member_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "measured_at": {
+                    "name": "measured_at",
+                    "type": "date",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "CURRENT_DATE"
+                },
+                "weight_kg": {
+                    "name": "weight_kg",
+                    "type": "numeric(5, 2)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "height_cm": {
+                    "name": "height_cm",
+                    "type": "numeric(5, 2)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "body_fat_percentage": {
+                    "name": "body_fat_percentage",
+                    "type": "numeric(5, 2)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "waist_cm": {
+                    "name": "waist_cm",
+                    "type": "numeric(5, 2)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "notes": {
+                    "name": "notes",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "idx_member_measurements_member_date": {
+                    "name": "idx_member_measurements_member_date",
+                    "columns": [
+                        {
+                            "expression": "member_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        },
+                        {
+                            "expression": "measured_at",
+                            "isExpression": false,
+                            "asc": false,
+                            "nulls": "first",
+                            "opclass": "date_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "member_measurements_member_id_fkey": {
+                    "name": "member_measurements_member_id_fkey",
+                    "tableFrom": "member_measurements",
+                    "tableTo": "members",
+                    "schemaTo": "app",
+                    "columnsFrom": ["member_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "app.member_routines": {
+            "name": "member_routines",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "member_id": {
+                    "name": "member_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "routine_id": {
+                    "name": "routine_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "assigned_by_user_id": {
+                    "name": "assigned_by_user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "assigned_at": {
+                    "name": "assigned_at",
+                    "type": "date",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "CURRENT_DATE"
+                },
+                "ended_at": {
+                    "name": "ended_at",
+                    "type": "date",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "status": {
+                    "name": "status",
+                    "type": "record_status",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'ACTIVE'"
+                },
+                "deleted_at": {
+                    "name": "deleted_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "idx_member_routines_member_status": {
+                    "name": "idx_member_routines_member_status",
+                    "columns": [
+                        {
+                            "expression": "member_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        },
+                        {
+                            "expression": "status",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "enum_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "member_routines_member_id_fkey": {
+                    "name": "member_routines_member_id_fkey",
+                    "tableFrom": "member_routines",
+                    "tableTo": "members",
+                    "schemaTo": "app",
+                    "columnsFrom": ["member_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "member_routines_routine_id_fkey": {
+                    "name": "member_routines_routine_id_fkey",
+                    "tableFrom": "member_routines",
+                    "tableTo": "routines",
+                    "schemaTo": "app",
+                    "columnsFrom": ["routine_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "member_routines_assigned_by_user_id_fkey": {
+                    "name": "member_routines_assigned_by_user_id_fkey",
+                    "tableFrom": "member_routines",
+                    "tableTo": "users",
+                    "schemaTo": "app",
+                    "columnsFrom": ["assigned_by_user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {
+                "chk_member_routine_dates": {
+                    "name": "chk_member_routine_dates",
+                    "value": "(ended_at IS NULL) OR (ended_at >= assigned_at)"
+                }
+            },
+            "isRLSEnabled": false
+        },
+        "app.members": {
+            "name": "members",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "user_id": {
+                    "name": "user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "emergency_contact_name": {
+                    "name": "emergency_contact_name",
+                    "type": "varchar(120)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "emergency_contact_phone": {
+                    "name": "emergency_contact_phone",
+                    "type": "varchar(30)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "joined_at": {
+                    "name": "joined_at",
+                    "type": "date",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "CURRENT_DATE"
+                },
+                "notes": {
+                    "name": "notes",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "status": {
+                    "name": "status",
+                    "type": "record_status",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'ACTIVE'"
+                },
+                "deleted_at": {
+                    "name": "deleted_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "idx_members_status": {
+                    "name": "idx_members_status",
+                    "columns": [
+                        {
+                            "expression": "status",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "enum_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "members_user_id_fkey": {
+                    "name": "members_user_id_fkey",
+                    "tableFrom": "members",
+                    "tableTo": "users",
+                    "schemaTo": "app",
+                    "columnsFrom": ["user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "members_user_id_key": {
+                    "name": "members_user_id_key",
+                    "nullsNotDistinct": false,
+                    "columns": ["user_id"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "app.membership_plans": {
+            "name": "membership_plans",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "name": {
+                    "name": "name",
+                    "type": "varchar(80)",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "duration_days": {
+                    "name": "duration_days",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "price": {
+                    "name": "price",
+                    "type": "numeric(10, 2)",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "description": {
+                    "name": "description",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "status": {
+                    "name": "status",
+                    "type": "record_status",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'ACTIVE'"
+                },
+                "deleted_at": {
+                    "name": "deleted_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "membership_plans_name_key": {
+                    "name": "membership_plans_name_key",
+                    "nullsNotDistinct": false,
+                    "columns": ["name"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {
+                "membership_plans_duration_days_check": {
+                    "name": "membership_plans_duration_days_check",
+                    "value": "duration_days > 0"
+                },
+                "membership_plans_price_check": {
+                    "name": "membership_plans_price_check",
+                    "value": "price >= (0)::numeric"
+                }
+            },
+            "isRLSEnabled": false
+        },
+        "app.memberships": {
+            "name": "memberships",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "member_id": {
+                    "name": "member_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "plan_id": {
+                    "name": "plan_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "start_date": {
+                    "name": "start_date",
+                    "type": "date",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "end_date": {
+                    "name": "end_date",
+                    "type": "date",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "status": {
+                    "name": "status",
+                    "type": "membership_status",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'ACTIVE'"
+                },
+                "deleted_at": {
+                    "name": "deleted_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "idx_memberships_member_status_dates": {
+                    "name": "idx_memberships_member_status_dates",
+                    "columns": [
+                        {
+                            "expression": "member_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        },
+                        {
+                            "expression": "status",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "enum_ops"
+                        },
+                        {
+                            "expression": "start_date",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "date_ops"
+                        },
+                        {
+                            "expression": "end_date",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "date_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "memberships_member_id_fkey": {
+                    "name": "memberships_member_id_fkey",
+                    "tableFrom": "memberships",
+                    "tableTo": "members",
+                    "schemaTo": "app",
+                    "columnsFrom": ["member_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "memberships_plan_id_fkey": {
+                    "name": "memberships_plan_id_fkey",
+                    "tableFrom": "memberships",
+                    "tableTo": "membership_plans",
+                    "schemaTo": "app",
+                    "columnsFrom": ["plan_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {
+                "chk_membership_dates": {
+                    "name": "chk_membership_dates",
+                    "value": "end_date >= start_date"
+                }
+            },
+            "isRLSEnabled": false
+        },
+        "app.reservation_events": {
+            "name": "reservation_events",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "reservation_id": {
+                    "name": "reservation_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "actor_user_id": {
+                    "name": "actor_user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "from_status": {
+                    "name": "from_status",
+                    "type": "reservation_status",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "to_status": {
+                    "name": "to_status",
+                    "type": "reservation_status",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "reason": {
+                    "name": "reason",
+                    "type": "reservation_reason",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "from_session_id": {
+                    "name": "from_session_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "to_session_id": {
+                    "name": "to_session_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "metadata": {
+                    "name": "metadata",
+                    "type": "jsonb",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'{}'::jsonb"
+                },
+                "occurred_at": {
+                    "name": "occurred_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "idx_reservation_events_reservation_occurred": {
+                    "name": "idx_reservation_events_reservation_occurred",
+                    "columns": [
+                        {
+                            "expression": "reservation_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        },
+                        {
+                            "expression": "occurred_at",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "timestamptz_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "reservation_events_reservation_id_fkey": {
+                    "name": "reservation_events_reservation_id_fkey",
+                    "tableFrom": "reservation_events",
+                    "tableTo": "reservations",
+                    "schemaTo": "app",
+                    "columnsFrom": ["reservation_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "reservation_events_actor_user_id_fkey": {
+                    "name": "reservation_events_actor_user_id_fkey",
+                    "tableFrom": "reservation_events",
+                    "tableTo": "users",
+                    "schemaTo": "app",
+                    "columnsFrom": ["actor_user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "reservation_events_from_session_id_fkey": {
+                    "name": "reservation_events_from_session_id_fkey",
+                    "tableFrom": "reservation_events",
+                    "tableTo": "class_sessions",
+                    "schemaTo": "app",
+                    "columnsFrom": ["from_session_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "reservation_events_to_session_id_fkey": {
+                    "name": "reservation_events_to_session_id_fkey",
+                    "tableFrom": "reservation_events",
+                    "tableTo": "class_sessions",
+                    "schemaTo": "app",
+                    "columnsFrom": ["to_session_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "app.reservations": {
+            "name": "reservations",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "session_id": {
+                    "name": "session_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "member_id": {
+                    "name": "member_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "status": {
+                    "name": "status",
+                    "type": "reservation_status",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "status_reason": {
+                    "name": "status_reason",
+                    "type": "reservation_reason",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "waitlisted_at": {
+                    "name": "waitlisted_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "confirmed_at": {
+                    "name": "confirmed_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "cancelled_at": {
+                    "name": "cancelled_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "attendance_marked_at": {
+                    "name": "attendance_marked_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "rescheduled_from_reservation_id": {
+                    "name": "rescheduled_from_reservation_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_by_user_id": {
+                    "name": "created_by_user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "updated_by_user_id": {
+                    "name": "updated_by_user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "idx_reservations_session_status_fifo": {
+                    "name": "idx_reservations_session_status_fifo",
+                    "columns": [
+                        {
+                            "expression": "session_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        },
+                        {
+                            "expression": "status",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "enum_ops"
+                        },
+                        {
+                            "expression": "waitlisted_at",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "timestamptz_ops"
+                        },
+                        {
+                            "expression": "id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                },
+                "idx_reservations_member_created": {
+                    "name": "idx_reservations_member_created",
+                    "columns": [
+                        {
+                            "expression": "member_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        },
+                        {
+                            "expression": "created_at",
+                            "isExpression": false,
+                            "asc": false,
+                            "nulls": "first",
+                            "opclass": "timestamptz_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                },
+                "idx_reservations_member_status_session": {
+                    "name": "idx_reservations_member_status_session",
+                    "columns": [
+                        {
+                            "expression": "member_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        },
+                        {
+                            "expression": "status",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "enum_ops"
+                        },
+                        {
+                            "expression": "session_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                },
+                "uq_reservations_active_member_session": {
+                    "name": "uq_reservations_active_member_session",
+                    "columns": [
+                        {
+                            "expression": "session_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        },
+                        {
+                            "expression": "member_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "where": "status <> 'CANCELLED'",
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                },
+                "uq_reservations_reschedule_source": {
+                    "name": "uq_reservations_reschedule_source",
+                    "columns": [
+                        {
+                            "expression": "rescheduled_from_reservation_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last"
+                        }
+                    ],
+                    "isUnique": true,
+                    "where": "rescheduled_from_reservation_id IS NOT NULL",
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "reservations_session_id_fkey": {
+                    "name": "reservations_session_id_fkey",
+                    "tableFrom": "reservations",
+                    "tableTo": "class_sessions",
+                    "schemaTo": "app",
+                    "columnsFrom": ["session_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "reservations_member_id_fkey": {
+                    "name": "reservations_member_id_fkey",
+                    "tableFrom": "reservations",
+                    "tableTo": "members",
+                    "schemaTo": "app",
+                    "columnsFrom": ["member_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "reservations_rescheduled_from_fkey": {
+                    "name": "reservations_rescheduled_from_fkey",
+                    "tableFrom": "reservations",
+                    "tableTo": "reservations",
+                    "schemaTo": "app",
+                    "columnsFrom": ["rescheduled_from_reservation_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "reservations_created_by_user_id_fkey": {
+                    "name": "reservations_created_by_user_id_fkey",
+                    "tableFrom": "reservations",
+                    "tableTo": "users",
+                    "schemaTo": "app",
+                    "columnsFrom": ["created_by_user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                },
+                "reservations_updated_by_user_id_fkey": {
+                    "name": "reservations_updated_by_user_id_fkey",
+                    "tableFrom": "reservations",
+                    "tableTo": "users",
+                    "schemaTo": "app",
+                    "columnsFrom": ["updated_by_user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {
+                "chk_reservations_not_self_reschedule": {
+                    "name": "chk_reservations_not_self_reschedule",
+                    "value": "rescheduled_from_reservation_id IS NULL OR rescheduled_from_reservation_id <> id"
+                },
+                "chk_reservations_status_timestamps": {
+                    "name": "chk_reservations_status_timestamps",
+                    "value": "(status = 'WAITLISTED' AND waitlisted_at IS NOT NULL AND cancelled_at IS NULL) OR (status = 'CONFIRMED' AND confirmed_at IS NOT NULL AND cancelled_at IS NULL) OR (status = 'ATTENDED' AND confirmed_at IS NOT NULL AND attendance_marked_at IS NOT NULL) OR (status = 'NO_SHOW' AND confirmed_at IS NOT NULL AND (attendance_marked_at IS NOT NULL OR status_reason = 'LATE_CANCELLATION')) OR (status = 'CANCELLED' AND cancelled_at IS NOT NULL)"
+                },
+                "chk_reservations_status_reason": {
+                    "name": "chk_reservations_status_reason",
+                    "value": "(status = 'CONFIRMED' AND status_reason IN ('MEMBER_BOOKED', 'WAITLIST_PROMOTED', 'RESCHEDULED')) OR (status = 'WAITLISTED' AND status_reason = 'MEMBER_JOINED_WAITLIST') OR (status = 'ATTENDED' AND status_reason = 'ATTENDANCE') OR (status = 'NO_SHOW' AND status_reason IN ('LATE_CANCELLATION', 'ATTENDANCE')) OR (status = 'CANCELLED' AND status_reason IN ('MEMBER_CANCELLED', 'ADMIN_CANCELLED', 'SESSION_CANCELLED', 'SERIES_CHANGED', 'WAITLIST_REMOVED', 'WAITLIST_EXPIRED', 'RESCHEDULED'))"
+                }
+            },
+            "isRLSEnabled": false
+        },
+        "app.routine_exercises": {
+            "name": "routine_exercises",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "routine_id": {
+                    "name": "routine_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "exercise_id": {
+                    "name": "exercise_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "display_order": {
+                    "name": "display_order",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "sets": {
+                    "name": "sets",
+                    "type": "integer",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "reps": {
+                    "name": "reps",
+                    "type": "varchar(40)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "notes": {
+                    "name": "notes",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "routine_exercises_routine_id_fkey": {
+                    "name": "routine_exercises_routine_id_fkey",
+                    "tableFrom": "routine_exercises",
+                    "tableTo": "routines",
+                    "schemaTo": "app",
+                    "columnsFrom": ["routine_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "cascade",
+                    "onUpdate": "no action"
+                },
+                "routine_exercises_exercise_id_fkey": {
+                    "name": "routine_exercises_exercise_id_fkey",
+                    "tableFrom": "routine_exercises",
+                    "tableTo": "exercises",
+                    "schemaTo": "app",
+                    "columnsFrom": ["exercise_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "uq_routine_exercise_order": {
+                    "name": "uq_routine_exercise_order",
+                    "nullsNotDistinct": false,
+                    "columns": ["display_order", "routine_id"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {
+                "routine_exercises_display_order_check": {
+                    "name": "routine_exercises_display_order_check",
+                    "value": "display_order > 0"
+                },
+                "routine_exercises_sets_check": {
+                    "name": "routine_exercises_sets_check",
+                    "value": "sets > 0"
+                }
+            },
+            "isRLSEnabled": false
+        },
+        "app.routines": {
+            "name": "routines",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "created_by_user_id": {
+                    "name": "created_by_user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "name": {
+                    "name": "name",
+                    "type": "varchar(120)",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "objective": {
+                    "name": "objective",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "status": {
+                    "name": "status",
+                    "type": "routine_status",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'DRAFT'"
+                },
+                "deleted_at": {
+                    "name": "deleted_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "idx_routines_created_by_status": {
+                    "name": "idx_routines_created_by_status",
+                    "columns": [
+                        {
+                            "expression": "created_by_user_id",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        },
+                        {
+                            "expression": "status",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "enum_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "routines_created_by_user_id_fkey": {
+                    "name": "routines_created_by_user_id_fkey",
+                    "tableFrom": "routines",
+                    "tableTo": "users",
+                    "schemaTo": "app",
+                    "columnsFrom": ["created_by_user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {},
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "app.staff": {
+            "name": "staff",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "user_id": {
+                    "name": "user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "hired_at": {
+                    "name": "hired_at",
+                    "type": "date",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "CURRENT_DATE"
+                },
+                "status": {
+                    "name": "status",
+                    "type": "record_status",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'ACTIVE'"
+                },
+                "deleted_at": {
+                    "name": "deleted_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {},
+            "foreignKeys": {
+                "staff_user_id_fkey": {
+                    "name": "staff_user_id_fkey",
+                    "tableFrom": "staff",
+                    "tableTo": "users",
+                    "schemaTo": "app",
+                    "columnsFrom": ["user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "staff_user_id_key": {
+                    "name": "staff_user_id_key",
+                    "nullsNotDistinct": false,
+                    "columns": ["user_id"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "app.trainers": {
+            "name": "trainers",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "user_id": {
+                    "name": "user_id",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "specialty": {
+                    "name": "specialty",
+                    "type": "varchar(120)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "biography": {
+                    "name": "biography",
+                    "type": "text",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "status": {
+                    "name": "status",
+                    "type": "record_status",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'ACTIVE'"
+                },
+                "deleted_at": {
+                    "name": "deleted_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "idx_trainers_status": {
+                    "name": "idx_trainers_status",
+                    "columns": [
+                        {
+                            "expression": "status",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "enum_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {
+                "trainers_user_id_fkey": {
+                    "name": "trainers_user_id_fkey",
+                    "tableFrom": "trainers",
+                    "tableTo": "users",
+                    "schemaTo": "app",
+                    "columnsFrom": ["user_id"],
+                    "columnsTo": ["id"],
+                    "onDelete": "no action",
+                    "onUpdate": "no action"
+                }
+            },
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "trainers_user_id_key": {
+                    "name": "trainers_user_id_key",
+                    "nullsNotDistinct": false,
+                    "columns": ["user_id"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        },
+        "app.users": {
+            "name": "users",
+            "schema": "app",
+            "columns": {
+                "id": {
+                    "name": "id",
+                    "type": "uuid",
+                    "primaryKey": true,
+                    "notNull": true,
+                    "default": "uuidv7()"
+                },
+                "keycloak_subject": {
+                    "name": "keycloak_subject",
+                    "type": "uuid",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "full_name": {
+                    "name": "full_name",
+                    "type": "varchar(160)",
+                    "primaryKey": false,
+                    "notNull": true
+                },
+                "email": {
+                    "name": "email",
+                    "type": "varchar(255)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "phone": {
+                    "name": "phone",
+                    "type": "varchar(30)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "dni": {
+                    "name": "dni",
+                    "type": "varchar(20)",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "dni_type": {
+                    "name": "dni_type",
+                    "type": "dni_type",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "birth_date": {
+                    "name": "birth_date",
+                    "type": "date",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "status": {
+                    "name": "status",
+                    "type": "record_status",
+                    "typeSchema": "app",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "'ACTIVE'"
+                },
+                "deleted_at": {
+                    "name": "deleted_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": false
+                },
+                "created_at": {
+                    "name": "created_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                },
+                "updated_at": {
+                    "name": "updated_at",
+                    "type": "timestamp with time zone",
+                    "primaryKey": false,
+                    "notNull": true,
+                    "default": "now()"
+                }
+            },
+            "indexes": {
+                "idx_users_keycloak_subject": {
+                    "name": "idx_users_keycloak_subject",
+                    "columns": [
+                        {
+                            "expression": "keycloak_subject",
+                            "isExpression": false,
+                            "asc": true,
+                            "nulls": "last",
+                            "opclass": "uuid_ops"
+                        }
+                    ],
+                    "isUnique": false,
+                    "concurrently": false,
+                    "method": "btree",
+                    "with": {}
+                }
+            },
+            "foreignKeys": {},
+            "compositePrimaryKeys": {},
+            "uniqueConstraints": {
+                "users_keycloak_subject_key": {
+                    "name": "users_keycloak_subject_key",
+                    "nullsNotDistinct": false,
+                    "columns": ["keycloak_subject"]
+                },
+                "users_dni_key": {
+                    "name": "users_dni_key",
+                    "nullsNotDistinct": false,
+                    "columns": ["dni"]
+                }
+            },
+            "policies": {},
+            "checkConstraints": {},
+            "isRLSEnabled": false
+        }
+    },
+    "enums": {
+        "app.activity_source": {
+            "name": "activity_source",
+            "schema": "app",
+            "values": ["HEALTH_CONNECT", "MANUAL"]
+        },
+        "app.class_level": {
+            "name": "class_level",
+            "schema": "app",
+            "values": ["LOW", "MEDIUM", "HIGH"]
+        },
+        "app.class_session_cancel_reason": {
+            "name": "class_session_cancel_reason",
+            "schema": "app",
+            "values": ["MANUAL", "SERIES_INACTIVE", "SERIES_ARCHIVED", "SCHEDULE_REMOVED"]
+        },
+        "app.class_session_status": {
+            "name": "class_session_status",
+            "schema": "app",
+            "values": ["SCHEDULED", "CANCELLED"]
+        },
+        "app.dni_type": {
+            "name": "dni_type",
+            "schema": "app",
+            "values": ["CEDULA_NACIONAL", "DIMEX", "PASAPORTE"]
+        },
+        "app.membership_status": {
+            "name": "membership_status",
+            "schema": "app",
+            "values": ["ACTIVE", "SUSPENDED", "EXPIRED", "CANCELLED"]
+        },
+        "app.record_status": {
+            "name": "record_status",
+            "schema": "app",
+            "values": ["ACTIVE", "INACTIVE", "ARCHIVED"]
+        },
+        "app.reservation_reason": {
+            "name": "reservation_reason",
+            "schema": "app",
+            "values": [
+                "MEMBER_BOOKED",
+                "MEMBER_JOINED_WAITLIST",
+                "WAITLIST_PROMOTED",
+                "MEMBER_CANCELLED",
+                "ADMIN_CANCELLED",
+                "LATE_CANCELLATION",
+                "SESSION_CANCELLED",
+                "SERIES_CHANGED",
+                "WAITLIST_REMOVED",
+                "WAITLIST_EXPIRED",
+                "RESCHEDULED",
+                "ATTENDANCE"
+            ]
+        },
+        "app.reservation_status": {
+            "name": "reservation_status",
+            "schema": "app",
+            "values": ["CONFIRMED", "WAITLISTED", "ATTENDED", "NO_SHOW", "CANCELLED"]
+        },
+        "app.routine_status": {
+            "name": "routine_status",
+            "schema": "app",
+            "values": ["DRAFT", "ACTIVE", "PAUSED", "FINISHED", "ARCHIVED"]
+        }
+    },
+    "schemas": {
+        "app": "app"
+    },
+    "sequences": {},
+    "roles": {},
+    "policies": {},
+    "views": {},
+    "_meta": {
+        "columns": {},
+        "schemas": {},
+        "tables": {}
+    }
+}

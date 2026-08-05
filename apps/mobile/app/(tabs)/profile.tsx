@@ -1,7 +1,11 @@
 import { FitColors as T } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
 import { useProfile } from '@/hooks/use-profile';
+import { currentMembership, daysUntil, useMyMemberships, type Membership } from '@/lib/api/memberships';
 import { Ionicons } from '@expo/vector-icons';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
@@ -21,14 +25,68 @@ const SETTINGS_INITIAL: SettingItem[] = [
     { kind: 'link', ic: '⚙️', lbl: 'Configuración', ac: T.muted },
 ];
 
+/** 'YYYY-MM-DD' → '4 ago 2026'. Parsed as local time so the date does not shift. */
+function formatDay(iso: string): string {
+    return format(new Date(`${iso}T00:00:00`), 'd MMM yyyy', { locale: es });
+}
+
+interface MembershipState {
+    label: string;
+    bg: string;
+    fg: string;
+    note?: string;
+}
+
+/**
+ * The badge the member sees. An ACTIVE term about to lapse gets its own warning
+ * state: renewal happens at the front desk, so the app's only job is to say
+ * "go talk to them" before access stops.
+ */
+function membershipState(membership: Membership | undefined): MembershipState {
+    if (!membership) return { label: '', bg: 'transparent', fg: T.muted };
+
+    if (membership.status === 'CANCELLED') {
+        return { label: 'CANCELADA', bg: T.card, fg: T.muted, note: 'Hablá en recepción para reactivarla.' };
+    }
+    if (membership.status === 'SUSPENDED') {
+        return { label: 'SUSPENDIDA', bg: T.card, fg: T.orange, note: 'Tu membresía está suspendida.' };
+    }
+
+    const days = daysUntil(membership.endDate);
+
+    if (membership.status === 'EXPIRED' || days < 0) {
+        return { label: 'VENCIDA', bg: T.card, fg: T.red, note: 'Renová en recepción para seguir reservando.' };
+    }
+    if (days <= 7) {
+        return {
+            label: 'POR VENCER',
+            bg: T.yellowDim,
+            fg: T.yellow,
+            note: days === 0 ? 'Vence hoy. Renová en recepción.' : `Vence en ${days} ${days === 1 ? 'día' : 'días'}.`,
+        };
+    }
+
+    return { label: 'ACTIVA', bg: T.yellow, fg: T.bg };
+}
+
 export default function ProfileScreen() {
     const [settings, setSettings] = useState<SettingItem[]>(SETTINGS_INITIAL);
     const { signOut } = useAuth();
     const { data: profile } = useProfile();
+    const { data: memberships } = useMyMemberships();
+
+    const current = currentMembership(memberships);
+    const memState = membershipState(current);
 
     const displayName = profile?.fullName?.trim() || 'Usuario';
-    const displayEmail = profile!.email;
+    const displayEmail = profile?.email ?? '';
     const avatarLabel = (displayName.trim()[0] || 'U').toUpperCase();
+
+    // `createdAt` is '' while the JWT-claims placeholder stands in for the real profile.
+    const memberSince =
+        profile?.createdAt && !isNaN(new Date(profile.createdAt).getTime())
+            ? format(new Date(profile.createdAt), 'MMM yyyy', { locale: es })
+            : null;
 
     function toggleSetting(idx: number) {
         setSettings((prev) =>
@@ -63,28 +121,51 @@ export default function ProfileScreen() {
                             <View style={{ flex: 1, marginLeft: 14 }}>
                                 <Text style={s.userName}>{displayName}</Text>
                                 <Text style={s.userEmail}>{displayEmail}</Text>
-                                <View style={s.memberBadge}>
-                                    <Text style={s.memberIcon}>⭐</Text>
-                                    <Text style={s.memberText}>GOLD MEMBER</Text>
-                                </View>
+                                {profile?.status === 'ACTIVE' && (
+                                    <View style={s.memberBadge}>
+                                        <Text style={s.memberIcon}>⭐</Text>
+                                        <Text style={s.memberText}>MIEMBRO ACTIVO</Text>
+                                    </View>
+                                )}
                             </View>
                         </View>
                     </View>
                 </View>
 
-                {/* Membership card */}
-                <View style={[s.px, { marginTop: 12 }]}>
-                    <View style={s.membershipCard}>
-                        <View style={{ flex: 1 }}>
-                            <Text style={s.membershipLabel}>MEMBRESÍA ACTIVA</Text>
-                            <Text style={s.membershipPlan}>Plan Gold · $29.99/mes</Text>
-                            <Text style={s.membershipRenewal}>Renueva: 15 Abr 2026</Text>
+                {/* Membership. No amounts here on purpose: the gym charges in person,
+                    so the app never has a price to show. */}
+                {current ? (
+                    <>
+                        <View style={s.secHead}>
+                            <Text style={s.secTitle}>MEMBRESÍA</Text>
                         </View>
-                        <TouchableOpacity style={s.manageBtn} activeOpacity={0.8}>
-                            <Text style={s.manageBtnText}>GESTIONAR</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
+                        <View style={s.px}>
+                            <View style={s.memCard}>
+                                <View style={s.memTop}>
+                                    <Text style={s.memPlan}>{current.planName}</Text>
+                                    <View style={[s.memChip, { backgroundColor: memState.bg }]}>
+                                        <Text style={[s.memChipText, { color: memState.fg }]}>{memState.label}</Text>
+                                    </View>
+                                </View>
+
+                                <View style={s.memDivider} />
+
+                                <View style={s.memRow}>
+                                    <View>
+                                        <Text style={s.memLabel}>INICIO</Text>
+                                        <Text style={s.memValue}>{formatDay(current.startDate)}</Text>
+                                    </View>
+                                    <View style={{ alignItems: 'flex-end' }}>
+                                        <Text style={s.memLabel}>VENCE</Text>
+                                        <Text style={s.memValue}>{formatDay(current.endDate)}</Text>
+                                    </View>
+                                </View>
+
+                                {memState.note ? <Text style={s.memNote}>{memState.note}</Text> : null}
+                            </View>
+                        </View>
+                    </>
+                ) : null}
 
                 {/* Settings */}
                 <View style={s.secHead}>
@@ -128,7 +209,10 @@ export default function ProfileScreen() {
                     </TouchableOpacity>
                 </View>
 
-                <Text style={s.version}>Mind&Body v2.1.0 · MIEMBRO DESDE ENE 2024</Text>
+                <Text style={s.version}>
+                    Mind&Body v{Constants.expoConfig?.version ?? '—'}
+                    {memberSince ? ` · MIEMBRO DESDE ${memberSince.toUpperCase()}` : ''}
+                </Text>
             </ScrollView>
         </SafeAreaView>
     );
@@ -219,41 +303,23 @@ const s = StyleSheet.create({
     },
 
     // Membership
-    membershipCard: {
+
+    memCard: {
         backgroundColor: T.card,
         borderRadius: 14,
-        padding: 14,
         borderWidth: 1,
         borderColor: T.border,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        padding: 14,
     },
-    membershipLabel: {
-        fontSize: 9,
-        color: T.muted,
-        fontWeight: '700',
-        letterSpacing: 0.8,
-        textTransform: 'uppercase',
-        marginBottom: 4,
-    },
-    membershipPlan: { fontSize: 15, fontWeight: '800', color: T.white },
-    membershipRenewal: { fontSize: 11, color: T.muted, marginTop: 2 },
-    manageBtn: {
-        backgroundColor: T.yellowDim,
-        borderWidth: 1,
-        borderColor: T.yellowBdr,
-        borderRadius: 10,
-        paddingVertical: 8,
-        paddingHorizontal: 13,
-    },
-    manageBtnText: {
-        color: T.yellow,
-        fontSize: 11,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.3,
-    },
+    memTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+    memPlan: { flex: 1, fontSize: 15, fontWeight: '800', color: T.white },
+    memChip: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+    memChipText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
+    memDivider: { height: 1, backgroundColor: T.border, marginVertical: 12 },
+    memRow: { flexDirection: 'row', justifyContent: 'space-between' },
+    memLabel: { fontSize: 9, fontWeight: '800', color: T.muted, letterSpacing: 1 },
+    memValue: { fontSize: 13, fontWeight: '700', color: T.white, marginTop: 3 },
+    memNote: { fontSize: 11, color: T.muted, marginTop: 12, lineHeight: 15 },
 
     secHead: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10 },
     secTitle: {

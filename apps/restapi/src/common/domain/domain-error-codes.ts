@@ -1,4 +1,4 @@
-/** Códigos de error estables del dominio (clases/sesiones/reservas, sección 9.5 del plan; mediciones). */
+/** Códigos de error estables del dominio (clases/sesiones/reservas, sección 9.5 del plan; mediciones; membresías). */
 export const DOMAIN_ERROR_CODES = [
     'CLASS_NOT_FOUND',
     'CLASS_ARCHIVED',
@@ -22,6 +22,12 @@ export const DOMAIN_ERROR_CODES = [
     'PRECONDITION_REQUIRED',
     'MEASUREMENT_NOT_FOUND',
     'MEASUREMENT_EDIT_WINDOW_EXPIRED',
+    'MEMBER_NOT_FOUND',
+    'MEMBERSHIP_NOT_FOUND',
+    'MEMBERSHIP_PLAN_NOT_FOUND',
+    'MEMBERSHIP_NOT_EXPIRED',
+    'MEMBERSHIP_ALREADY_CANCELLED',
+    'MEMBERSHIP_INVALID_DATES',
 ] as const;
 
 export type DomainErrorCode = (typeof DOMAIN_ERROR_CODES)[number];

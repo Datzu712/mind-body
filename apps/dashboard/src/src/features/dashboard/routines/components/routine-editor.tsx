@@ -9,7 +9,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { ClipboardList, Loader2, Rocket, UserPlus } from 'lucide-react';
 import type { RoutineDetail, RoutineStatus } from '../types';
-import { useRemoveExerciseItem, useReorderExercises, useUpdateExerciseItem, useUpdateRoutine } from '../hooks';
+import {
+    useAssignedMembers,
+    useRemoveExerciseItem,
+    useReorderExercises,
+    useUpdateExerciseItem,
+    useUpdateRoutine,
+} from '../hooks';
 import { RoutineExerciseRow } from './routine-exercise-row';
 import { AssignRoutineDialog } from './assign-routine-dialog';
 
@@ -35,6 +41,7 @@ export function RoutineEditor({ routine, disabled, onShowDetail }: RoutineEditor
     const removeItem = useRemoveExerciseItem(routine.id);
     const reorder = useReorderExercises(routine.id);
     const [assignOpen, setAssignOpen] = useState(false);
+    const { data: assignedMembers = [] } = useAssignedMembers(routine.id);
 
     // Al agregar (manual o de Forge) el ejercicio entra al FINAL: se
     // scrollea hacia él para que el pop de entrada no ocurra fuera de vista.
@@ -129,6 +136,20 @@ export function RoutineEditor({ routine, disabled, onShowDetail }: RoutineEditor
                         }}
                     />
                 </div>
+
+                {/* Confirmación que queda: antes el único rastro de un assign era un
+                    toast que se desvanecía, y nada en pantalla cambiaba. */}
+                {routine.status === 'ACTIVE' && assignedMembers.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span className="text-xs text-muted-foreground">Asignada a {assignedMembers.length}:</span>
+                        {assignedMembers.map((member) => (
+                            <Badge key={member.memberId} variant="secondary" className="gap-1 font-normal">
+                                <UserPlus className="h-3 w-3" />
+                                {member.fullName}
+                            </Badge>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div ref={listRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">

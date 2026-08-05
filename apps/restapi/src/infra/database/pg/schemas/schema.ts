@@ -21,7 +21,7 @@ import {
 import { sql } from 'drizzle-orm';
 
 export const app = pgSchema('app');
-export const membershipStatusInApp = app.enum('membership_status', ['ACTIVE', 'SUSPENDED', 'EXPIRED']);
+export const membershipStatusInApp = app.enum('membership_status', ['ACTIVE', 'SUSPENDED', 'EXPIRED', 'CANCELLED']);
 export const recordStatusInApp = app.enum('record_status', ['ACTIVE', 'INACTIVE', 'ARCHIVED']);
 export const routineStatusInApp = app.enum('routine_status', ['DRAFT', 'ACTIVE', 'PAUSED', 'FINISHED', 'ARCHIVED']);
 export const activitySourceInApp = app.enum('activity_source', ['HEALTH_CONNECT', 'MANUAL']);
@@ -328,6 +328,8 @@ export const memberRoutinesInApp = app.table(
             .default(sql`CURRENT_DATE`)
             .notNull(),
         endedAt: date('ended_at'),
+        /** La que el home del móvil muestra. Preferencia de vista, no estado del plan. */
+        focused: boolean().default(false).notNull(),
         status: recordStatusInApp().default('ACTIVE').notNull(),
         deletedAt: timestamp('deleted_at', { withTimezone: true, mode: 'string' }),
         createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).defaultNow().notNull(),

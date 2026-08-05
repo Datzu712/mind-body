@@ -7,6 +7,9 @@ import { dayKey, startOfWeek, startOfMonth, ACTIVE_STEPS_THRESHOLD } from '@/lib
 
 export interface HealthData {
     stepsToday: number;
+    caloriesToday: number;
+    exercisesToday: number;
+    activeMinutesToday: number;
     caloriesWeek: number;
     exercisesMonth: number;
     exercisesWeek: number;
@@ -33,7 +36,6 @@ export function useActivityRecords() {
 }
 
 function computeStats(records: DailyActivity[], now: Date): Omit<HealthData, 'isLoading'> {
-    console.log(records);
     const today = dayKey(now);
     const weekStartKey = dayKey(startOfWeek(now));
     const monthStartKey = dayKey(startOfMonth(now));
@@ -92,6 +94,9 @@ function computeStats(records: DailyActivity[], now: Date): Omit<HealthData, 'is
 
     return {
         stepsToday,
+        caloriesToday: Math.round(parseFloat(todayRec?.caloriesTotal ?? '0')),
+        exercisesToday: todayRec?.exerciseCount ?? 0,
+        activeMinutesToday: Math.round(todayRec?.activeMinutes ?? 0),
         caloriesWeek: Math.round(caloriesWeek),
         exercisesMonth,
         exercisesWeek,
@@ -103,6 +108,9 @@ function computeStats(records: DailyActivity[], now: Date): Omit<HealthData, 'is
 
 const EMPTY: HealthData = {
     stepsToday: 0,
+    caloriesToday: 0,
+    exercisesToday: 0,
+    activeMinutesToday: 0,
     caloriesWeek: 0,
     exercisesMonth: 0,
     exercisesWeek: 0,

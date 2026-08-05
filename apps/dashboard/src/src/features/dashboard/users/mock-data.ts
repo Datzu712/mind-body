@@ -180,13 +180,6 @@ export const mockMemberProfiles: MemberProfile[] = [
         joinedAt: '2024-03-01',
         notes: 'Prefiere clases matutinas',
         status: 'ACTIVE',
-        activeMembership: {
-            id: 'ms-001',
-            planName: 'Premium Mensual',
-            startDate: '2026-06-01',
-            endDate: '2026-06-30',
-            status: 'ACTIVE',
-        },
     },
     {
         id: 'm-002',
@@ -195,13 +188,6 @@ export const mockMemberProfiles: MemberProfile[] = [
         emergencyContactPhone: '+52 55 3333 4444',
         joinedAt: '2024-03-10',
         status: 'ACTIVE',
-        activeMembership: {
-            id: 'ms-002',
-            planName: 'Premium Anual',
-            startDate: '2026-01-15',
-            endDate: '2027-01-15',
-            status: 'ACTIVE',
-        },
     },
     {
         id: 'm-003',
@@ -210,13 +196,6 @@ export const mockMemberProfiles: MemberProfile[] = [
         emergencyContactPhone: '+52 55 5555 6666',
         joinedAt: '2024-04-01',
         status: 'INACTIVE',
-        activeMembership: {
-            id: 'ms-003',
-            planName: 'Básica Mensual',
-            startDate: '2026-03-01',
-            endDate: '2026-03-31',
-            status: 'EXPIRED',
-        },
     },
     {
         id: 'm-004',
@@ -225,13 +204,6 @@ export const mockMemberProfiles: MemberProfile[] = [
         emergencyContactPhone: '+52 55 7777 8888',
         joinedAt: '2024-04-10',
         status: 'ACTIVE',
-        activeMembership: {
-            id: 'ms-004',
-            planName: 'Premium Mensual',
-            startDate: '2026-06-01',
-            endDate: '2026-06-30',
-            status: 'ACTIVE',
-        },
     },
     {
         id: 'm-005',
@@ -246,13 +218,6 @@ export const mockMemberProfiles: MemberProfile[] = [
         emergencyContactPhone: '+52 55 9999 0000',
         joinedAt: '2024-06-01',
         status: 'ACTIVE',
-        activeMembership: {
-            id: 'ms-006',
-            planName: 'Básica Mensual',
-            startDate: '2026-06-01',
-            endDate: '2026-06-30',
-            status: 'ACTIVE',
-        },
     },
 ];
 

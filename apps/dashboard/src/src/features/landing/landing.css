@@ -1,0 +1,149 @@
+/* ── Landing page (public route) ──────────────────────────────────────────────
+   Visual layer for src/routes/index.tsx. It lives here instead of globals.css
+   because no other screen uses it — the stylesheet ships with the route's lazy
+   chunk. The two accents come straight from the Mind & Body mark: the amber of
+   the flame and the teal of the leaves. */
+
+.landing {
+    --lp-ink: oklch(0.115 0.006 286);
+    --lp-surface: oklch(0.168 0.005 286);
+    --lp-hairline: oklch(1 0 0 / 9%);
+    --lp-amber: var(--primary);
+    --lp-teal: oklch(0.63 0.078 220);
+    --lp-mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
+
+    background-color: var(--lp-ink);
+    color: var(--foreground);
+}
+
+/* Utility label used for every piece of machine-ish text on the page: eyebrows,
+   clock times, capacity counters, footnotes. */
+.lp-mono {
+    font-family: var(--lp-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Hairline field behind the hero: a 76px grid that dissolves downward, so the
+   rest of the page reads as flat charcoal. */
+.lp-field::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(to right, oklch(1 0 0 / 4%) 1px, transparent 1px),
+        linear-gradient(to bottom, oklch(1 0 0 / 4%) 1px, transparent 1px);
+    background-size: 76px 76px;
+    -webkit-mask-image: radial-gradient(125% 90% at 50% 0%, #000 18%, transparent 72%);
+    mask-image: radial-gradient(125% 90% at 50% 0%, #000 18%, transparent 72%);
+    pointer-events: none;
+}
+
+/* Two soft washes: amber high-right (behind the agenda), teal low-left. */
+.lp-field::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(
+            46rem 30rem at 82% 4%,
+            color-mix(in oklab, var(--lp-amber) 12%, transparent),
+            transparent 70%
+        ),
+        radial-gradient(
+            40rem 28rem at 4% 82%,
+            color-mix(in oklab, var(--lp-teal) 13%, transparent),
+            transparent 70%
+        );
+    pointer-events: none;
+}
+
+/* ── Brand lockup ──
+   MIND is set light and justified to the exact width of BODY, which is set
+   black and tight: the two words weigh the same on the page, which is the whole
+   idea of the name. The ampersand is the hinge between them. */
+.lp-lockup {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.7rem, 1.8vw, 1.4rem);
+}
+
+.lp-lockup-amp {
+    font-family: var(--font-heading);
+    font-weight: 200;
+    font-size: clamp(4.5rem, 11vw, 8.5rem);
+    line-height: 0.74;
+    color: var(--lp-amber);
+    margin-top: -0.06em;
+}
+
+.lp-lockup-words {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1em;
+}
+
+.lp-lockup-mind {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-heading);
+    font-weight: 250;
+    font-size: clamp(1rem, 2.6vw, 1.9rem);
+    line-height: 1;
+    padding-left: 0.14em;
+    color: color-mix(in oklab, var(--foreground) 62%, transparent);
+}
+
+.lp-lockup-body {
+    font-family: var(--font-heading);
+    font-weight: 880;
+    font-size: clamp(2.5rem, 6.6vw, 4.9rem);
+    letter-spacing: -0.035em;
+    line-height: 0.84;
+}
+
+/* ── Live dot on the session that is running right now ── */
+.lp-live {
+    position: relative;
+    display: inline-flex;
+    height: 0.4rem;
+    width: 0.4rem;
+    border-radius: 9999px;
+    background-color: var(--lp-amber);
+}
+
+.lp-live::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background-color: var(--lp-amber);
+    animation: lp-ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes lp-ping {
+    0% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+    70%,
+    100% {
+        transform: scale(2.8);
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lp-live::after {
+        animation: none;
+    }
+}
+
+/* ── Product shot ──
+   The screenshot fades into the page instead of ending on a hard edge. */
+.lp-shot img {
+    -webkit-mask-image: linear-gradient(to bottom, #000 58%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 58%, transparent 100%);
+}

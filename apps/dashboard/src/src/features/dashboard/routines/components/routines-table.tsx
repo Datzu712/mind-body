@@ -78,7 +78,10 @@ export function RoutinesTable({ routines, onOpen, onAssign, onArchive, onDelete 
                                         <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                                {/* Sin esto el contenido hereda el ancho del trigger (un botón
+                                    de ícono) y cae a min-w-32, partiendo "Asignar a miembro".
+                                    Mismas clases que ReservationActions. */}
+                                <DropdownMenuContent align="end" className="w-auto min-w-44 whitespace-nowrap">
                                     <DropdownMenuItem onClick={() => onOpen(routine.id)}>
                                         <Pencil className="h-4 w-4" /> Abrir
                                     </DropdownMenuItem>

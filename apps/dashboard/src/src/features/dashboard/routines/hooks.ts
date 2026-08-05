@@ -116,12 +116,34 @@ export function useReorderExercises(routineId: string) {
     );
 }
 
+export interface AssignedMember {
+    memberId: string;
+    fullName: string;
+    /** 'YYYY-MM-DD'. */
+    assignedAt: string;
+}
+
+/** Quiénes tienen la rutina. Es la confirmación que queda en pantalla tras asignar. */
+export function useAssignedMembers(routineId: string) {
+    return useQuery({
+        queryKey: ['routines', routineId, 'members'],
+        queryFn: async () => apiFetch<AssignedMember[]>(`/api/v1/routines/${routineId}/members`),
+    });
+}
+
 export function useAssignRoutine(routineId: string) {
+    const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: async (memberId: string) =>
             apiFetch<void>(`/api/v1/routines/${routineId}/assign`, {
                 method: 'POST',
                 body: JSON.stringify({ memberId }),
             }),
+        // Faltaba: era la única mutación del módulo sin invalidar, así que tras
+        // asignar no cambiaba nada en pantalla y parecía que no había pasado.
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: ['routines', routineId, 'members'] });
+        },
     });
 }
