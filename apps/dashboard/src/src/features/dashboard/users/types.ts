@@ -1,5 +1,9 @@
 export type RecordStatus = 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
-export type MembershipStatus = 'ACTIVE' | 'SUSPENDED' | 'EXPIRED';
+/**
+ * Mirrors `app.membership_status`. EXPIRED means "lapsed but still worth a
+ * renewal reminder"; CANCELLED means "the member left — stop reminding".
+ */
+export type MembershipStatus = 'ACTIVE' | 'SUSPENDED' | 'EXPIRED' | 'CANCELLED';
 export type ProfileType = 'MEMBER' | 'TRAINER' | 'STAFF';
 export type KCRole = 'ADMIN' | 'TRAINER' | 'MEMBER' | 'STAFF';
 export type DniType = 'CEDULA_NACIONAL' | 'DIMEX' | 'PASAPORTE';
@@ -40,13 +44,28 @@ export interface MemberProfile {
     joinedAt: string;
     notes?: string;
     status: RecordStatus;
-    activeMembership?: {
-        id: string;
-        planName: string;
-        startDate: string;
-        endDate: string;
-        status: MembershipStatus;
-    };
+}
+
+/**
+ * One membership term, as returned by `/api/v1/memberships`. There is no amount
+ * or payment data: money changes hands at the front desk and the system only
+ * tracks the dated flag.
+ */
+export interface Membership {
+    id: string;
+    /** `members.id` — the member PROFILE id, not the user id. */
+    memberId: string;
+    planId: string;
+    planName: string;
+    /** 'YYYY-MM-DD' */
+    startDate: string;
+    /** 'YYYY-MM-DD' */
+    endDate: string;
+    status: MembershipStatus;
+    /** Server verdict on whether cancelling is allowed right now (only lapsed terms are). */
+    cancellable: boolean;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface TrainerProfile {

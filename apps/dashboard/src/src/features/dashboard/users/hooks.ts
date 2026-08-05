@@ -8,6 +8,7 @@ import type {
     Measurement,
     MeasurementSummary,
     DailyActivity,
+    Membership,
 } from './types';
 
 export const userKeys = {
@@ -228,5 +229,52 @@ export function useMemberActivity(userId: string, from: string, to: string) {
         queryFn: async () =>
             apiFetch<DailyActivity[]>(`/api/v1/users/${userId}/activity/daily/range?from=${from}&to=${to}`),
         enabled: !!userId && !!from && !!to,
+    });
+}
+
+// --- Memberships -----------------------------------------------------------
+// Every id here is `members.id` (the member PROFILE id, `user.memberProfile.id`),
+// never `users.id` — that is what the API keys memberships by.
+
+export const membershipKeys = {
+    byMember: (memberId: string) => ['memberships', memberId] as const,
+};
+
+/** Membership history of a member, newest term first (index 0 is the current one). */
+export function useMemberships(memberId: string | undefined) {
+    return useQuery({
+        queryKey: membershipKeys.byMember(memberId ?? ''),
+        queryFn: async () => apiFetch<Membership[]>(`/api/v1/memberships?memberId=${memberId!}`),
+        enabled: !!memberId,
+    });
+}
+
+/**
+ * Create or renew: the API expires the member's previous ACTIVE term itself, so
+ * there is nothing to send about it.
+ */
+export function useCreateMembership(memberId: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (data: { startDate: string; endDate: string; planId?: string }) =>
+            apiFetch<Membership>('/api/v1/memberships', {
+                method: 'POST',
+                body: JSON.stringify({ memberId, ...data }),
+            }),
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: membershipKeys.byMember(memberId) });
+        },
+    });
+}
+
+/** Cancel a lapsed membership. The API rejects it with 409 while the term is still running. */
+export function useCancelMembership(memberId: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (membershipId: string) =>
+            apiFetch<Membership>(`/api/v1/memberships/${membershipId}/cancel`, { method: 'PATCH' }),
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: membershipKeys.byMember(memberId) });
+        },
     });
 }

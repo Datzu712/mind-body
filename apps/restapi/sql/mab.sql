@@ -22,9 +22,16 @@ CREATE SCHEMA IF NOT EXISTS app;
 DO $$ BEGIN CREATE TYPE app.record_status AS ENUM ('ACTIVE', 'INACTIVE', 'ARCHIVED');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- EXPIRED SOLO indica que el miembro no volvera a pagar la membresía
-DO $$ BEGIN CREATE TYPE app.membership_status AS ENUM ('ACTIVE', 'SUSPENDED', 'EXPIRED');
+-- Membership lifecycle. Payments happen at the front desk, so a membership is
+-- just a dated flag: EXPIRED means "lapsed but still worth a renewal reminder",
+-- CANCELLED means "the member left — stop reminding".
+DO $$ BEGIN CREATE TYPE app.membership_status AS ENUM ('ACTIVE', 'SUSPENDED', 'EXPIRED', 'CANCELLED');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Live databases created before CANCELLED existed: the CREATE TYPE above is a
+-- no-op there, so the value has to be appended (same convention as the
+-- ADD COLUMN IF NOT EXISTS statements used elsewhere in this repo).
+ALTER TYPE app.membership_status ADD VALUE IF NOT EXISTS 'CANCELLED';
 
 DO $$ BEGIN CREATE TYPE app.routine_status AS ENUM ('DRAFT', 'ACTIVE', 'PAUSED', 'FINISHED', 'ARCHIVED');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;

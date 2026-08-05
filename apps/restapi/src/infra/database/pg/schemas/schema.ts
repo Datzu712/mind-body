@@ -21,7 +21,7 @@ import {
 import { sql } from 'drizzle-orm';
 
 export const app = pgSchema('app');
-export const membershipStatusInApp = app.enum('membership_status', ['ACTIVE', 'SUSPENDED', 'EXPIRED']);
+export const membershipStatusInApp = app.enum('membership_status', ['ACTIVE', 'SUSPENDED', 'EXPIRED', 'CANCELLED']);
 export const recordStatusInApp = app.enum('record_status', ['ACTIVE', 'INACTIVE', 'ARCHIVED']);
 export const routineStatusInApp = app.enum('routine_status', ['DRAFT', 'ACTIVE', 'PAUSED', 'FINISHED', 'ARCHIVED']);
 export const activitySourceInApp = app.enum('activity_source', ['HEALTH_CONNECT', 'MANUAL']);
