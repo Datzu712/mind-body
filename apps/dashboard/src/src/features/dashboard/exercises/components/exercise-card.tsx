@@ -14,6 +14,21 @@ interface ExerciseCardProps {
     action?: ReactNode;
 }
 
+/**
+ * El slot `action` vive dentro del área clickeable del card, así que su click
+ * burbrujearía hasta `onClick` y abriría el detalle además de ejecutar la acción
+ * (agregar el ejercicio al builder, por ejemplo). Se corta acá y no en cada
+ * consumidor: el slot es "un control que no es el cuerpo del card", y esa
+ * garantía la debe dar el card.
+ */
+function ActionSlot({ children, className }: { children: ReactNode; className?: string }) {
+    return (
+        <div className={className} onClick={(event) => event.stopPropagation()}>
+            {children}
+        </div>
+    );
+}
+
 /** Miniatura con hover→GIF. El GIF recién se descarga cuando cambia el src. */
 function Thumb({ exercise, className }: { exercise: ExerciseSlim; className?: string }) {
     const [hover, setHover] = useState(false);
@@ -71,7 +86,7 @@ export function ExerciseCard({ exercise, variant = 'grid', onClick, action }: Ex
                         {bodyPartLabel(exercise.bodyPart)} · {equipmentLabel(exercise.equipment)}
                     </p>
                 </div>
-                {action && <div className="shrink-0">{action}</div>}
+                {action && <ActionSlot className="shrink-0">{action}</ActionSlot>}
             </div>
         );
     }
@@ -93,7 +108,7 @@ export function ExerciseCard({ exercise, variant = 'grid', onClick, action }: Ex
                     </Badge>
                 </div>
             </div>
-            {action && <div className="absolute right-2 top-2 z-10">{action}</div>}
+            {action && <ActionSlot className="absolute right-2 top-2 z-10">{action}</ActionSlot>}
         </div>
     );
 }
