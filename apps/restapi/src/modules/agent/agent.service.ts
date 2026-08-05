@@ -15,6 +15,7 @@ import { ActivityService } from '@/modules/activity/activity.service';
 import { ReservationsService } from '@/modules/reservations/reservations.service';
 import { ClassSessionsService } from '@/modules/class-sessions/class-sessions.service';
 import { ExercisesService } from '@/modules/exercises/exercises.service';
+import { RoutinesService } from '@/modules/routines/routines.service';
 import { buildExerciseCatalogTools } from '@/modules/exercises/exercise-agent-tools';
 
 const HISTORY_TTL_SECONDS = 86_400; // 24 h
@@ -49,6 +50,7 @@ export class AgentService {
         private readonly reservations: ReservationsService,
         private readonly classSessions: ClassSessionsService,
         private readonly exercises: ExercisesService,
+        private readonly routines: RoutinesService,
         private readonly config: TypedConfigService,
     ) {}
 
@@ -116,6 +118,36 @@ export class AgentService {
                         };
                     } catch (err) {
                         return this.toolError('getBodyProgress', err);
+                    }
+                },
+            }),
+            getMyRoutines: tool({
+                description:
+                    "Get the workout routines the user's trainer assigned, with every exercise, its sets and reps. " +
+                    'A training plan is a weekly split, so several routines can be active at once; the one flagged ' +
+                    '`focused` is the one the user sees on their home screen. Call this BEFORE giving any advice ' +
+                    "about the user's programme, volume, or what to train — never assume a routine they did not state.",
+                inputSchema: z.object({}),
+                execute: async () => {
+                    try {
+                        const assigned = await this.routines.listMine(user.id);
+                        return {
+                            total: assigned.length,
+                            routines: assigned.map((routine) => ({
+                                name: routine.name,
+                                objective: routine.objective,
+                                focused: routine.focused ?? false,
+                                assignedBy: routine.createdByName,
+                                exercises: routine.exercises.map((item) => ({
+                                    name: item.exercise.name,
+                                    sets: item.sets,
+                                    reps: item.reps,
+                                    notes: item.notes,
+                                })),
+                            })),
+                        };
+                    } catch (err) {
+                        return this.toolError('getMyRoutines', err);
                     }
                 },
             }),
@@ -279,10 +311,23 @@ export class AgentService {
             - Warm-up, cool-down, and recovery advice
             - Progress tracking and programme adjustments
 
+            ## Output format — HARD LIMITS, no exceptions
+            - NEVER use tables. No markdown tables, no pipe-delimited rows, no ASCII columns aligned with
+              spaces. You are rendering inside a narrow phone screen: a table wraps into unreadable garbage.
+              Use short bullet lists instead — one item per line, e.g. "Press de banca — 4x10".
+            - You are FORBIDDEN from producing code of any kind: no code blocks, no snippets, no JSON, no
+              SQL, no shell commands, in any language. You are a fitness coach, not a programming assistant.
+              If the user asks for code, tell them plainly that you only help with training and nutrition.
+            - Plain conversational text with short bullets is the only format you use.
+
             ## Rules
-            - Ground your advice in the user's REAL data whenever relevant: body progress (getBodyProgress),
-              recent activity (getRecentActivity), their reservations (getMyReservations) and the gym's
-              class schedule (getUpcomingClasses)
+            - Ground your advice in the user's REAL data whenever relevant: their assigned routines
+              (getMyRoutines), body progress (getBodyProgress), recent activity (getRecentActivity), their
+              reservations (getMyReservations) and the gym's class schedule (getUpcomingClasses)
+            - When the user asks what to train, how their plan looks, or whether their volume is right, call
+              getMyRoutines FIRST. Their trainer wrote that plan — never invent a routine or ask the user to
+              describe one you can already read. If they have none assigned, say so and suggest they ask
+              their trainer.
             - When recommending exercises or building workout plans, pick exercises from the app's library:
               use searchExercises (and getExerciseFilters for valid filters); use getExerciseDetails when
               explaining technique. Tell the user they can see each exercise with its demo GIF and
