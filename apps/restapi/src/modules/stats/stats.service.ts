@@ -74,13 +74,20 @@ export class StatsService {
 
     async getOverview(): Promise<StatsOverview> {
         const { from, to } = this.todayBounds();
-        const weekAgo = this.clock.nowLocal().minus({ days: 7 }).startOf('day').toUTC().toISO() ?? '';
+        // Inclusive on both ends: `to` is the end of today, so the window has to
+        // start 6 days back to span 7 calendar days, not 8.
+        const weekAgo = this.clock.nowLocal().minus({ days: 6 }).startOf('day').toUTC().toISO() ?? '';
 
         const db = this.drizzle.db;
 
-        const [activeMembers, reservationsToday, sessionsToday, staffCount, trainerCount, activeClasses, noShows] =
+        const [activeMembers, reservationsToday, sessionsToday, staffUsers, trainerUsers, activeClasses, noShows] =
             await Promise.all([
-                this.scalar(db.select({ value: count() }).from(Members).where(eq(Members.status, 'ACTIVE'))),
+                this.scalar(
+                    db
+                        .select({ value: count() })
+                        .from(Members)
+                        .where(and(eq(Members.status, 'ACTIVE'), isNull(Members.deletedAt))),
+                ),
                 this.scalar(
                     db
                         .select({ value: count() })
@@ -106,18 +113,16 @@ export class StatsService {
                             ),
                         ),
                 ),
-                this.scalar(
-                    db
-                        .select({ value: count() })
-                        .from(Staff)
-                        .where(and(eq(Staff.status, 'ACTIVE'), isNull(Staff.deletedAt))),
-                ),
-                this.scalar(
-                    db
-                        .select({ value: count() })
-                        .from(Trainers)
-                        .where(and(eq(Trainers.status, 'ACTIVE'), isNull(Trainers.deletedAt))),
-                ),
+                // User ids, not counts: the same person can hold a staff AND a
+                // trainer profile, and `internalUsers` counts people.
+                db
+                    .selectDistinct({ userId: Staff.userId })
+                    .from(Staff)
+                    .where(and(eq(Staff.status, 'ACTIVE'), isNull(Staff.deletedAt))),
+                db
+                    .selectDistinct({ userId: Trainers.userId })
+                    .from(Trainers)
+                    .where(and(eq(Trainers.status, 'ACTIVE'), isNull(Trainers.deletedAt))),
                 this.scalar(
                     db
                         .select({ value: count() })
@@ -139,15 +144,13 @@ export class StatsService {
                 ),
             ]);
 
-        // TODO(memberships): expiring-soon and expired counts once the memberships
-        // module lands. They are the operational core of the home — the whole point
-        // of the membership flag is knowing who to chase in person.
+        const internalUserIds = new Set([...staffUsers, ...trainerUsers].map((row) => row.userId));
 
         return {
             activeMembers,
             reservationsToday,
             sessionsToday,
-            internalUsers: staffCount + trainerCount,
+            internalUsers: internalUserIds.size,
             activeClasses,
             noShowsLast7Days: noShows,
         };
@@ -157,13 +160,11 @@ export class StatsService {
     async getReservationsTrend(weeks: number): Promise<WeeklyReservationPoint[]> {
         const tz = this.clock.timeZone;
         const to = this.clock.nowLocal().endOf('day').toUTC().toISO() ?? '';
-        const from =
-            this.clock
-                .nowLocal()
-                .minus({ weeks: weeks - 1 })
-                .startOf('week')
-                .toUTC()
-                .toISO() ?? '';
+        const firstWeek = this.clock
+            .nowLocal()
+            .minus({ weeks: weeks - 1 })
+            .startOf('week');
+        const from = firstWeek.toUTC().toISO() ?? '';
 
         const bucket = sql<string>`to_char(date_trunc('week', ${Sessions.startsAt} AT TIME ZONE ${tz}), 'YYYY-MM-DD')`;
 
@@ -185,7 +186,15 @@ export class StatsService {
             .groupBy(sql`1`)
             .orderBy(sql`1`);
 
-        return rows.map((row) => ({ week: row.week, total: Number(row.value) }));
+        // Zero-fill: GROUP BY only yields the weeks that have rows, but the chart
+        // plots a categorical axis, so a dead week would not be drawn as a dip —
+        // it would vanish and its neighbours would render as adjacent.
+        const totals = new Map(rows.map((row) => [row.week, Number(row.value)]));
+
+        return Array.from({ length: weeks }, (_, index) => {
+            const week = firstWeek.plus({ weeks: index }).toISODate() ?? '';
+            return { week, total: totals.get(week) ?? 0 };
+        });
     }
 
     /**
@@ -207,16 +216,32 @@ export class StatsService {
             .innerJoin(Sessions, eq(Reservations.sessionId, Sessions.id))
             .innerJoin(Members, eq(Reservations.memberId, Members.id))
             .innerJoin(Users, eq(Members.userId, Users.id))
+            .where(isNull(Members.deletedAt))
             .orderBy(desc(Reservations.createdAt))
             .limit(limit);
 
-        return rows;
+        // timestamptz arrives as raw Postgres text ('2026-08-05 13:44:00+00'),
+        // which `new Date()` rejects outside V8; normalize like the rest of the
+        // modules do so clients can parse it.
+        return rows.map((row) => ({
+            ...row,
+            createdAt: this.clock.toLocal(row.createdAt).toISO() ?? row.createdAt,
+            startsAt: this.clock.toLocal(row.startsAt).toISO() ?? row.startsAt,
+        }));
     }
 
     /** Most reserved classes in the window, by the session's class-name snapshot. */
     async getPopularClasses(limit: number, days: number): Promise<PopularClassPoint[]> {
         const to = this.clock.nowLocal().endOf('day').toUTC().toISO() ?? '';
-        const from = this.clock.nowLocal().minus({ days }).startOf('day').toUTC().toISO() ?? '';
+        // `days - 1`: the window is inclusive of today, so `minus({ days })` would
+        // span one calendar day more than asked for.
+        const from =
+            this.clock
+                .nowLocal()
+                .minus({ days: days - 1 })
+                .startOf('day')
+                .toUTC()
+                .toISO() ?? '';
 
         const rows = await this.drizzle.db
             .select({ name: Sessions.className, value: count() })

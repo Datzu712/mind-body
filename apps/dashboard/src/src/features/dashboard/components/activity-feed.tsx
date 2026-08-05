@@ -5,13 +5,20 @@ import { Activity, CalendarCheck, CalendarX, Clock, UserCheck, UserX } from 'luc
 import { useRecentReservations } from '../stats/hooks';
 import type { ReservationStatus } from '../stats/types';
 
-const statusMeta: Record<ReservationStatus, { icon: typeof Activity; label: string; color: string }> = {
+type StatusMeta = { icon: typeof Activity; label: string; color: string };
+
+const statusMeta: Record<ReservationStatus, StatusMeta> = {
     CONFIRMED: { icon: CalendarCheck, label: 'reservó', color: 'bg-primary/20 text-primary' },
     WAITLISTED: { icon: Clock, label: 'entró a lista de espera de', color: 'bg-muted text-muted-foreground' },
     ATTENDED: { icon: UserCheck, label: 'asistió a', color: 'bg-success/20 text-success' },
     NO_SHOW: { icon: UserX, label: 'no se presentó a', color: 'bg-destructive/20 text-destructive' },
     CANCELLED: { icon: CalendarX, label: 'canceló', color: 'bg-muted text-muted-foreground' },
 };
+
+// The API types `status` as a bare string off the `reservation_status` enum, so a
+// value added there would otherwise crash the whole home on `meta.icon` — this
+// card has no error boundary above it.
+const UNKNOWN_STATUS: StatusMeta = { icon: Activity, label: '·', color: 'bg-muted text-muted-foreground' };
 
 /** Relative time in Spanish, coarse on purpose — the feed only needs "how recent". */
 function relativeTime(iso: string): string {
@@ -61,7 +68,7 @@ export function ActivityFeed() {
 
                     <div className="flex flex-col gap-4">
                         {reservations.map((reservation) => {
-                            const meta = statusMeta[reservation.status];
+                            const meta = statusMeta[reservation.status] ?? UNKNOWN_STATUS;
                             const Icon = meta.icon;
 
                             return (
