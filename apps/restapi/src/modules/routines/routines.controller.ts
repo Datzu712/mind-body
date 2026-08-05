@@ -1,6 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post, Put, Query } from '@nestjs/common';
 
 import { CurrentUser } from '@/common/decorators/current-user.decorator';
+import { Roles } from '@/common/decorators/roles.decorator';
+import { APP_ROLES, DASHBOARD_ROLES } from '@/common/constant/roles.constant';
 import { type User } from '@/infra/database/pg/schemas/schema';
 import { RoutinesService } from './routines.service';
 import {
@@ -13,6 +15,18 @@ import {
     UpdateRoutineExerciseDto,
 } from './dto/routine.dtos';
 
+/**
+ * Routine builder. Designing a routine is a trainer's job, and ADMIN/STAFF run
+ * the gym, so the whole dashboard both reads and writes here: the split
+ * `users`/`memberships` make (read = DASHBOARD, write = MANAGEMENT) does not
+ * apply, since excluding TRAINER from writes would lock out the only role whose
+ * actual work this module is.
+ *
+ * Dashboard roles are the class default so a new endpoint added without a
+ * decorator stays closed to MEMBER. `mine` is the single exception: it is
+ * self-scoped by `@CurrentUser`, and it is the only routines route mobile calls.
+ */
+@Roles(...DASHBOARD_ROLES)
 @Controller('routines')
 export class RoutinesController {
     constructor(private readonly routines: RoutinesService) {}
@@ -22,6 +36,8 @@ export class RoutinesController {
         return this.routines.list(query);
     }
 
+    /** Self-service de mobile: el user autenticado solo puede verse a sí mismo. */
+    @Roles(...APP_ROLES)
     @Get('mine')
     async mine(@CurrentUser() user: User) {
         return this.routines.listMine(user.id);

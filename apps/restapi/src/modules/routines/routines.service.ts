@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { and, asc, count, desc, eq, ilike, inArray, isNull, sql } from 'drizzle-orm';
+import { ClockService } from '@/common/clock/clock.service';
 import { DrizzleService } from '@/infra/database/pg/drizzle.service';
 import {
     exercisesInApp,
@@ -38,7 +39,10 @@ export interface ReplaceRoutinePlanInput {
 
 @Injectable()
 export class RoutinesService {
-    constructor(private readonly drizzle: DrizzleService) {}
+    constructor(
+        private readonly drizzle: DrizzleService,
+        private readonly clock: ClockService,
+    ) {}
 
     async list(query: ListRoutinesQueryDto): Promise<RoutineSummaryDto[]> {
         const conds = [isNull(routinesInApp.deletedAt)];
@@ -340,37 +344,74 @@ export class RoutinesService {
         return this.detail(routineId);
     }
 
+    /**
+     * A member follows ONE routine at a time. Assigning closes whatever was
+     * running and opens the new term, in a single transaction: `member_routines`
+     * models an assignment with history (`assigned_at`/`ended_at`/`status`), so
+     * two rows left ACTIVE for the same member is inconsistent data, not a
+     * feature — `listMine` would happily return both.
+     */
     async assign(routineId: string, memberId: string, userId: string): Promise<void> {
         const routine = await this.detail(routineId);
         if (routine.status !== 'ACTIVE') {
             throw new BadRequestException('Solo se pueden asignar rutinas publicadas');
         }
-        const [member] = await this.drizzle.db
-            .select({ id: membersInApp.id })
-            .from(membersInApp)
-            .where(and(eq(membersInApp.id, memberId), isNull(membersInApp.deletedAt)))
-            .limit(1);
-        if (!member) throw new NotFoundException('Miembro no encontrado');
+        const today = this.today();
 
-        const [existing] = await this.drizzle.db
-            .select({ id: memberRoutinesInApp.id })
-            .from(memberRoutinesInApp)
-            .where(
-                and(
-                    eq(memberRoutinesInApp.memberId, memberId),
-                    eq(memberRoutinesInApp.routineId, routineId),
-                    eq(memberRoutinesInApp.status, 'ACTIVE'),
-                    isNull(memberRoutinesInApp.deletedAt),
-                ),
-            )
-            .limit(1);
-        if (existing) throw new ConflictException('El miembro ya tiene esta rutina asignada');
+        await this.drizzle.db.transaction(async (tx) => {
+            // Lock the member: without it two concurrent assigns both read "no
+            // active assignment", both insert, and the member ends up with two.
+            const [member] = await tx
+                .select({ id: membersInApp.id })
+                .from(membersInApp)
+                .where(and(eq(membersInApp.id, memberId), isNull(membersInApp.deletedAt)))
+                .limit(1)
+                .for('update');
+            if (!member) throw new NotFoundException('Miembro no encontrado');
 
-        await this.drizzle.db.insert(memberRoutinesInApp).values({
-            memberId,
-            routineId,
-            // Quien asigna, sin importar el perfil (trainer/staff/futuros).
-            assignedByUserId: userId,
+            const active = await tx
+                .select({ id: memberRoutinesInApp.id, routineId: memberRoutinesInApp.routineId })
+                .from(memberRoutinesInApp)
+                .where(
+                    and(
+                        eq(memberRoutinesInApp.memberId, memberId),
+                        eq(memberRoutinesInApp.status, 'ACTIVE'),
+                        isNull(memberRoutinesInApp.deletedAt),
+                    ),
+                );
+            if (active.some((a) => a.routineId === routineId)) {
+                throw new ConflictException('El miembro ya tiene esta rutina asignada');
+            }
+
+            if (active.length > 0) {
+                // Closed, not deleted: the term stays in the history as INACTIVE.
+                // `greatest` keeps chk_member_routine_dates (ended_at >= assigned_at)
+                // satisfied even when assigned_at is ahead of the business date —
+                // the column defaults to the database's CURRENT_DATE, which on a UTC
+                // server is already tomorrow late in the local evening.
+                await tx
+                    .update(memberRoutinesInApp)
+                    .set({
+                        status: 'INACTIVE',
+                        endedAt: sql`greatest(${memberRoutinesInApp.assignedAt}, ${today}::date)`,
+                    })
+                    .where(
+                        inArray(
+                            memberRoutinesInApp.id,
+                            active.map((a) => a.id),
+                        ),
+                    );
+            }
+
+            await tx.insert(memberRoutinesInApp).values({
+                memberId,
+                routineId,
+                // Quien asigna, sin importar el perfil (trainer/staff/futuros).
+                assignedByUserId: userId,
+                // Business date instead of the column's CURRENT_DATE default, so
+                // the term starts on the day the gym actually saw it.
+                assignedAt: today,
+            });
         });
     }
 
@@ -399,6 +440,11 @@ export class RoutinesService {
             .orderBy(desc(memberRoutinesInApp.assignedAt));
 
         return Promise.all(assignments.map(async (a) => this.detail(a.routineId)));
+    }
+
+    /** Business-zone date ('YYYY-MM-DD') for the DATE columns of member_routines. */
+    private today(): string {
+        return this.clock.nowLocal().toISODate()!;
     }
 
     private async ensureExists(id: string): Promise<void> {

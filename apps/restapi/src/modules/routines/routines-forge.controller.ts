@@ -3,9 +3,14 @@ import type { FastifyReply } from 'fastify';
 
 import { RoutinesForgeService } from './routines-forge.service';
 import { ForgeChatDto } from './dto/forge-chat.dto';
+import { Roles } from '@/common/decorators/roles.decorator';
+import { DASHBOARD_ROLES } from '@/common/constant/roles.constant';
 import { openSseStream } from '@/utils/sse';
 
 /**
+ * Forge writes to the routine through its tools, so it is gated exactly like
+ * the REST builder in `RoutinesController`: dashboard roles only, never MEMBER.
+ *
  * Anti-desync: el único lock es de UI (el dashboard deshabilita el builder
  * mientras este stream está activo). Edge cases CONOCIDOS y pospuestos:
  *  - Otra pestaña/dispositivo puede editar la rutina durante un turno de
@@ -15,6 +20,7 @@ import { openSseStream } from '@/utils/sse';
  * Solución futura: lock server-side en Redis con TTL por routineId que haga
  * responder 409 a los endpoints REST de edición mientras el turno corre.
  */
+@Roles(...DASHBOARD_ROLES)
 @Controller('routines')
 export class RoutinesForgeController {
     private readonly logger = new Logger(RoutinesForgeController.name);
