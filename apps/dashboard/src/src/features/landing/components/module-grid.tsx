@@ -14,7 +14,7 @@ const MODULES: Module[] = [
         name: 'Usuarios',
         description:
             'Miembros, entrenadores y staff en una sola tabla, cada uno con su perfil, su membresía y su estado.',
-        detail: 'Alta en Keycloak · cédula verificada contra el TSE',
+        detail: 'Alta en minutos · nombre y cédula se completan solos',
     },
     {
         icon: CalendarDays,

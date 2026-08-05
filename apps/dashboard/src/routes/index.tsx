@@ -18,6 +18,7 @@ import { BrandLockup } from '@/src/features/landing/components/brand-lockup';
 import { LiveAgenda } from '@/src/features/landing/components/live-agenda';
 import { ModuleGrid } from '@/src/features/landing/components/module-grid';
 import { PhoneFrame } from '@/src/features/landing/components/phone-frame';
+import { ImagePlaceholder } from '@/src/features/landing/components/image-placeholder';
 import { Reveal } from '@/src/features/landing/components/reveal';
 import '@/src/features/landing/landing.css';
 
@@ -25,31 +26,31 @@ export const Route = createFileRoute('/')({
     component: LandingPage,
 });
 
-const HERO_FACTS = ['6 módulos', 'Web · escritorio · móvil', 'Sesión con Keycloak'];
+const HERO_FACTS = ['Todo el gimnasio en un panel', 'Tus miembros reservan desde el celular', 'Sin instalar nada'];
 
 const APP_FEATURES: { icon: LucideIcon; text: string }[] = [
     { icon: CalendarClock, text: 'Reserva, cancela y reprograma clases desde el celular.' },
     { icon: ListChecks, text: 'Sigue la rutina que le asignó su entrenador, ejercicio por ejercicio.' },
-    { icon: TrendingUp, text: 'Registra sus medidas y ve el progreso en gráficas por período.' },
-    { icon: Sparkles, text: 'Le pregunta al coach con IA y la respuesta llega escribiéndose.' },
-    { icon: HeartPulse, text: 'Sincroniza pasos y calorías desde Health Connect.' },
+    { icon: TrendingUp, text: 'Registra sus medidas y ve su progreso mes a mes.' },
+    { icon: Sparkles, text: 'Le consulta al entrenador con inteligencia artificial cuando le queda una duda.' },
+    { icon: HeartPulse, text: 'Sus pasos y calorías del día se registran solos.' },
 ];
 
 const TRUST: { icon: LucideIcon; title: string; text: string }[] = [
     {
         icon: KeyRound,
-        title: 'Inicio de sesión con Keycloak',
-        text: 'El panel trabaja con cookies httpOnly y la app móvil con tokens OIDC. Nadie guarda contraseñas.',
+        title: 'Cada quien con su cuenta',
+        text: 'Nadie comparte usuarios ni anota contraseñas en un papel. El gimnasio tampoco las almacena.',
     },
     {
         icon: ShieldCheck,
-        title: 'Cada rol ve lo suyo',
-        text: 'Administración, staff, entrenadores y miembros entran por la misma puerta a pantallas distintas.',
+        title: 'Cada quien ve lo suyo',
+        text: 'Administración, recepción, entrenadores y miembros entran por la misma puerta a pantallas distintas.',
     },
     {
         icon: MonitorSmartphone,
-        title: 'Navegador o escritorio',
-        text: 'El mismo panel corre en el navegador y como aplicación de escritorio empaquetada con Tauri.',
+        title: 'Desde donde trabajes',
+        text: 'Funciona en el navegador y también como aplicación instalada en la computadora de recepción.',
     },
 ];
 
@@ -71,7 +72,7 @@ function LandingPage() {
 
                     <nav aria-label="Secciones" className="hidden items-center gap-8 md:flex">
                         {[
-                            { href: '#modulos', label: 'Módulos' },
+                            { href: '#modulos', label: 'Qué incluye' },
                             { href: '#app', label: 'App móvil' },
                             { href: '#acceso', label: 'Acceso' },
                         ].map((link) => (
@@ -122,7 +123,7 @@ function LandingPage() {
                                 </Button>
                                 <Button size="lg" variant="ghost" className="px-4 text-muted-foreground" asChild>
                                     <a href="#modulos">
-                                        Ver los módulos
+                                        Ver qué incluye
                                         <ArrowDown className="size-4" />
                                     </a>
                                 </Button>
@@ -152,8 +153,8 @@ function LandingPage() {
                                 Abres el panel y ya sabes cómo va el mes.
                             </h2>
                             <p className="mt-4 leading-relaxed text-muted-foreground text-pretty">
-                                Miembros activos, reservas del día, clases con más demanda e ingresos del mes en la
-                                primera pantalla. Debajo, cada módulo con su propia tabla y sus filtros.
+                                Miembros activos, reservas del día, clases con más demanda y quién no se presentó, en la
+                                primera pantalla. Debajo, cada sección con su listado y sus filtros.
                             </p>
                         </Reveal>
 
@@ -169,14 +170,7 @@ function LandingPage() {
                                         Mind &amp; Body · Dashboard
                                     </span>
                                 </div>
-                                <img
-                                    src="/dashboard-preview.png"
-                                    alt="Panel de Mind & Body: tarjetas de miembros activos, reservas del día y clases populares, con gráficas de ingresos mensuales y distribución de membresías."
-                                    className="w-full"
-                                    loading="lazy"
-                                    width={1406}
-                                    height={732}
-                                />
+                                <ImagePlaceholder className="aspect-[1406/732]" label="Vista del panel" />
                             </div>
                         </Reveal>
                     </div>
@@ -186,13 +180,13 @@ function LandingPage() {
                 <section id="modulos" className="scroll-mt-16 border-t border-[var(--lp-hairline)]">
                     <div className="mx-auto w-full max-w-6xl px-6 py-24 sm:py-28">
                         <Reveal className="max-w-2xl">
-                            <p className="lp-mono text-primary/80">Módulos</p>
+                            <p className="lp-mono text-primary/80">Qué incluye</p>
                             <h2 className="font-heading mt-4 text-3xl leading-tight font-bold tracking-tight text-balance sm:text-4xl">
-                                Seis módulos sobre los mismos datos.
+                                Seis áreas, una sola información.
                             </h2>
                             <p className="mt-4 leading-relaxed text-muted-foreground text-pretty">
-                                Nada de exportar ni volver a digitar: lo que cambias en un módulo se ve de inmediato en
-                                los demás y en la app.
+                                Nada de exportar ni volver a digitar: lo que cambias en un lado se ve de inmediato en el
+                                resto y en la app.
                             </p>
                         </Reveal>
 
