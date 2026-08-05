@@ -133,6 +133,22 @@ runIf('reservations backend (PostgreSQL real)', () => {
         return session!;
     }
 
+    /**
+     * A trainer of its own. `excl_class_sessions_trainer_overlap` is scoped by
+     * trainer, so a test that pins a wall-clock start time must not share the
+     * suite-wide trainer: `seedSession` lays sessions down at now+2h, now+4h, …
+     * and one of them lands inside the pinned window depending on the hour the
+     * suite happens to run at.
+     */
+    async function seedTrainer(fullName: string): Promise<string> {
+        const [user] = await db()
+            .insert(usersInApp)
+            .values({ keycloakSubject: crypto.randomUUID(), fullName, status: 'ACTIVE' })
+            .returning();
+        const [trainer] = await db().insert(trainersInApp).values({ userId: user!.id, status: 'ACTIVE' }).returning();
+        return trainer!.id;
+    }
+
     async function seedSeries(weekdays: number[] = [1]): Promise<string> {
         const [series] = await db()
             .insert(classSeriesInApp)
@@ -526,11 +542,14 @@ runIf('reservations backend (PostgreSQL real)', () => {
 
     it('bajar capacidad por debajo de la ocupación responde CAPACITY_BELOW_OCCUPANCY', async () => {
         const today = DateTime.now().setZone('America/Costa_Rica').toISODate()!;
+        // Own trainer: this test pins 21:00 every weekday, which collides with the
+        // shared trainer's ad-hoc sessions whenever the suite runs near that hour.
+        const capacityTrainerId = await seedTrainer('Trainer Capacidad');
         const created = await classes.create(
             {
                 name: 'Capacidad Test',
                 description: '',
-                trainerId,
+                trainerId: capacityTrainerId,
                 weekdays: [1, 2, 3, 4, 5, 6, 7],
                 localStartTime: '21:00',
                 durationMinutes: 30,
@@ -557,7 +576,7 @@ runIf('reservations backend (PostgreSQL real)', () => {
         const dto = {
             name: 'Capacidad Test',
             description: '',
-            trainerId,
+            trainerId: capacityTrainerId,
             weekdays: [1, 2, 3, 4, 5, 6, 7],
             localStartTime: '21:00',
             durationMinutes: 30,
