@@ -1,6 +1,8 @@
 {
     "name": "mind-and-body",
     "private": true,
+    "license": "SEE LICENSE IN LICENSE",
+    "author": "Juan Esteban Peña Sanchez",
     "scripts": {
         "build": "turbo run build",
         "dev": "turbo run dev",
